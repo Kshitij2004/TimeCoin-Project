@@ -67,7 +67,7 @@ x++;
 ```
 - TODO format: `// TODO(name): ...`
 ## Tests
-
+- Test class names are `PascalCase` and end with `Test` (e.g., `LedgerTest`).
 ---
 
 v0

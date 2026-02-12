@@ -43,7 +43,29 @@ public class IndentationDemo {
 - Imports should be organized: `java.* / javax.*`, then third-party, then project packages.
 - Remove unused imports.
 ## Comments & JavaDoc
+- Javadoc required only for public classes and public methods that aren’t self-evident. Below is a template:
+```java
+/**
+ * A concise one-line summary of what the method does.
+ * * (Optional) Additional paragraphs to explain complex logic, 
+ * side effects, or specific exceptions.
+ *
+ * @param parameterName Description of the input and any constraints (e.g., non-null).
+ * @param anotherParam  Description of the second input.
+ * @return Description of the value returned (e.g., true if successful).
+ */
+```
+- Comments should explain why, not restate what the code does:
+```java
+// WRONG.
+// Increments x by 1.
+x++;
 
+// CORRECT.
+// Move to the next index in the result set.
+x++;
+```
+- TODO format: `// TODO(name): ...`
 ## Tests
 
 ---

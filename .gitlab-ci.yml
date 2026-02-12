@@ -1,0 +1,16 @@
+stages:
+  - validate
+
+check-required-files:
+  stage: validate
+  image: alpine:latest
+  script:
+    - echo "Checking Sprint 0 deliverables..."
+    - test -f README.md
+    - test -f SKELETON.md
+    - test -f STYLE.md
+    - test -f ROLES.md
+    - test -f .gitignore
+    - test -f LOGO.png
+    - test -d RESEARCH
+    - echo "All required files present."

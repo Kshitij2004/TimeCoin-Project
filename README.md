@@ -82,9 +82,12 @@ B <--> C
 title: TimeCoin Database Overview
 ---
 erDiagram
-    Customer ||--o{ Order : "placed by"
-    Order ||--o{ OrderItem : "contains"
-    Product ||--o{ OrderItem : "included in"
+   
+    Customer ||--|| Wallet : owns
+    Customer ||--o{ Service : creates
+    Customer ||--o{ Transaction : buyer
+    Customer ||--o{ Transaction : seller
+    Service ||--o{ Transaction : purchased_in
 
     Customer {
         int customer_id PK
@@ -104,7 +107,7 @@ erDiagram
 
     Service {
         int product_id PK
-        int seller_id FK --> customer.customer_id
+        int seller_id FK
         string title
         string description
         decimal price
@@ -114,8 +117,8 @@ erDiagram
 
     Transaction {
         int transaction_id PK
-        int buyer_id FK --> customer.customer_id
-        int seller_id FK -- customer.customer_id
+        int buyer_id FK
+        int seller_id FK
         int amount
         int time
         string status
@@ -178,14 +181,17 @@ graph TD;
 
 ```mermaid
 ---
-title: State Diagram For TimeCoin
+title: State Diagram - TimeCoin
 ---
 stateDiagram
     [*] --> Ready
-    Ready -->  : Pending
-    Pending --> Insuffiecient Funds : Failed
-    Insuffiecient Funds --> Ready : Add funds
-    Pending --> Valid : Success
+    Ready --> Pending : purchase initiated
+    Pending --> Failed : insufficient funds
+    Pending --> Processing : balance validated
+    Processing --> Completed : wallets updated
+    Processing --> Failed : system error
+    Failed --> Ready : retry
+    Completed --> Ready : new transaction
 ```
 
 #### Sequence Diagram

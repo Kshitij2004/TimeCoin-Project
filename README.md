@@ -14,25 +14,30 @@ Also, be sure to check out the Wiki for information on how to maintain your team
 
 *TimeCoin* is a time-based cryptocurrency platform that will be designed for studnets to trade their own services over our website. Instead of simply paying for a service such as coding help or tutoring, *TimeCoin* will allow any student to offer their assistance in exhange for a certain amount of *TimeCoin* cryptocurrency. 
 
-Key features of *TimeCoin* include:
-    - Student Accounts
-        - Secure login & registration
-        - Wallet with TimeCoin balance
-        - Transaction history
-    - Service Marketplace
-        - Post a service with description and price
-        - Browse available services
-        - Filter/search by category
-    - Time-based Currency
-        - Earn TimeCoins by providing services
-        - Spend TimeCoins to receive services
-        - Track all transfers transparently
-    - Transaction System
-        - Peer-to-peer coin transfers
-        - Service completion confirmation
-    - Rating and Feedback
-        - Review service providers
-        - Build trust on the platform
+## Key Features of *TimeCoin*
+
+- **Student Accounts**
+  - Secure login & registration
+  - Wallet with TimeCoin balance
+  - Transaction history
+
+- **Service Marketplace**
+  - Post a service with description and price
+  - Browse available services
+  - Filter/search by category
+
+- **Time-Based Currency**
+  - Earn TimeCoins by providing services
+  - Spend TimeCoins to receive services
+  - Track all transfers transparently
+
+- **Transaction System**
+  - Peer-to-peer coin transfers
+  - Service completion confirmation
+
+- **Rating and Feedback**
+  - Review service providers
+  - Build trust on the platform
 
 ### Customer
 

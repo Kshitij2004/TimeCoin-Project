@@ -17,7 +17,7 @@ if (x) {
     counter++; // CORRECT.
 }
 ```
-- Line limit is 100 characters when reasonable (wrap long strings/args cleanly).
+- Line limit is 100 characters when reasonable (wrap long strings/args cleanly):
 ```java
 public class IndentationDemo {
     // 100 Character limit guide (Visual Marker) ------------------------------------------------->|
@@ -34,7 +34,10 @@ public class IndentationDemo {
 }
 ```
 ## Naming
-
+- Classes, Interfaces, and Enums: `PascalCase`
+- Methods, fields, local variables: `camelCase`
+- Constants (`static final`): `UPPER_SNAKE_CASE`
+- Packages: `lowercase` (no underscores)
 ## Imports
 
 ## Comments & JavaDoc

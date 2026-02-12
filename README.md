@@ -6,19 +6,44 @@ Also, be sure to check out the Wiki for information on how to maintain your team
 
 ## TeamName
 
-<!--The name of your team.-->
+**TimeCoin** (Project_12)
 
 ### Project Abstract
 
 <!--A one paragraph summary of what the software will do.-->
 
-This is an example paragraph written in markdown. You can use *italics*, **bold**, and other formatting options. You can also <u>use inline html</u> to format your text. The example sections included in this document are not necessarily all the sections you will want, and it is possible that you won't use all the one's provided. It is your responsibility to create a document that adequately conveys all the information about your project specifications and requirements.
+*TimeCoin* is a time-based cryptocurrency platform that will be designed for studnets to trade their own services over our website. Instead of simply paying for a service such as coding help or tutoring, *TimeCoin* will allow any student to offer their assistance in exhange for a certain amount of *TimeCoin* cryptocurrency. 
 
-Please view this file's source to see `<!--comments-->` with guidance on how you might use the different sections of this document. 
+## Key Features of *TimeCoin*
+
+- **Student Accounts**
+  - Secure login & registration
+  - Wallet with TimeCoin balance
+  - Transaction history
+
+- **Service Marketplace**
+  - Post a service with description and price
+  - Browse available services
+  - Filter/search by category
+
+- **Time-Based Currency**
+  - Earn TimeCoins by providing services
+  - Spend TimeCoins to receive services
+  - Track all transfers transparently
+
+- **Transaction System**
+  - Peer-to-peer coin transfers
+  - Service completion confirmation
+
+- **Rating and Feedback**
+  - Review service providers
+  - Build trust on the platform
 
 ### Customer
 
-<!--A brief description of the customer for this software, both in general (the population who might eventually use such a system) and specifically for this document (the customer(s) who informed this document). Every project will have a customer from the CS506 instructional staff. Requirements should not be derived simply from discussion among team members. Ideally your customer should not only talk to you about requirements but also be excited later in the semester to use the system.-->
+The primary customers of *TimeCoin* are University of Wisconsin-Madison students who are wanting to exhange services within our campus community. Many students have valuable skills to share with others, but don't have a platform that can reliably outsource them. Likewise, there are many students who need academic accomodations who don't know where to find it outside of university offered sessions. 
+
+By using time as the main unit of value in our system, we are effectively buying students more time. Making our platform beneficial for those who need academic support and don't have the time to make university help sessions, or students that have time on their hands and skills that are marketable.
 
 ### Specification
 
@@ -30,66 +55,15 @@ Please view this file's source to see `<!--comments-->` with guidance on how you
 
 #### Technology Stack
 
-Here are some sample technology stacks that you can use for inspiration:
+Frontend: React.js or Node.js
+Backend: Java (potentially with SpringBoot)
+Database: MySQL
+Security/Authentication: TBD
 
 ```mermaid
 flowchart RL
 subgraph Front End
-	A(Javascript: React)
-end
-	
-subgraph Back End
-	B(Python: Django with \nDjango Rest Framework)
-end
-	
-subgraph Database
-	C[(MySQL)]
-end
-
-A <-->|"REST API"| B
-B <-->|Django ORM| C
-```
-
-```mermaid
-flowchart RL
-subgraph Front End
-	A(Javascript: Vue)
-end
-	
-subgraph Back End
-	B(Python: Flask)
-end
-	
-subgraph Database
-	C[(MySQL)]
-end
-
-A <-->|"REST API"| B
-B <-->|SQLAlchemy| C
-```
-
-```mermaid
-flowchart RL
-subgraph Front End
-	A(Javascript: Vue)
-end
-	
-subgraph Back End
-	B(Javascript: Express)
-end
-	
-subgraph Database
-	C[(MySQL)]
-end
-
-A <-->|"REST API"| B
-B <--> C
-```
-
-```mermaid
-flowchart RL
-subgraph Front End
-	A(Static JS, CSS, HTML)
+	A(Javascript: React/Node)
 end
 	
 subgraph Back End
@@ -100,26 +74,8 @@ subgraph Database
 	C[(MySQL)]
 end
 
-A <-->|HTTP| B
+A <-->|"REST API"| B
 B <--> C
-```
-
-```mermaid
-flowchart RL
-subgraph Front End
-	A(Mobile App)
-end
-	
-subgraph Back End
-	B(Python: Django)
-end
-	
-subgraph Database
-	C[(MySQL)]
-end
-
-A <-->|REST API| B
-B <-->|Django ORM| C
 ```
 
 
@@ -128,39 +84,49 @@ B <-->|Django ORM| C
 
 ```mermaid
 ---
-title: Sample Database ERD for an Order System
+title: TimeCoin Database Overview
 ---
 erDiagram
-    Customer ||--o{ Order : "placed by"
-    Order ||--o{ OrderItem : "contains"
-    Product ||--o{ OrderItem : "included in"
+   
+    Customer ||--|| Wallet : owns
+    Customer ||--o{ Service : creates
+    Customer ||--o{ Transaction : buyer
+    Customer ||--o{ Transaction : seller
+    Service ||--o{ Transaction : purchased_in
 
     Customer {
         int customer_id PK
         string name
         string email
         string phone
+        string user
+        string password
+
     }
 
-    Order {
-        int order_id PK
+    Wallet {
+        int wallet_id PK
         int customer_id FK
-        string order_date
-        string status
+        string balance
     }
 
-    Product {
+    Service {
         int product_id PK
-        string name
+        int seller_id FK
+        string title
         string description
         decimal price
+        string category
+        bool is_active
     }
 
-    OrderItem {
-        int order_item_id PK
-        int order_id FK
-        int product_id FK
-        int quantity
+    Transaction {
+        int transaction_id PK
+        int buyer_id FK
+        int seller_id FK
+        int amount
+        int time
+        string status
     }
 ```
 
@@ -168,31 +134,30 @@ erDiagram
 
 ```mermaid
 ---
-title: Sample Class Diagram for Animal Program
+title: Class diagram for TimeCoin
 ---
 classDiagram
-    class Animal {
-        - String name
-        + Animal(String name)
-        + void setName(String name)
-        + String getName()
-        + void makeSound()
+    class user {
+        + register()
+        + login()
+        + makeService()
+        + purchaseService()
     }
-    class Dog {
-        + Dog(String name)
-        + void makeSound()
+    class wallet {
+        + getBalance()
     }
-    class Cat {
-        + Cat(String name)
-        + void makeSound()
+    class service {
+        + updateService()
+        + removeService()
     }
-    class Bird {
-        + Bird(String name)
-        + void makeSound()
+    class transaction {
+        + process()
+        + ensureBalance()
+        + complete()
     }
-    Animal <|-- Dog
-    Animal <|-- Cat
-    Animal <|-- Bird
+    user <|-- wallet
+    user <|-- service
+    user <|-- transaction
 ```
 
 #### Flowchart
@@ -202,56 +167,70 @@ classDiagram
 title: Sample Program Flowchart
 ---
 graph TD;
-    Start([Start]) --> Input_Data[/Input Data/];
-    Input_Data --> Process_Data[Process Data];
-    Process_Data --> Validate_Data{Validate Data};
-    Validate_Data -->|Valid| Process_Valid_Data[Process Valid Data];
-    Validate_Data -->|Invalid| Error_Message[/Error Message/];
-    Process_Valid_Data --> Analyze_Data[Analyze Data];
-    Analyze_Data --> Generate_Output[Generate Output];
-    Generate_Output --> Display_Output[/Display Output/];
-    Display_Output --> End([End]);
-    Error_Message --> End;
+    Start([Start]) --> Register[/Register/];
+    Register --> Login[Login];
+    Login --> Purchase_or_Sell{Purchase or Sell};
+    Purchase_or_Sell -->|Purchase| Select_Listing[Select Listing];
+    Purchase_or_Sell -->|Sell| Create_Service[/Create Service/];
+    Select_Listing --> Insufficient_Funds[Insufficient Funds];
+    Select_Listing --> Sufficient_Funds[Sufficient Funds]
+    Insufficient_Funds --> Cannot_Purchase[Cannot Purchase];
+    Sufficient_Funds --> Complete_Transaction[/Transaction Completed/];
+    Complete_Transaction --> End([End]);
+    Insufficient_Funds --> End;
+    Create_Service --> Description[Enter title, description, price];
+    Description --> Display_in_Market([Display Listing]);
 ```
 
 #### Behavior
 
 ```mermaid
 ---
-title: Sample State Diagram For Coffee Application
+title: State Diagram - TimeCoin
 ---
 stateDiagram
     [*] --> Ready
-    Ready --> Brewing : Start Brewing
-    Brewing --> Ready : Brew Complete
-    Brewing --> WaterLowError : Water Low
-    WaterLowError --> Ready : Refill Water
-    Brewing --> BeansLowError : Beans Low
-    BeansLowError --> Ready : Refill Beans
+    Ready --> Pending : purchase initiated
+    Pending --> Failed : insufficient funds
+    Pending --> Processing : balance validated
+    Processing --> Completed : wallets updated
+    Processing --> Failed : system error
+    Failed --> Ready : retry
+    Completed --> Ready : new transaction
 ```
 
 #### Sequence Diagram
 
 ```mermaid
 sequenceDiagram
+    participant U as User (Buyer)
+    participant F as Frontend
+    participant B as Backend API
+    participant T as Transaction Service
+    participant W as Wallet
+    participant DB as Database
 
-participant ReactFrontend
-participant DjangoBackend
-participant MySQLDatabase
+    U->>F: Click "Purchase"
+    F->>B: POST /purchase(serviceId)
 
-ReactFrontend ->> DjangoBackend: HTTP Request (e.g., GET /api/data)
-activate DjangoBackend
+    B->>DB: Get buyer balance
+    DB-->>B: Return balance
 
-DjangoBackend ->> MySQLDatabase: Query (e.g., SELECT * FROM data_table)
-activate MySQLDatabase
-
-MySQLDatabase -->> DjangoBackend: Result Set
-deactivate MySQLDatabase
-
-DjangoBackend -->> ReactFrontend: JSON Response
-deactivate DjangoBackend
+    alt Insufficient Funds
+        B-->>F: Return error message
+        F-->>U: Show "Insufficient Funds"
+    else Sufficient Funds
+        B->>T: Create transaction (pending)
+        T->>W: Debit buyer
+        T->>W: Credit seller
+        W->>DB: Update balances
+        DB-->>W: Success
+        T->>DB: Save transaction
+        DB-->>T: Success
+        B-->>F: Return success
+        F-->>U: Show confirmation
+    end
 ```
-
 ### Standards & Conventions
 
 <!--This is a link to a seperate coding conventions document / style guide-->

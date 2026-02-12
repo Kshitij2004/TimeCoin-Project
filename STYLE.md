@@ -1,14 +1,15 @@
 # P_05 Style Guide
 Unless otherwise specified below, we follow the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html).
-# Formatting
+# Java
+## Formatting
 
-# Naming
+## Naming
 
-# Imports
+## Imports
 
-# Comments & JavaDoc
+## Comments & JavaDoc
 
-# Tests
+## Tests
 
 ---
 

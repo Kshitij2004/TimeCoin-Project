@@ -39,7 +39,9 @@ public class IndentationDemo {
 - Constants (`static final`): `UPPER_SNAKE_CASE`
 - Packages: `lowercase` (no underscores)
 ## Imports
-
+- No wildcard imports (`import x.*`).
+- Imports should be organized: `java.* / javax.*`, then third-party, then project packages.
+- Remove unused imports.
 ## Comments & JavaDoc
 
 ## Tests

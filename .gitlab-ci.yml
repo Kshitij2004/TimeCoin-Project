@@ -1,5 +1,8 @@
 stages:
   - validate
+  - build
+  - test
+  - lint
 
 check-required-files:
   stage: validate
@@ -14,3 +17,37 @@ check-required-files:
     - test -f LOGO.png
     - test -d RESEARCH
     - echo "All required files present."
+
+build-backend:
+  stage: build
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - echo "Building backend..."
+    - cd backend
+    - mvn compile
+
+test-backend:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - echo "Testing backend..."
+    - cd backend
+    - mvn test
+
+lint-frontend:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - echo "Linting frontend..."
+    - cd frontend
+    - npm install
+    - npm run lint
+
+test-frontend:
+  stage: test
+  image: node:20-alpine
+  script:
+    - echo "Testing frontend..."
+    - cd frontend
+    - npm install
+    - npm test -- --watchAll=false

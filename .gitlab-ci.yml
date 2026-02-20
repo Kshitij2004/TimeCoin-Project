@@ -20,22 +20,22 @@ check-required-files:
 
 build-backend:
   stage: build
-  image: maven:3.9-eclipse-temurin-21
+  image: gradle:8.5-jdk21
   script:
     - echo "Building backend..."
     - cd backend
-    - mvn compile
+    - gradle build
 
 test-backend:
   stage: test
-  image: maven:3.9-eclipse-temurin-21
+  image: gradle:8.5-jdk21
   script:
     - echo "Testing backend..."
     - cd backend
-    - mvn test
+    - gradle test
 
 lint-frontend:
-  stage: lint
+  stage: lint 
   image: node:20-alpine
   script:
     - echo "Linting frontend..."

@@ -1,6 +1,6 @@
 -- Create the database if it doesn't exist
-CREATE DATABASE IF NOT EXISTS crypto_app;
-USE crypto_app;
+CREATE DATABASE IF NOT EXISTS crypto_marketplace;
+USE crypto_marketplace;
 
 -- 1. Users Table
 -- Stores user authentication and profile info.

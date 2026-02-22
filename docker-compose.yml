@@ -29,6 +29,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/crypto_marketplace
       SPRING_DATASOURCE_USERNAME: team12admin
       SPRING_DATASOURCE_PASSWORD: team12pass
+      SPRING_DATASOURCE_HIKARI_CONNECTION-TIMEOUT: 60000 # added per race condition where MySQL would restart, 
+                                                         # but Spring tries connection during restart
+      SPRING_DATASOURCE_HIKARI_INITIALIZATION-FAIL-TIMEOUT: 60000
       JWT_SECRET: team12jwtsecret2026
 
   frontend:

@@ -50,7 +50,7 @@ VALUES (1, 'demo@example.com')
 ON DUPLICATE KEY UPDATE email = VALUES(email);
 
 INSERT INTO coins (symbol, current_price_usd, circulating_supply)
-VALUES ('BTC', 66000.00, 100.00000000)
+VALUES ('TC', 66000.00, 100.00000000)
 ON DUPLICATE KEY UPDATE
   current_price_usd = VALUES(current_price_usd),
   circulating_supply = VALUES(circulating_supply);

@@ -17,15 +17,15 @@ function createMockConnection(results) {
 test("purchaseCoin succeeds and returns updated wallet balance", async () => {
   const connection = createMockConnection([
     [[{ id: 1 }]],
-    [[{ symbol: "BTC", current_price_usd: "66000.00", circulating_supply: "10.00000000" }]],
+    [[{ symbol: "TC", current_price_usd: "66000.00", circulating_supply: "10.00000000" }]],
     [{ affectedRows: 1 }],
     [{ affectedRows: 1 }],
-    [[{ userId: 1, symbol: "BTC", balance: "1.25000000" }]],
+    [[{ userId: 1, symbol: "TC", balance: "1.25000000" }]],
     [{ insertId: 42 }],
     [[{
       id: 42,
       userId: 1,
-      symbol: "BTC",
+      symbol: "TC",
       transactionType: "BUY",
       quantity: "1.25000000",
       priceUsd: "66000.00",
@@ -40,13 +40,13 @@ test("purchaseCoin succeeds and returns updated wallet balance", async () => {
 
   const result = await service.purchaseCoin({
     userId: 1,
-    symbol: "btc",
+    symbol: "tc",
     amount: 1.25
   });
 
   assert.equal(result.message, "Coin purchase successful");
   assert.equal(result.wallet.userId, 1);
-  assert.equal(result.wallet.symbol, "BTC");
+  assert.equal(result.wallet.symbol, "TC");
   assert.equal(result.wallet.balance, "1.25000000");
   assert.equal(result.transaction.priceUsd, "66000.00");
 });
@@ -54,7 +54,7 @@ test("purchaseCoin succeeds and returns updated wallet balance", async () => {
 test("purchaseCoin returns insufficient supply error", async () => {
   const connection = createMockConnection([
     [[{ id: 1 }]],
-    [[{ symbol: "BTC", current_price_usd: "66000.00", circulating_supply: "0.50000000" }]]
+    [[{ symbol: "TC", current_price_usd: "66000.00", circulating_supply: "0.50000000" }]]
   ]);
 
   const service = buildPurchaseService({
@@ -62,7 +62,7 @@ test("purchaseCoin returns insufficient supply error", async () => {
   });
 
   await assert.rejects(
-    () => service.purchaseCoin({ userId: 1, symbol: "BTC", amount: 1 }),
+    () => service.purchaseCoin({ userId: 1, symbol: "TC", amount: 1 }),
     (error) => {
       assert.ok(error instanceof PurchaseError);
       assert.equal(error.statusCode, 409);
@@ -80,7 +80,7 @@ test("purchaseCoin validates amount", async () => {
   });
 
   await assert.rejects(
-    () => service.purchaseCoin({ userId: 1, symbol: "BTC", amount: 0 }),
+    () => service.purchaseCoin({ userId: 1, symbol: "TC", amount: 0 }),
     (error) => {
       assert.ok(error instanceof PurchaseError);
       assert.equal(error.statusCode, 400);

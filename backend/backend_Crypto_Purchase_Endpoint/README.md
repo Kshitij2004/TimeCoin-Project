@@ -11,7 +11,7 @@ Request body:
 ```json
 {
   "userId": 1,
-  "symbol": "BTC",
+  "symbol": "TC",
   "amount": 0.25
 }
 ```
@@ -24,7 +24,7 @@ Response (`201`):
   "transaction": {
     "id": 1,
     "userId": 1,
-    "symbol": "BTC",
+    "symbol": "TC",
     "transactionType": "BUY",
     "quantity": "0.25000000",
     "priceUsd": "67000.00",
@@ -33,7 +33,7 @@ Response (`201`):
   },
   "wallet": {
     "userId": 1,
-    "symbol": "BTC",
+    "symbol": "TC",
     "balance": "0.25000000"
   }
 }

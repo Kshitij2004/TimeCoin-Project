@@ -20,6 +20,4 @@ app.get("/health", async (req, res) => {
 
 app.use("/api/transactions", transactionsRouter);
 
-app.listen(port, () => {
-  console.log(`Backend listening on port ${port}`);
-});
+app.listen(port, () => { console.log(`Backend listening on port ${port}`); });

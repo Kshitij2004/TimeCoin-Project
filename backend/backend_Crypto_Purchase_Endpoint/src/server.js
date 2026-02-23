@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const { query } = require("./db");
 const transactionsRouter = require("./routes/transactions");
+const coinRouter = require("./routes/coin");
 const app = express();
 const port = Number(process.env.PORT || 3000);
 app.use(express.json());
@@ -16,4 +17,5 @@ app.get("/health", async (req, res) => {
 });
 
 app.use("/api/transactions", transactionsRouter);
+app.use("/api/coin", coinRouter);
 app.listen(port, () => { console.log(`Backend listening on port ${port}`); });

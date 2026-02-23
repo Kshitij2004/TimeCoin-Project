@@ -12,7 +12,7 @@ import History from './pages/History';
 
 function App() {
   // Mock authentication state for Sprint 1
-  const isAuthenticated = true; // Change to false to test unauthenticated flow
+  const isAuthenticated = false; // Change to false to test unauthenticated flow
 
   return (
     <Router>

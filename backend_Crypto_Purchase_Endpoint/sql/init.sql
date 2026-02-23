@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  symbol VARCHAR(10) NOT NULL,
+  transaction_type ENUM('BUY', 'SELL') NOT NULL,
+  quantity DECIMAL(18, 8) NOT NULL,
+  price_usd DECIMAL(18, 2) NOT NULL,
+  total_usd DECIMAL(18, 2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_transactions_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+);
+
+INSERT INTO users (id, email)
+VALUES (1, 'demo@example.com')
+ON DUPLICATE KEY UPDATE email = VALUES(email);

@@ -1,7 +1,8 @@
 package t_12.backend.api.wallet;
 
-import t_12.backend.entity.Wallet;
 import java.math.BigDecimal;
+
+import t_12.backend.entity.Wallet;
 
 public class WalletDTO {
 
@@ -13,6 +14,11 @@ public class WalletDTO {
         this.coinBalance = wallet.getCoinBalance();
     }
 
-    public Long getUserId() { return userId; }
-    public BigDecimal getCoinBalance() { return coinBalance; }
+    public Long getUserId() {
+        return userId;
+    }
+
+    public BigDecimal getCoinBalance() {
+        return coinBalance;
+    }
 }

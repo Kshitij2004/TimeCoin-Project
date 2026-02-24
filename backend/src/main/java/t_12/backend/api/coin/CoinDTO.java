@@ -15,7 +15,15 @@ public class CoinDTO {
         this.circulatingSupply = coin.getCirculatingSupply();
     }
 
-    public BigDecimal getCurrentPrice() { return currentPrice; }
-    public BigDecimal getTotalSupply() { return totalSupply; }
-    public BigDecimal getCirculatingSupply() { return circulatingSupply; }
+    public BigDecimal getCurrentPrice() {
+        return currentPrice;
+    }
+
+    public BigDecimal getTotalSupply() {
+        return totalSupply;
+    }
+
+    public BigDecimal getCirculatingSupply() {
+        return circulatingSupply;
+    }
 }

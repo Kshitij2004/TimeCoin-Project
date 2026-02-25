@@ -1,4 +1,4 @@
-# Backend Crypto Purchase History
+# Backend Crypto Purchase History (Java)
 
 REST endpoint for returning an authenticated user's transaction history.
 
@@ -38,7 +38,7 @@ Sorted by most recent first using `ORDER BY created_at DESC, id DESC`.
 
 ## Run
 
-From `backend/backend_crypto_purchase_history`:
+From `backend/backend_Crypto_Purchase_History`:
 
 ```bash
 docker compose up --build
@@ -47,11 +47,11 @@ docker compose up --build
 ## Test with Postman
 
 - Method: `GET`
-- URL: `http://localhost:3000/api/transactions?page=1&limit=2`
+- URL: `http://localhost:3001/api/transactions?page=1&limit=2`
 - Header: `x-user-id: 1`
 
 ## Run unit tests
 
 ```bash
-npm test
+mvn test
 ```

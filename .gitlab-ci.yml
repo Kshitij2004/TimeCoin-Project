@@ -20,19 +20,21 @@ check-required-files:
 
 build-backend:
   stage: build
-  image: gradle:8.5-jdk21
+  image: eclipse-temurin:21-jdk
   script:
     - echo "Building backend..."
     - cd backend
-    - gradle build
+    - chmod +x gradlew
+    - ./gradlew build -x test
 
 test-backend:
   stage: test
-  image: gradle:8.5-jdk21
+  image: eclipse-temurin:21-jdk
   script:
     - echo "Testing backend..."
     - cd backend
-    - gradle test
+    - chmod +x gradlew
+    - ./gradlew test
 
 lint-frontend:
   stage: lint 

@@ -1,6 +1,6 @@
-# Crypto Currency Backend
+# Crypto Currency Backend (Java)
 
-Minimal backend scaffold for the crypto currency project using Node.js, Express, MySQL, and Docker.
+Minimal backend scaffold for the crypto currency project using Java (Spring Boot), MySQL, and Docker.
 
 ## Implemented endpoint
 
@@ -51,6 +51,12 @@ Health check:
 
 ```bash
 curl http://localhost:3000/health
+```
+
+Run tests:
+
+```bash
+mvn test
 ```
 
 ## Test in Postman

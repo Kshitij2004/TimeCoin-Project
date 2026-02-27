@@ -1,9 +1,14 @@
 stages:
   - validate
+  - build
+  - test
+  - lint
 
 check-required-files:
   stage: validate
   image: alpine:latest
+  tags:
+    - cs506
   script:
     - echo "Checking Sprint 0 deliverables..."
     - test -f README.md
@@ -14,3 +19,47 @@ check-required-files:
     - test -f LOGO.png
     - test -d RESEARCH
     - echo "All required files present."
+
+build-backend:
+  stage: build
+  image: eclipse-temurin:21-jdk
+  tags:
+    - cs506
+  script:
+    - echo "Building backend..."
+    - cd backend
+    - chmod +x gradlew
+    - ./gradlew build -x test
+
+test-backend:
+  stage: test
+  image: eclipse-temurin:21-jdk
+  tags:
+    - cs506
+  script:
+    - echo "Testing backend..."
+    - cd backend
+    - chmod +x gradlew
+    - ./gradlew test
+
+lint-frontend:
+  stage: lint 
+  image: node:20-alpine
+  tags:
+    - cs506
+  script:
+    - echo "Linting frontend..."
+    - cd frontend
+    - npm install
+    - npm run lint
+
+test-frontend:
+  stage: test
+  image: node:20-alpine
+  tags:
+    - cs506
+  script:
+    - echo "Testing frontend..."
+    - cd frontend
+    - npm install
+    - npm test -- --watchAll=false --passWithNoTests

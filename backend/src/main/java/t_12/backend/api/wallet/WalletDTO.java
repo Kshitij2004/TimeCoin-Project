@@ -6,7 +6,7 @@ import t_12.backend.entity.Wallet;
 
 public class WalletDTO {
 
-    private Long userId;
+    private Integer userId;
     private BigDecimal coinBalance;
 
     public WalletDTO(Wallet wallet) {
@@ -14,7 +14,7 @@ public class WalletDTO {
         this.coinBalance = wallet.getCoinBalance();
     }
 
-    public Long getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 

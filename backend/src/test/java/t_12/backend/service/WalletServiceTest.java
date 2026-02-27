@@ -30,26 +30,26 @@ class WalletServiceTest {
     @Test
     void GetWalletByUserId_ReturnsWallet_WhenFoundTest() {
         Wallet wallet = new Wallet();
-        wallet.setUserId(1L);
+        wallet.setUserId(101);
         wallet.setCoinBalance(new BigDecimal("5.00000000"));
 
-        when(walletRepository.findByUserId(1L)).thenReturn(Optional.of(wallet));
+        when(walletRepository.findByUserId(101)).thenReturn(Optional.of(wallet));
 
-        Wallet result = walletService.getWalletByUserId(1L);
+        Wallet result = walletService.getWalletByUserId(101);
 
-        assertEquals(1L, result.getUserId());
+        assertEquals(101, result.getUserId());
         assertEquals(new BigDecimal("5.00000000"), result.getCoinBalance());
-        verify(walletRepository, times(1)).findByUserId(1L);
+        verify(walletRepository, times(1)).findByUserId(101);
     }
 
     @Test
     void GetWalletByUserId_ThrowsException_WhenNotFoundTest() {
-        when(walletRepository.findByUserId(99L)).thenReturn(Optional.empty());
+        when(walletRepository.findByUserId(111)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
-            walletService.getWalletByUserId(99L);
+            walletService.getWalletByUserId(111);
         });
 
-        verify(walletRepository, times(1)).findByUserId(99L);
+        verify(walletRepository, times(1)).findByUserId(111);
     }
 }

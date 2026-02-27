@@ -6,7 +6,7 @@ import t_12.backend.entity.User;
 
 public class UserDTO {
 
-    private Long id;
+    private Integer id;
     private String username;
     private String email;
     private LocalDateTime createdAt;
@@ -18,7 +18,7 @@ public class UserDTO {
         this.createdAt = user.getCreatedAt();
     }
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 

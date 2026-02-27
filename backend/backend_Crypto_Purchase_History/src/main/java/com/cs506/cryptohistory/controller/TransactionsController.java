@@ -5,6 +5,7 @@ import com.cs506.cryptohistory.dto.TransactionHistoryResponse;
 import com.cs506.cryptohistory.exception.TransactionHistoryException;
 import com.cs506.cryptohistory.service.TransactionsService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/transactions")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3002"})
 public class TransactionsController {
 
     private final TransactionsService transactionsService;

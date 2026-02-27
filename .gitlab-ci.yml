@@ -7,6 +7,8 @@ stages:
 check-required-files:
   stage: validate
   image: alpine:latest
+  tags:
+    - cs506
   script:
     - echo "Checking Sprint 0 deliverables..."
     - test -f README.md
@@ -21,6 +23,8 @@ check-required-files:
 build-backend:
   stage: build
   image: eclipse-temurin:21-jdk
+  tags:
+    - cs506
   script:
     - echo "Building backend..."
     - cd backend
@@ -30,6 +34,8 @@ build-backend:
 test-backend:
   stage: test
   image: eclipse-temurin:21-jdk
+  tags:
+    - cs506
   script:
     - echo "Testing backend..."
     - cd backend
@@ -39,6 +45,8 @@ test-backend:
 lint-frontend:
   stage: lint 
   image: node:20-alpine
+  tags:
+    - cs506
   script:
     - echo "Linting frontend..."
     - cd frontend
@@ -48,6 +56,8 @@ lint-frontend:
 test-frontend:
   stage: test
   image: node:20-alpine
+  tags:
+    - cs506
   script:
     - echo "Testing frontend..."
     - cd frontend

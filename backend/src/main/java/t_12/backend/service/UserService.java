@@ -1,0 +1,73 @@
+package t_12.backend.service;
+
+import java.time.LocalDateTime;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import t_12.backend.entity.User;
+import t_12.backend.entity.Wallet;
+import t_12.backend.exception.ResourceNotFoundException;
+import t_12.backend.repository.UserRepository;
+import t_12.backend.repository.WalletRepository;
+
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository, WalletRepository walletRepository) {
+        this.userRepository = userRepository;
+        this.walletRepository = walletRepository;
+        // BCryptPasswordEncoder is the hashing algorithm we use on passwords.
+        // A "strength" of 10 means it runs the hash function 2^10 = 1024 times,
+        // making brute force attacks much harder. 10 is the industry standard default.
+        this.passwordEncoder = new BCryptPasswordEncoder(10);
+    }
+
+    public User register(String username, String email, String password) {
+
+        // Duplicate Validation 
+        // Before we do anything, check if the username or email is already taken.
+        // We use existsBy instead of findBy here because we don't need the actual
+        // user object, just a true/false answer. It's a cheaper database call.
+        if (userRepository.existsByUsername(username)) {
+            throw new ResourceNotFoundException("Username already exists: " + username);
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new ResourceNotFoundException("Email already exists: " + email);
+        }
+
+        // Build the User
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+
+        // Never store a plain text password. passwordEncoder.encode() runs the
+        // bcrypt algorithm on the raw password and returns a hashed string like:
+        // "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+        // Even if someone got access to the database, they couldn't reverse it.
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setCreatedAt(LocalDateTime.now());
+
+        // Save the User
+        // .save() persists the user to the database and returns the saved entity,
+        // which now includes the auto-generated id we need for the wallet.
+        User savedUser = userRepository.save(user);
+
+        // Auto-create Wallet
+        // Per the acceptance criteria, every new user gets a wallet with 0 balance.
+        // We use the savedUser.getId() here because the wallet needs to know
+        // which user it belongs to. This is the link between the two tables.
+        Wallet wallet = new Wallet();
+        wallet.setUserId(savedUser.getId());
+        wallet.setCoinBalance(java.math.BigDecimal.ZERO);
+        wallet.setCreatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+
+        return savedUser;
+    }
+}

@@ -24,10 +24,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-            "timestamp", LocalDateTime.now().toString(),
-            "status", 500,
-            "error", "Internal Server Error",
-            "message", "An unexpected error occurred"
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 500,
+                "error", "Internal Server Error",
+                "message", "An unexpected error occurred"));
+    }
+    
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateResourceException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 409,
+                "error", "Conflict",
+                "message", ex.getMessage()
         ));
     }
 }

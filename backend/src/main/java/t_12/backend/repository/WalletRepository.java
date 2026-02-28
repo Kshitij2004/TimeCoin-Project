@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import t_12.backend.entity.Wallet;
 
 @Repository
-public interface WalletRepository extends JpaRepository<Wallet, Long> {
-    Optional<Wallet> findByUserId(Long userId);
+public interface WalletRepository extends JpaRepository<Wallet, Integer> {
+    Optional<Wallet> findByUserId(Integer userId);
 }

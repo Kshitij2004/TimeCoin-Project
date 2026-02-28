@@ -17,6 +17,15 @@ public class AuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+
+        // Skip auth check for public endpoints.
+        // These routes don't require a user to be logged in.
+        if (path.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || authHeader.isBlank()) {

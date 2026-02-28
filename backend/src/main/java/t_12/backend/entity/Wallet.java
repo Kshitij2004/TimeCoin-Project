@@ -16,10 +16,10 @@ public class Wallet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId;
+    private Integer userId;
 
     @Column(name = "coin_balance", nullable = false, precision = 18, scale = 8)
     private BigDecimal coinBalance;
@@ -28,11 +28,11 @@ public class Wallet {
     private LocalDateTime createdAt;
 
     // Getters and setters
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public Long getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 
@@ -44,11 +44,11 @@ public class Wallet {
         return createdAt;
     }
 
-    public void setId(Long id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(Integer userId) {
         this.userId = userId;
     }
 

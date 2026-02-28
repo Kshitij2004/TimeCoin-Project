@@ -34,12 +34,12 @@ test('renders transactions table after successful fetch', async () => {
     })
   });
 
-  render(<HistoryPage isAuthenticated userId={1} apiBaseUrl="http://localhost:3001" />);
+  render(<HistoryPage isAuthenticated userId={1} apiBaseUrl="http://localhost:3000" />);
 
   expect(await screen.findByText('BUY')).toBeInTheDocument();
   expect(screen.getByRole('table', { name: /Transaction history table/i })).toBeInTheDocument();
   expect(fetch).toHaveBeenCalledWith(
-    'http://localhost:3001/api/transactions?page=1&limit=10',
+    'http://localhost:3000/api/transactions?page=1&limit=10',
     expect.objectContaining({
       method: 'GET',
       headers: { 'x-user-id': '1' }

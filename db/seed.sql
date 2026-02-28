@@ -40,9 +40,9 @@ VALUES
 --     (3, 4, 'TRANSFER', 20, NOW() - INTERVAL 3 DAY),
 
 -- User from market
-    (7, 8, 'BUY', 150, 10.00, NOW()),
-    (8, 9, 'SELL', 250, 10.00, NOW()),
+    (7, 8, 'BUY', 1, 10.00, NOW()),
+    (2, 6, 'SELL', 2, 10.00, NOW()),
 
 -- Deposit/withdraw example
-    (NULL, 7, 'DEPOSIT', 50, 10.00, NOW()),
-    (NULL, 7, 'WITHDRAWAL', 50,  10.00, NOW());
+    (NULL, 7, 'DEPOSIT', 3, 10.00, NOW()),
+    (NULL, 7, 'WITHDRAWAL', 1,  10.00, NOW());

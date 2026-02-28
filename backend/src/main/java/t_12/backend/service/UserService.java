@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
+import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.UserRepository;
 import t_12.backend.repository.WalletRepository;
@@ -34,11 +35,11 @@ public class UserService {
         // We use existsBy instead of findBy here because we don't need the actual
         // user object, just a true/false answer. It's a cheaper database call.
         if (userRepository.existsByUsername(username)) {
-            throw new ResourceNotFoundException("Username already exists: " + username);
+            throw new DuplicateResourceException("Username already exists: " + username);
         }
 
         if (userRepository.existsByEmail(email)) {
-            throw new ResourceNotFoundException("Email already exists: " + email);
+            throw new DuplicateResourceException("Email already exists: " + email);
         }
 
         // Build the User

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import HistoryPage from './HistoryPage';
 
@@ -36,7 +36,7 @@ test('renders transactions table after successful fetch', async () => {
 
   render(<HistoryPage isAuthenticated userId={1} apiBaseUrl="http://localhost:3001" />);
 
-  await waitFor(() => expect(screen.getByText('BUY')).toBeInTheDocument());
+  expect(await screen.findByText('BUY')).toBeInTheDocument();
   expect(screen.getByRole('table', { name: /Transaction history table/i })).toBeInTheDocument();
   expect(fetch).toHaveBeenCalledWith(
     'http://localhost:3001/api/transactions?page=1&limit=10',
@@ -58,9 +58,7 @@ test('shows empty state when no transactions are returned', async () => {
 
   render(<HistoryPage isAuthenticated userId={1} />);
 
-  await waitFor(() => {
-    expect(screen.getByText(/No transactions yet/i)).toBeInTheDocument();
-  });
+  expect(await screen.findByText(/No transactions yet/i)).toBeInTheDocument();
 });
 
 test('supports basic next-page pagination', async () => {
@@ -82,8 +80,8 @@ test('supports basic next-page pagination', async () => {
 
   render(<HistoryPage isAuthenticated userId={1} pageSize={1} />);
 
-  await waitFor(() => expect(screen.getByText('BUY')).toBeInTheDocument());
+  expect(await screen.findByText('BUY')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-  await waitFor(() => expect(screen.getByText('SELL')).toBeInTheDocument());
+  expect(await screen.findByText('SELL')).toBeInTheDocument();
   expect(fetch).toHaveBeenCalledTimes(2);
 });

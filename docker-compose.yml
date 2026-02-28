@@ -1,6 +1,6 @@
 services:
   db:
-    image: mysql:8.0
+    build: ./db
     environment:
       MYSQL_ROOT_PASSWORD: team12root
       MYSQL_DATABASE: crypto_marketplace
@@ -10,8 +10,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:z
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:z
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s

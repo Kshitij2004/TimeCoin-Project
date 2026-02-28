@@ -32,7 +32,7 @@ function resolveUserId(userId) {
 }
 
 export default function HistoryPage({
-  apiBaseUrl = 'http://localhost:3001',
+  apiBaseUrl = 'http://localhost:3000',
   isAuthenticated,
   userId,
   pageSize = 10

@@ -47,7 +47,7 @@ docker compose up --build
 ## Test with Postman
 
 - Method: `GET`
-- URL: `http://localhost:3001/api/transactions?page=1&limit=2`
+- URL: `http://localhost:8080/api/transactions?page=1&limit=2`
 - Header: `x-user-id: 1`
 
 ## Run unit tests

@@ -50,7 +50,7 @@ docker compose up --build
 Health check:
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 ```
 
 Run tests:
@@ -62,7 +62,7 @@ mvn test
 ## Test in Postman
 
 - Method: `POST`
-- URL: `http://localhost:3000/api/coin/buy`
+- URL: `http://localhost:8080/api/coin/buy`
 - Header: `Content-Type: application/json`
 - Body: raw JSON (example above)
 

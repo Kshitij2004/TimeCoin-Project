@@ -6,43 +6,60 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-// @Configuration tells Spring this class contains setup/configuration "beans."
-// (which--what the hell is a bean?)
-// @EnableWebSecurity tells Spring Security to use our custom config
-// instead of its default behavior (the auto-generated password etc).
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // A SecurityFilterChain is the object that defines the security rules.
-    // Every incoming HTTP request passes through this chain before
-    // reaching any controller.
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF protection. CSRF is important for browser-based apps
-            // but REST APIs use tokens instead, so it would just block our POST requests.
             .csrf(csrf -> csrf.disable())
 
-            // Define which endpoints are allowed and which require authentication.
+            // Tell Spring Security to use our CORS config below
+            // instead of blocking cross-origin requests entirely.
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
             .authorizeHttpRequests(auth -> auth
-                // Allow /api/auth/register freely — no login needed to sign up.
                 .requestMatchers("/api/auth/register").permitAll()
-                // Allow existing endpoints through for now so we don't break anything.
                 .requestMatchers("/api/wallet/**").permitAll()
                 .requestMatchers("/api/coin/**").permitAll()
                 .requestMatchers("/health").permitAll()
-                // Everything else requires authentication (for future sprints).
                 .anyRequest().authenticated()
             )
 
-            // Use stateless sessions — the server won't store session data.
-            // REST APIs typically authenticate per-request via tokens, not sessions.
-            .sessionManagement(session -> 
+            .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
 
         return http.build();
+    }
+
+    // Defines which origins, methods, and headers the backend will accept.
+    // Without this, the browser blocks requests from localhost:3000 to localhost:8080
+    // because they're on different ports; treated as different "origins".
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // Only allow requests from the frontend origin.
+        // In production this would be the actual domain e.g. "https://yourapp.com".
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        // Allow the standard HTTP methods your API uses.
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Allow the headers the frontend will send with requests.
+        config.setAllowedHeaders(List.of("*"));
+
+        // Apply this CORS config to all endpoints.
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

@@ -7,7 +7,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Marketplace from './pages/Marketplace';
+import Marketplace from './pages/marketplace/Marketplace';
 import History from './pages/History';
 
 function App() {

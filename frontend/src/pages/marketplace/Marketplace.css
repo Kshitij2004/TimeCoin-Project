@@ -1,0 +1,212 @@
+/* Marketplace.css */
+
+/* ── Page layout ─────────────────────────────────────────────────────────── */
+.marketplace-page {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: radial-gradient(circle at 20% 20%, #000c1f 0%, #00060f 55%, #000208 100%);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.marketplace-card {
+  width: min(800px, 100%);
+  background: rgba(19, 31, 60, 0.78);
+  border: 1px solid #2ea9df;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(5, 12, 30, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.marketplace-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #4bb9e9;
+}
+
+.marketplace-header p {
+  margin: 6px 0 20px;
+  color: #9ab6d6;
+}
+
+/* ── Market stats ────────────────────────────────────────────────────────── */
+.market-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: rgba(14, 27, 52, 0.75);
+  border: 1px solid rgba(108, 149, 201, 0.25);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #80cff2;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #d7e6f8;
+}
+
+.loading-text {
+  color: #c2d6ef;
+  font-size: 15px;
+}
+
+/* ── Buy section ─────────────────────────────────────────────────────────── */
+.buy-section {
+  background: rgba(14, 27, 52, 0.75);
+  border: 1px solid rgba(108, 149, 201, 0.25);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.buy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #80cff2;
+}
+
+/* ── Input row ───────────────────────────────────────────────────────────── */
+.input-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.amount-input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid #49b8e8;
+  border-radius: 8px;
+  outline: none;
+  background: rgba(23, 47, 84, 0.8);
+  color: #d7e6f8;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.amount-input::placeholder {
+  color: #4a6a8a;
+}
+
+.amount-input:focus {
+  border-color: #4bb9e9;
+  box-shadow: 0 0 0 3px rgba(75, 185, 233, 0.15);
+}
+
+.amount-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Hide number input arrows */
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.amount-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* ── Buy button ──────────────────────────────────────────────────────────── */
+.buy-button {
+  border: 1px solid #49b8e8;
+  background: rgba(23, 47, 84, 0.8);
+  color: #cdeeff;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.buy-button:hover:not(:disabled) {
+  background: #4bb9e9;
+  color: #0a1128;
+}
+
+.buy-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Cost preview ────────────────────────────────────────────────────────── */
+.cost-preview {
+  font-size: 14px;
+  color: #9ab6d6;
+  margin: 0;
+}
+
+.cost-preview strong {
+  color: #cdeeff;
+}
+
+/* ── Status messages ─────────────────────────────────────────────────────── */
+.status-message {
+  margin-top: 16px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.status-success {
+  color: #c2d6ef;
+  background: rgba(14, 60, 40, 0.5);
+  border: 1px solid #34d399;
+}
+
+.status-error {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid #ef4444;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .marketplace-page {
+    padding: 12px;
+  }
+
+  .marketplace-card {
+    padding: 14px;
+  }
+
+  .input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .buy-button {
+    width: 100%;
+  }
+}

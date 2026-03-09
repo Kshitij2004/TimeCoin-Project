@@ -14,7 +14,7 @@ public class WalletService {
         this.walletRepository = walletRepository;
     }
 
-    public Wallet getWalletByUserId(Long userId) {
+    public Wallet getWalletByUserId(Integer userId) {
         return walletRepository.findByUserId(userId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Wallet not found for userId: " + userId

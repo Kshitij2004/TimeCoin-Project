@@ -15,7 +15,7 @@ public class WalletController {
     }
 
     @GetMapping
-    public ResponseEntity<WalletDTO> getWallet(@RequestParam Long userId) {
+    public ResponseEntity<WalletDTO> getWallet(@RequestParam Integer userId) {
         return ResponseEntity.ok(new WalletDTO(walletService.getWalletByUserId(userId)));
     }
 }

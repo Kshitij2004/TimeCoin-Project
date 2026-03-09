@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrypMart - Login</title>
+    <style>
+        /* CSS Variables for the theme */
+        :root {
+            --bg-dark: #121620; /* Deep background color */
+            --card-bg: #1e2433; /* Slightly lighter modal background */
+            --accent-blue: #5bc0eb; /* The neon blue accent */
+            --text-main: #ffffff;
+            --text-muted: #8b95a5;
+            --input-border: #323b4e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .login-container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid var(--accent-blue);
+            box-shadow: 0 0 20px rgba(91, 192, 235, 0.15); /* Subtle blue glow */
+        }
+
+        .login-container h2 {
+            color: var(--accent-blue);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background-color: transparent;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--accent-blue);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        .login-btn:hover {
+            background-color: #4ba8cf;
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+
+        .links {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px; /* Increased slightly to balance the removed social icons */
+        }
+
+        .links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .links a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+
+        .links .register-text {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        .links .register-link {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <form action="#" method="POST">
+            <h2>Sign in to CrypMart</h2>
+            
+            <div class="input-group">
+                <input type="text" name="username" placeholder="Username or Email" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" name="password" placeholder="Password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">LOG IN</button>
+
+            <div class="links">
+                <a href="#">Forgot Password?</a>
+                <div class="register-text">
+                    Don't have an account? <a href="#" class="register-link">Register here</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

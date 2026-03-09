@@ -30,7 +30,6 @@ public class Coin {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Getters and setters
     public Long getId() {
         return id;
     }

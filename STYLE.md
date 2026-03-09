@@ -2,7 +2,7 @@
 Unless otherwise specified below, we follow the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html).
 # Java
 ## Formatting
-- Use 4 spaces for indentation (**NO** tabs).
+- Use tabs for indentation.
 - Use K&R braces (opening brace on the same line):
 ```java
 for (int i = 0; i < n; i++) {

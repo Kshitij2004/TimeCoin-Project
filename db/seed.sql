@@ -10,26 +10,26 @@ VALUES
 -- Users with email, pass, id, etc
 INSERT INTO users (id, username, email, password_hash, created_at)
 VALUES
-    (user1,'testuser1', 'test1@wisc.edu', 'fakehash', NOW()),
-    (user2,'testuser2', 'test2@wisc.edu', 'fakehash', NOW()),
-    (user3,'testuser3', 'test3@wisc.edu', 'fakehash', NOW()),
-    (user4,'testuser4', 'test4@wisc.edu', 'fakehash', NOW()),
-    (user5,'testuser5', 'test5@wisc.edu', 'fakehash', NOW()),
-    (user6,'testuser6', 'test6@wisc.edu', 'fakehash', NOW()),
-    (user7,'testuser7', 'test7@wisc.edu', 'fakehash', NOW()),
-    (user8,'testuser8', 'test8@wisc.edu', 'fakehash', NOW());
+    (1,'testuser1', 'test1@wisc.edu', 'fakehash', NOW()),
+    (2,'testuser2', 'test2@wisc.edu', 'fakehash', NOW()),
+    (3,'testuser3', 'test3@wisc.edu', 'fakehash', NOW()),
+    (4,'testuser4', 'test4@wisc.edu', 'fakehash', NOW()),
+    (5,'testuser5', 'test5@wisc.edu', 'fakehash', NOW()),
+    (6,'testuser6', 'test6@wisc.edu', 'fakehash', NOW()),
+    (7,'testuser7', 'test7@wisc.edu', 'fakehash', NOW()),
+    (8,'testuser8', 'test8@wisc.edu', 'fakehash', NOW());
 
 -- Wallets for users
 INSERT INTO wallets (id, user_id, coin_balance, created_at)
 VALUES
-    (wallet1, user1, 100.00000000, NOW()),
-    (wallet2, user2, 5000.00000000, NOW()),
-    (wallet3, user3, 300.00000000, NOW()),
-    (wallet4, user4, 10.00000000, NOW()),
-    (wallet5, user5, 40.00000000, NOW()),
-    (wallet6, user6, 90000.00000000, NOW()),
-    (wallet7, user7, 490.00000000, NOW()),
-    (wallet8, user8, 156.00000000, NOW());
+    (1, 1, 100.00000000, NOW()),
+    (2, 2, 5000.00000000, NOW()),
+    (3, 3, 300.00000000, NOW()),
+    (4, 4, 10.00000000, NOW()),
+    (5, 5, 40.00000000, NOW()),
+    (6, 6, 90000.00000000, NOW()),
+    (7, 7, 490.00000000, NOW()),
+    (8, 8, 156.00000000, NOW());
 
 -- Transaction data, need to change init.sql to reflect a transfer from account to account or if it goes into an intermediary acct. etc
 INSERT INTO transactions (id, user_id, type, amount, price_at_time, created_at)

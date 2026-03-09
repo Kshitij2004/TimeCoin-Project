@@ -5,30 +5,34 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "wallets")
-public class Wallet {
+@Table(name = "staking_events")
+public class StakingEvent {
+
+    public enum EventType {
+        STAKE, UNSTAKE
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
-
-    @Column(name = "wallet_address", nullable = false, unique = true, length = 128)
+    @Column(name = "wallet_address", nullable = false, length = 128)
     private String walletAddress;
 
-    @Column(name = "public_key", nullable = false, unique = true, length = 512)
-    private String publicKey;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_type", nullable = false)
+    private EventType eventType;
 
-    @Column(name = "coin_balance", nullable = false, precision = 18, scale = 8)
-    private BigDecimal coinBalance;
+    @Column(name = "amount", nullable = false, precision = 18, scale = 8)
+    private BigDecimal amount;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -38,20 +42,16 @@ public class Wallet {
         return id;
     }
 
-    public Integer getUserId() {
-        return userId;
-    }
-
     public String getWalletAddress() {
         return walletAddress;
     }
 
-    public String getPublicKey() {
-        return publicKey;
+    public EventType getEventType() {
+        return eventType;
     }
 
-    public BigDecimal getCoinBalance() {
-        return coinBalance;
+    public BigDecimal getAmount() {
+        return amount;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -63,20 +63,16 @@ public class Wallet {
         this.id = id;
     }
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
-    }
-
     public void setWalletAddress(String walletAddress) {
         this.walletAddress = walletAddress;
     }
 
-    public void setPublicKey(String publicKey) {
-        this.publicKey = publicKey;
+    public void setEventType(EventType eventType) {
+        this.eventType = eventType;
     }
 
-    public void setCoinBalance(BigDecimal coinBalance) {
-        this.coinBalance = coinBalance;
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

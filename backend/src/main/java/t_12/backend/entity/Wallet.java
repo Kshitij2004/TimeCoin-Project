@@ -12,6 +12,9 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "wallets")
+/**
+ * Represents a wallet entity for storing user coin balances.
+ */
 public class Wallet {
 
     @Id
@@ -27,7 +30,6 @@ public class Wallet {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Getters and setters
     public Integer getId() {
         return id;
     }

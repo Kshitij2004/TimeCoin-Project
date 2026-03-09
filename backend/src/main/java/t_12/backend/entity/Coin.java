@@ -10,6 +10,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * Represents a cryptocurrency coin entity.
+ */
 @Entity
 @Table(name = "coins")
 public class Coin {
@@ -18,13 +21,25 @@ public class Coin {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "total_supply", nullable = false, precision = 20, scale = 2)
+    @Column(name = "total_supply",
+            nullable = false,
+            precision = 20,
+            scale = 2)
+
     private BigDecimal totalSupply;
 
-    @Column(name = "circulating_supply", nullable = false, precision = 20, scale = 2)
+    @Column(name = "circulating_supply",
+            nullable = false,
+            precision = 20,
+            scale = 2)
+
     private BigDecimal circulatingSupply;
 
-    @Column(name = "current_price", nullable = false, precision = 15, scale = 2)
+    @Column(name = "current_price",
+            nullable = false,
+            precision = 15,
+            scale = 2)
+
     private BigDecimal currentPrice;
 
     @Column(name = "updated_at")

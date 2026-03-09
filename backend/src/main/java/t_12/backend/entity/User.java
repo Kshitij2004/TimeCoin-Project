@@ -24,12 +24,12 @@ public class User {
     private String email;
 
     @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash; // Named as such to make explicit that at the Java level this is NEVER plain text.
+    private String passwordHash; // Named as such to make explicit that at the 
+                                 // Java level this is NEVER plain text.
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Getters and setters
     public Integer getId() {
         return id;
     }

@@ -2,16 +2,15 @@ package t_12.backend.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,6 +23,10 @@ import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.repository.UserRepository;
 import t_12.backend.repository.WalletRepository;
 
+/**
+ * Unit tests for UserService class. Tests user registration functionality
+ * including validation, success, and error cases.
+ */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
@@ -36,11 +39,17 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    /**
+     * Tests successful user registration with valid input. Verifies user and
+     * wallet creation, password hashing, and repository interactions.
+     */
     @Test
     void Register_ReturnsUser_WhenValidInputTest() {
         // Arrange; simulate no existing username or email
-        when(userRepository.existsByUsername("testuser")).thenReturn(false);
-        when(userRepository.existsByEmail("test@email.com")).thenReturn(false);
+        when(userRepository.existsByUsername("testuser"))
+                .thenReturn(false);
+        when(userRepository.existsByEmail("test@email.com"))
+                .thenReturn(false);
 
         // Simulate the repository saving and returning a user with an id
         User savedUser = new User();
@@ -58,7 +67,11 @@ class UserServiceTest {
         when(walletRepository.save(any(Wallet.class))).thenReturn(savedWallet);
 
         // Act
-        User result = userService.register("testuser", "test@email.com", "password123");
+        User result = userService.register(
+                "testuser",
+                "test@email.com",
+                "password123"
+        );
 
         // Assert;  user is returned with correct fields
         assertNotNull(result);
@@ -66,19 +79,31 @@ class UserServiceTest {
         assertEquals("test@email.com", result.getEmail());
 
         // Verify the right methods were called the right number of times
-        verify(userRepository, times(1)).existsByUsername("testuser");
-        verify(userRepository, times(1)).existsByEmail("test@email.com");
-        verify(userRepository, times(1)).save(any(User.class));
-        verify(walletRepository, times(1)).save(any(Wallet.class));
+        verify(userRepository, times(1))
+                .existsByUsername("testuser");
+        verify(userRepository, times(1))
+                .existsByEmail("test@email.com");
+        verify(userRepository, times(1))
+                .save(any(User.class));
+        verify(walletRepository, times(1))
+                .save(any(Wallet.class));
     }
 
+    /**
+     * Tests that registration throws DuplicateResourceException when username
+     * is already taken. Verifies that no user or wallet is saved in this case.
+     */
     @Test
     void Register_ThrowsException_WhenUsernameTakenTest() {
         // Simulate username already existing
         when(userRepository.existsByUsername("testuser")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> {
-            userService.register("testuser", "test@email.com", "password123");
+            userService.register(
+                    "testuser",
+                    "test@email.com",
+                    "password123"
+            );
         });
 
         // Verify we never proceeded to save anything
@@ -86,6 +111,10 @@ class UserServiceTest {
         verify(walletRepository, never()).save(any(Wallet.class));
     }
 
+    /**
+     * Tests that registration throws DuplicateResourceException when email is
+     * already taken. Verifies that no user or wallet is saved in this case.
+     */
     @Test
     void Register_ThrowsException_WhenEmailTakenTest() {
         // Simulate username being free but email already existing
@@ -93,7 +122,11 @@ class UserServiceTest {
         when(userRepository.existsByEmail("test@email.com")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> {
-            userService.register("testuser", "test@email.com", "password123");
+            userService.register(
+                    "testuser",
+                    "test@email.com",
+                    "password123"
+            );
         });
 
         // Verify we never proceeded to save anything

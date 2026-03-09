@@ -19,6 +19,10 @@ import t_12.backend.entity.Coin;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.CoinRepository;
 
+/**
+ * Unit tests for CoinService class. Tests coin retrieval functionality
+ * including success and error cases.
+ */
 @ExtendWith(MockitoExtension.class)
 class CoinServiceTest {
 
@@ -28,6 +32,9 @@ class CoinServiceTest {
     @InjectMocks
     private CoinService coinService;
 
+    /**
+     * Tests that getCurrentCoin returns the coin when data exists.
+     */
     @Test
     void GetCurrentCoin_ReturnsCoin_WhenFoundTest() {
         Coin coin = new Coin();
@@ -44,6 +51,10 @@ class CoinServiceTest {
         verify(coinRepository, times(1)).findAll();
     }
 
+    /**
+     * Tests that getCurrentCoin throws ResourceNotFoundException when no coin
+     * data exists.
+     */
     @Test
     void GetCurrentCoin_ThrowsException_WhenNoneFoundTest() {
         when(coinRepository.findAll()).thenReturn(Collections.emptyList());

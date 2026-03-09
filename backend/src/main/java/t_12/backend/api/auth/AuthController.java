@@ -1,5 +1,6 @@
 package t_12.backend.api.auth;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,10 +36,11 @@ public class AuthController {
         // Pass the raw fields to the service, which handles validation,
         // hashing, and wallet creation. We get back the saved User entity.
         // We then wrap it in a UserDTO before returning so the password is never exposed.
-        return ResponseEntity.ok(new UserDTO(userService.register(
+        UserDTO dto = new UserDTO(userService.register(
                 request.getUsername(),
                 request.getEmail(),
                 request.getPassword()
-        )));
+        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 }

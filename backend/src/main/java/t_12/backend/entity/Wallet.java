@@ -21,19 +21,33 @@ public class Wallet {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "wallet_address", nullable = false, unique = true, length = 128)
+    private String walletAddress;
+
+    @Column(name = "public_key", nullable = false, unique = true, length = 512)
+    private String publicKey;
+
     @Column(name = "coin_balance", nullable = false, precision = 18, scale = 8)
     private BigDecimal coinBalance;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Getters and setters
+    // Getters
     public Integer getId() {
         return id;
     }
 
     public Integer getUserId() {
         return userId;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
     }
 
     public BigDecimal getCoinBalance() {
@@ -44,12 +58,21 @@ public class Wallet {
         return createdAt;
     }
 
+    // Setters
     public void setId(Integer id) {
         this.id = id;
     }
 
     public void setUserId(Integer userId) {
         this.userId = userId;
+    }
+
+    public void setWalletAddress(String walletAddress) {
+        this.walletAddress = walletAddress;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
     }
 
     public void setCoinBalance(BigDecimal coinBalance) {

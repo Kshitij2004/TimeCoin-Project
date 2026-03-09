@@ -1,9 +1,11 @@
 package t_12.backend.exception;
 
-// A dedicated exception for when a user tries to register
-// with a username or email that already exists.
-// Using a separate exception class means we can return a different
-// HTTP status code (409 Conflict) instead of the generic 404.
+/**
+ * Thrown when an attempt is made to create a resource that already exists (e.g.
+ * registering with a username or email that is already taken). Using a
+ * dedicated exception allows the controller advice to return a 409 Conflict
+ * status instead of a generic error.
+ */
 public class DuplicateResourceException extends RuntimeException {
 
     public DuplicateResourceException(String message) {

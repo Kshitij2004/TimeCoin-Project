@@ -60,7 +60,6 @@ public class Wallet {
         return createdAt;
     }
 
-    // Setters
     public void setId(Integer id) {
         this.id = id;
     }

@@ -11,6 +11,9 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
+/**
+ * Represents a user entity.
+ */
 public class User {
 
     @Id
@@ -24,12 +27,12 @@ public class User {
     private String email;
 
     @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash; // Named as such to make explicit that at the Java level this is NEVER plain text.
+    private String passwordHash; // Named as such to make explicit that at the 
+    // Java level this is NEVER plain text.
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Getters and setters
     public Integer getId() {
         return id;
     }
@@ -46,7 +49,9 @@ public class User {
         this.username = username;
     }
 
-    public String getEmail() { return email; }
+    public String getEmail() {
+        return email;
+    }
 
     public void setEmail(String email) {
         this.email = email;

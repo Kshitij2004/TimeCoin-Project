@@ -1,14 +1,23 @@
 package t_12.backend.api.coin;
 
-import t_12.backend.entity.Coin;
 import java.math.BigDecimal;
 
+import t_12.backend.entity.Coin;
+
+/**
+ * Data Transfer Object for Coin information.
+ */
 public class CoinDTO {
 
-    private BigDecimal currentPrice;
-    private BigDecimal totalSupply;
-    private BigDecimal circulatingSupply;
+    private final BigDecimal currentPrice;
+    private final BigDecimal totalSupply;
+    private final BigDecimal circulatingSupply;
 
+    /**
+     * Constructs a CoinDTO from a Coin entity.
+     *
+     * @param coin the Coin entity to convert
+     */
     public CoinDTO(Coin coin) {
         this.currentPrice = coin.getCurrentPrice();
         this.totalSupply = coin.getTotalSupply();

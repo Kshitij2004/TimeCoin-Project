@@ -1,9 +1,8 @@
 package t_12.backend.api.auth;
 
-// This class represents the expected JSON body of the registration request.
-// When the client sends:
-// { "username": "john", "email": "john@email.com", "password": "secret" }
-// Spring will automatically map those fields to this object.
+/**
+ * Represents the expected JSON body of the registration request.
+ */
 public class RegisterRequest {
 
     private String username;

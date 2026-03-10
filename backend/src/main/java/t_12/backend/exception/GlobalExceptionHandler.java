@@ -8,30 +8,57 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Global exception handler that converts exceptions thrown by controllers or
+ * services into standardized HTTP responses with appropriate status codes and
+ * error bodies.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Handle cases where a requested resource could not be located.
+     *
+     * @param ex the thrown ResourceNotFoundException
+     * @return response with 404 status and JSON error details
+     */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
+    public ResponseEntity<Map<String, Object>> handleNotFound(
+            ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-            "timestamp", LocalDateTime.now().toString(),
-            "status", 404,
-            "error", "Not Found",
-            "message", ex.getMessage()
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 404,
+                "error", "Not Found",
+                "message", ex.getMessage()
         ));
     }
 
+    /**
+     * Fallback for any uncaught exceptions. Returns a generic 500 response
+     * without exposing internal details to the client.
+     *
+     * @param ex the caught exception
+     * @return response with 500 status and a safe error message
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 500,
-                "error", "Internal Server Error",
-                "message", "An unexpected error occurred"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                Map.of(
+                        "timestamp", LocalDateTime.now().toString(),
+                        "status", 500,
+                        "error", "Internal Server Error",
+                        "message", "An unexpected error occurred"));
     }
-    
+
+    /**
+     * Handles attempts to create duplicate resources (e.g. duplicate user).
+     *
+     * @param ex the thrown DuplicateResourceException
+     * @return response with 409 status and conflict details
+     */
     @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateResourceException ex) {
+    public ResponseEntity<Map<String, Object>> handleDuplicate(
+            DuplicateResourceException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                 "timestamp", LocalDateTime.now().toString(),
                 "status", 409,

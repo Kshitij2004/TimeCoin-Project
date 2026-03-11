@@ -18,6 +18,10 @@ import t_12.backend.entity.Wallet;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.WalletRepository;
 
+/**
+ * Unit tests for WalletService class. Tests wallet retrieval functionality
+ * including success and error cases.
+ */
 @ExtendWith(MockitoExtension.class)
 class WalletServiceTest {
 
@@ -27,6 +31,9 @@ class WalletServiceTest {
     @InjectMocks
     private WalletService walletService;
 
+    /**
+     * Tests that getWalletByUserId returns the wallet when found.
+     */
     @Test
     void GetWalletByUserId_ReturnsWallet_WhenFoundTest() {
         Wallet wallet = new Wallet();
@@ -42,6 +49,10 @@ class WalletServiceTest {
         verify(walletRepository, times(1)).findByUserId(101);
     }
 
+    /**
+     * Tests that getWalletByUserId throws ResourceNotFoundException when wallet
+     * is not found.
+     */
     @Test
     void GetWalletByUserId_ThrowsException_WhenNotFoundTest() {
         when(walletRepository.findByUserId(111)).thenReturn(Optional.empty());

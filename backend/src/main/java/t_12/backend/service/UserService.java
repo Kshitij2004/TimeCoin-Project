@@ -8,10 +8,13 @@ import org.springframework.stereotype.Service;
 import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.DuplicateResourceException;
-import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.UserRepository;
 import t_12.backend.repository.WalletRepository;
 
+/**
+ * Service class for handling user-related business logic. Manages user
+ * registration, validation, and wallet creation.
+ */
 @Service
 public class UserService {
 
@@ -28,6 +31,17 @@ public class UserService {
         this.passwordEncoder = new BCryptPasswordEncoder(10);
     }
 
+    /**
+     * Registers a new user with the provided details. Validates for duplicate
+     * username/email, hashes the password, saves the user, and automatically
+     * creates an associated wallet with zero balance.
+     *
+     * @param username the desired username (must be unique)
+     * @param email the user's email address (must be unique)
+     * @param password the raw password (will be hashed before storage)
+     * @return the saved User entity with generated ID
+     * @throws DuplicateResourceException if username or email already exists
+     */
     public User register(String username, String email, String password) {
 
         // Duplicate Validation 

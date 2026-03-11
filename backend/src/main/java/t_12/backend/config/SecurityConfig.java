@@ -1,5 +1,7 @@
 package t_12.backend.config;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -10,54 +12,63 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
+/**
+ * Spring Security configuration for the application. Configures CSRF
+ * protection, CORS, authorization rules, and session management.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * Configures the security filter chain for HTTP requests.
+     *
+     * @param http the HttpSecurity object to configure
+     * @return the configured SecurityFilterChain
+     * @throws Exception if an error occurs during configuration
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-
-            // Tell Spring Security to use our CORS config below
-            // instead of blocking cross-origin requests entirely.
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-            .authorizeHttpRequests(auth -> auth
+                .csrf(csrf -> csrf.disable())
+                // Use custom CORS configuration to allow cross-origin requests from the frontend.
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/wallet/**").permitAll()
                 .requestMatchers("/api/coin/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()
-            )
-
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+                )
+                .sessionManagement(session
+                        -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                );
 
         return http.build();
     }
 
-    // Defines which origins, methods, and headers the backend will accept.
-    // Without this, the browser blocks requests from localhost:3000 to localhost:8080
-    // because they're on different ports; treated as different "origins".
+    /**
+     * Configures CORS (Cross-Origin Resource Sharing) settings. Allows the
+     * frontend to make requests to the backend API from different
+     * origins/ports.
+     *
+     * @return a CorsConfigurationSource configured for the application
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Only allow requests from the frontend origin.
-        // In production this would be the actual domain e.g. "https://yourapp.com".
+        // Allow requests from the frontend application only.
+        // In production, this should be set to the actual domain (e.g., "https://yourapp.com").
         config.setAllowedOrigins(List.of("http://localhost:3000"));
 
-        // Allow the standard HTTP methods your API uses.
+        // Allow the HTTP methods used by the API.
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-        // Allow the headers the frontend will send with requests.
+        // Allow all headers in cross-origin requests.
         config.setAllowedHeaders(List.of("*"));
 
-        // Apply this CORS config to all endpoints.
+        // Apply CORS configuration to all endpoints.
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

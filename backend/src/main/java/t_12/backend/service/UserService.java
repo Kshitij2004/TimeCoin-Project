@@ -1,10 +1,13 @@
 package t_12.backend.service;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.DuplicateResourceException;

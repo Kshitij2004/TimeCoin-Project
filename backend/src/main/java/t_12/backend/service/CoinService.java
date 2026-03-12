@@ -27,11 +27,15 @@ public class CoinService {
      * @throws ResourceNotFoundException if no coin data is found
      */
     public Coin getCurrentCoin() {
-        return coinRepository.findAll()
-                .stream()
+        var coins = coinRepository.findAll();
+
+        // More than one coin is a data integrity issue. There should only ever be one.
+        if (coins.size() > 1) {
+            throw new ResourceNotFoundException("Multiple coin records found! Data integrity issue");
+        }
+
+        return coins.stream()
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(
-                "No coin data found"
-        ));
+                .orElseThrow(() -> new ResourceNotFoundException("No coin data found"));
     }
 }

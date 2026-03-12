@@ -16,6 +16,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
@@ -125,12 +126,73 @@ class UserServiceTest {
             userService.register(
                     "testuser",
                     "test@email.com",
-                    "password123"
-            );
+                    "password123");
         });
 
         // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
         verify(walletRepository, never()).save(any(Wallet.class));
+    }
+
+    /**
+     * Tests successful login with valid credentials. Verifies that a non-null
+     * JWT token string is returned.
+     */
+    @Test
+    void Login_ReturnsToken_WhenValidCredentialsTest() {
+        // This is a real BCrypt hash of "password123". Needed because
+        // UserService uses a real BCryptPasswordEncoder internally,
+        // so we can't mock the hashing. The hash must be genuine.
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String hash = encoder.encode("password123");
+
+        User user = new User();
+        user.setId(1);
+        user.setUsername("testuser");
+        user.setPasswordHash(hash);
+
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(java.util.Optional.of(user));
+
+        String token = userService.login("testuser", "password123");
+
+        // We verify the token is a non-null, non-empty string.
+        // We don't check the exact value since it changes with each call
+        // due to the timestamp claims inside it.
+        assertNotNull(token);
+        assert (!token.isBlank());
+    }
+
+    /**
+     * Tests that login throws RuntimeException when username does not exist.
+     */
+    @Test
+    void Login_ThrowsException_WhenUsernameNotFoundTest() {
+        when(userRepository.findByUsername("unknownuser"))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> {
+            userService.login("unknownuser", "password123");
+        });
+    }
+
+    /**
+     * Tests that login throws RuntimeException when password is incorrect.
+     */
+    @Test
+    void Login_ThrowsException_WhenWrongPasswordTest() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String hash = encoder.encode("password123");
+
+        User user = new User();
+        user.setId(1);
+        user.setUsername("testuser");
+        user.setPasswordHash(hash);
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(java.util.Optional.of(user));
+
+        assertThrows(RuntimeException.class, () -> {
+            userService.login("testuser", "wrongpassword");
+        });
     }
 }

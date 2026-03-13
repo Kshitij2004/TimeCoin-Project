@@ -22,4 +22,20 @@ public interface WalletRepository extends JpaRepository<Wallet, Integer> {
      * @return Optional containing the wallet if found, or empty if not found
      */
     Optional<Wallet> findByUserId(Integer userId);
+
+    /**
+     * Finds a wallet by its public address.
+     *
+     * @param walletAddress the wallet address to look up
+     * @return Optional containing the wallet if found
+     */
+    Optional<Wallet> findByWalletAddress(String walletAddress);
+
+    /**
+     * Finds a wallet by its public key.
+     *
+     * @param publicKey the public key to look up
+     * @return Optional containing the wallet if found
+     */
+    Optional<Wallet> findByPublicKey(String publicKey);
 }

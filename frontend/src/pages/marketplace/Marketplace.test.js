@@ -10,28 +10,24 @@
 // Run tests:
 //   npm test
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Marketplace from "./Marketplace";
+
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => jest.fn(),
+}), { virtual: true });
 
 // ── Mock coin data ────────────────────────────────────────────────────────────
 const mockCoin = {
-  current_price: "10.00",
-  circulating_supply: "500000.00",
-  total_supply: "1000000.00",
+  currentPrice: "10.00",
+  circulatingSupply: "500000.00",
+  totalSupply: "1000000.00",
 };
 
 // ── Router wrapper ────────────────────────────────────────────────────────────
 function renderWithRouter(ui) {
-  return render(
-    <MemoryRouter initialEntries={["/marketplace"]}>
-      <Routes>
-        <Route path="/marketplace" element={ui} />
-        <Route path="/login" element={<div data-testid="login-page">Login</div>} />
-      </Routes>
-    </MemoryRouter>
-  );
+  return render(ui);
 }
 
 // ── Fetch mock helper ─────────────────────────────────────────────────────────
@@ -144,7 +140,12 @@ describe("Marketplace — buy form interactions", () => {
               json: () => Promise.resolve({ message: "ok" }),
             });
         })
-      );
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve(mockCoin),
+      });
 
     renderWithRouter(<Marketplace />);
     await screen.findByTestId("coin-price");
@@ -153,7 +154,9 @@ describe("Marketplace — buy form interactions", () => {
     await userEvent.click(screen.getByTestId("buy-button"));
 
     expect(screen.getByTestId("buy-button")).toBeDisabled();
-    resolveBuy();
+    await act(async () => {
+      resolveBuy();
+    });
   });
 });
 

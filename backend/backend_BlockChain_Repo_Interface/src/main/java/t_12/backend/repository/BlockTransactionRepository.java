@@ -1,0 +1,19 @@
+package t_12.backend.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import t_12.backend.entity.BlockTransaction;
+
+/**
+ * Data access methods for block-to-transaction join rows.
+ */
+@Repository
+public interface BlockTransactionRepository extends JpaRepository<BlockTransaction, Integer> {
+    // Returns all transaction links for a given block.
+    List<BlockTransaction> findByBlockId(Integer blockId);
+    // Returns all block links for a given transaction.
+    List<BlockTransaction> findByTransactionId(Integer transactionId);
+}

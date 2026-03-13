@@ -1,8 +1,7 @@
 package t_12.backend.service;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -42,13 +41,13 @@ class CoinServiceTest {
         coin.setTotalSupply(new BigDecimal("1000000.00"));
         coin.setCirculatingSupply(new BigDecimal("500000.00"));
 
-        when(coinRepository.findAll()).thenReturn(List.of(coin));
+        when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
 
         Coin result = coinService.getCurrentCoin();
 
         assertEquals(new BigDecimal("10.00"), result.getCurrentPrice());
         assertEquals(new BigDecimal("1000000.00"), result.getTotalSupply());
-        verify(coinRepository, times(1)).findAll();
+        verify(coinRepository, times(1)).findFirstByOrderByIdAsc();
     }
 
     /**
@@ -57,12 +56,12 @@ class CoinServiceTest {
      */
     @Test
     void GetCurrentCoin_ThrowsException_WhenNoneFoundTest() {
-        when(coinRepository.findAll()).thenReturn(Collections.emptyList());
+        when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
             coinService.getCurrentCoin();
         });
 
-        verify(coinRepository, times(1)).findAll();
+        verify(coinRepository, times(1)).findFirstByOrderByIdAsc();
     }
 }

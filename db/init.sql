@@ -59,19 +59,27 @@ CREATE INDEX idx_blocks_validator ON blocks(validator_address);
 CREATE TABLE IF NOT EXISTS transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sender_address VARCHAR(128),
+    user_id INT,
+    symbol VARCHAR(10),
     receiver_address VARCHAR(128) NOT NULL,
     amount DECIMAL(18, 8) NOT NULL,
+    transaction_type ENUM('BUY', 'SELL') DEFAULT NULL,
+    price_at_time DECIMAL(15, 2) DEFAULT NULL,
+    total_usd DECIMAL(18, 2) DEFAULT NULL,
     fee DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000,
     nonce INT NOT NULL DEFAULT 0,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     transaction_hash VARCHAR(128) NOT NULL UNIQUE,
     status ENUM('PENDING', 'CONFIRMED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
     block_id INT DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_tx_sender ON transactions(sender_address);
+CREATE INDEX idx_tx_user ON transactions(user_id);
 CREATE INDEX idx_tx_receiver ON transactions(receiver_address);
+CREATE INDEX idx_tx_type ON transactions(transaction_type);
 CREATE INDEX idx_tx_status ON transactions(status);
 CREATE INDEX idx_tx_hash ON transactions(transaction_hash);
 CREATE INDEX idx_tx_block ON transactions(block_id);

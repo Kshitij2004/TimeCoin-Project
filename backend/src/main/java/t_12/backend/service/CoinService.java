@@ -27,9 +27,7 @@ public class CoinService {
      * @throws ResourceNotFoundException if no coin data is found
      */
     public Coin getCurrentCoin() {
-        return coinRepository.findAll()
-                .stream()
-                .findFirst()
+        return coinRepository.findFirstByOrderByIdAsc()
                 .orElseThrow(() -> new ResourceNotFoundException(
                 "No coin data found"
         ));

@@ -16,6 +16,10 @@ import jakarta.persistence.Table;
 @Table(name = "transactions")
 public class Transaction {
 
+    public enum TransactionType {
+        BUY, SELL
+    }
+
     public enum Status {
         PENDING, CONFIRMED, REJECTED
     }
@@ -27,11 +31,27 @@ public class Transaction {
     @Column(name = "sender_address", length = 128)
     private String senderAddress;
 
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "symbol", length = 10)
+    private String symbol;
+
     @Column(name = "receiver_address", nullable = false, length = 128)
     private String receiverAddress;
 
     @Column(name = "amount", nullable = false, precision = 18, scale = 8)
     private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type")
+    private TransactionType transactionType;
+
+    @Column(name = "price_at_time", precision = 15, scale = 2)
+    private BigDecimal priceAtTime;
+
+    @Column(name = "total_usd", precision = 18, scale = 2)
+    private BigDecimal totalUsd;
 
     @Column(name = "fee", nullable = false, precision = 18, scale = 8)
     private BigDecimal fee;
@@ -61,12 +81,32 @@ public class Transaction {
         return senderAddress;
     }
 
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
     public String getReceiverAddress() {
         return receiverAddress;
     }
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public TransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    public BigDecimal getPriceAtTime() {
+        return priceAtTime;
+    }
+
+    public BigDecimal getTotalUsd() {
+        return totalUsd;
     }
 
     public BigDecimal getFee() {
@@ -102,12 +142,32 @@ public class Transaction {
         this.senderAddress = senderAddress;
     }
 
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
     public void setReceiverAddress(String receiverAddress) {
         this.receiverAddress = receiverAddress;
     }
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public void setTransactionType(TransactionType transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public void setPriceAtTime(BigDecimal priceAtTime) {
+        this.priceAtTime = priceAtTime;
+    }
+
+    public void setTotalUsd(BigDecimal totalUsd) {
+        this.totalUsd = totalUsd;
     }
 
     public void setFee(BigDecimal fee) {

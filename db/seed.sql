@@ -20,29 +20,36 @@ VALUES
     (8,'testuser8', 'test8@wisc.edu', 'fakehash', NOW());
 
 -- Wallets for users
-INSERT INTO wallets (id, user_id, coin_balance, created_at)
+INSERT INTO wallets (id, user_id, wallet_address, public_key, coin_balance, created_at)
 VALUES
-    (1, 1, 100.00000000, NOW()),
-    (2, 2, 5000.00000000, NOW()),
-    (3, 3, 300.00000000, NOW()),
-    (4, 4, 10.00000000, NOW()),
-    (5, 5, 40.00000000, NOW()),
-    (6, 6, 90000.00000000, NOW()),
-    (7, 7, 490.00000000, NOW()),
-    (8, 8, 156.00000000, NOW());
+    (1, 1, 'wlt_seed_1', 'pub_seed_1', 100.00000000, NOW()),
+    (2, 2, 'wlt_seed_2', 'pub_seed_2', 5000.00000000, NOW()),
+    (3, 3, 'wlt_seed_3', 'pub_seed_3', 300.00000000, NOW()),
+    (4, 4, 'wlt_seed_4', 'pub_seed_4', 10.00000000, NOW()),
+    (5, 5, 'wlt_seed_5', 'pub_seed_5', 40.00000000, NOW()),
+    (6, 6, 'wlt_seed_6', 'pub_seed_6', 90000.00000000, NOW()),
+    (7, 7, 'wlt_seed_7', 'pub_seed_7', 490.00000000, NOW()),
+    (8, 8, 'wlt_seed_8', 'pub_seed_8', 156.00000000, NOW());
 
--- Transaction data, need to change init.sql to reflect a transfer from account to account or if it goes into an intermediary acct. etc
-INSERT INTO transactions (id, user_id, type, amount, price_at_time, created_at)
+-- Sample purchase history
+INSERT INTO transactions (
+    id,
+    sender_address,
+    user_id,
+    symbol,
+    receiver_address,
+    amount,
+    transaction_type,
+    price_at_time,
+    total_usd,
+    fee,
+    nonce,
+    timestamp,
+    transaction_hash,
+    status,
+    block_id
+)
 VALUES
--- User to user transactions (from_user, to_user)
---     (1, 7, 'TRANSFER', 50, NOW() - INTERVAL 5 DAY),
---     (2, 8, 'TRANSFER', 1000, NOW() - INTERVAL 4 DAY),
---     (3, 4, 'TRANSFER', 20, NOW() - INTERVAL 3 DAY),
-
--- User from market
-    (7, 8, 'BUY', 1, 10.00, NOW()),
-    (2, 6, 'SELL', 2, 10.00, NOW()),
-
--- Deposit/withdraw example
-    (NULL, 7, 'DEPOSIT', 3, 10.00, NOW()),
-    (NULL, 7, 'WITHDRAWAL', 1,  10.00, NOW());
+    (1, NULL, 1, 'TC', 'wlt_seed_1', 1.50000000, 'BUY', 10.00, 15.00, 0.00000000, 0, NOW() - INTERVAL 3 DAY, 'seed_tx_1', 'CONFIRMED', NULL),
+    (2, NULL, 1, 'TC', 'wlt_seed_1', 0.50000000, 'SELL', 11.00, 5.50, 0.00000000, 0, NOW() - INTERVAL 2 DAY, 'seed_tx_2', 'CONFIRMED', NULL),
+    (3, NULL, 1, 'TC', 'wlt_seed_1', 2.00000000, 'BUY', 12.00, 24.00, 0.00000000, 0, NOW() - INTERVAL 1 DAY, 'seed_tx_3', 'CONFIRMED', NULL);

@@ -4,13 +4,22 @@ import java.time.LocalDateTime;
 
 import t_12.backend.entity.User;
 
+/**
+ * Data Transfer Object for User information, excluding sensitive data like
+ * passwords.
+ */
 public class UserDTO {
 
-    private Integer id;
-    private String username;
-    private String email;
-    private LocalDateTime createdAt;
+    private final Integer id;
+    private final String username;
+    private final String email;
+    private final LocalDateTime createdAt;
 
+    /**
+     * Constructs a UserDTO from a User entity.
+     *
+     * @param user the User entity to convert
+     */
     public UserDTO(User user) {
         this.id = user.getId();
         this.username = user.getUsername();

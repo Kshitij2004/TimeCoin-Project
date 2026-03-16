@@ -63,4 +63,19 @@ class WalletServiceTest {
 
         verify(walletRepository, times(1)).findByUserId(111);
     }
+
+    /**
+     * Tests that getWalletByUserId throws ResourceNotFoundException when wallet
+     * is null.
+     */
+    @Test
+    void GetWalletByUserId_ThrowsException_WhenNullTest() {
+        when(walletRepository.findByUserId(111)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            walletService.getWalletByUserId(111);
+        });
+
+        verify(walletRepository, times(1)).findByUserId(111);
+    }
 }

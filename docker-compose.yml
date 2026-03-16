@@ -1,4 +1,7 @@
 services:
+
+  # Runs the init.sql schema on first boot
+  # Credentials are hardcoded for dev convenience, but should be changed for production
   db:
     build: ./db
     environment:
@@ -16,6 +19,10 @@ services:
       timeout: 5s
       retries: 5
 
+  # Waits for the db healthcheck to pass before starting. Extended Hikari
+  # timeouts handle the race condition where MySQL briefly restarts during
+  # init - without these, the connection pool gives up too early and the
+  # backend exits.
   backend:
     build: ./backend
     ports:
@@ -32,6 +39,8 @@ services:
       SPRING_DATASOURCE_HIKARI_INITIALIZATION-FAIL-TIMEOUT: 60000
       JWT_SECRET: team12jwtsecret2026
 
+  # Depends on backend being up so API proxy configuration resolves correctly.
+  # CHOKIDAR_USEPOLLING enables hot-reload inside Docker on Linux hosts, which is necessary for development but can be removed for production.
   frontend:
     build: ./frontend
     ports:

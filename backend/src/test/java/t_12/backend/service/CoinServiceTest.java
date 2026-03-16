@@ -64,4 +64,44 @@ class CoinServiceTest {
 
         verify(coinRepository, times(1)).findFirstByOrderByIdAsc();
     }
+
+    /**
+     * Tests that getCurrentCoin throws ResourceNotFoundException when multiple
+     * coins are found (data integrity issue).
+     */
+    @Test
+    void GetCurrentCoin_ThrowsException_WhenMultipleFoundTest() {
+        Coin coin1 = new Coin();
+        coin1.setCurrentPrice(new BigDecimal("10.00"));
+        coin1.setTotalSupply(new BigDecimal("1000000.00"));
+        coin1.setCirculatingSupply(new BigDecimal("500000.00"));
+
+        Coin coin2 = new Coin();
+        coin2.setCurrentPrice(new BigDecimal("12.00"));
+        coin2.setTotalSupply(new BigDecimal("2000000.00"));
+        coin2.setCirculatingSupply(new BigDecimal("1500000.00"));
+
+        when(coinRepository.findAll()).thenReturn(List.of(coin1, coin2));
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            coinService.getCurrentCoin();
+        });
+
+        verify(coinRepository, times(1)).findAll();
+    }
+
+    /**
+     * Tests that getCurrentCoin throws ResourceNotFoundException when no coin
+     * data exists.
+     */
+    @Test
+    void GetCurrentCoin_ThrowsException_WhenNullTest() {
+        when(coinRepository.findAll()).thenReturn(Collections.emptyList());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            coinService.getCurrentCoin();
+        });
+
+        verify(coinRepository, times(1)).findAll();
+    }
 }

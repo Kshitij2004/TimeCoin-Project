@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS wallets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    wallet_address VARCHAR(128) NOT NULL UNIQUE,
-    public_key VARCHAR(512) NOT NULL UNIQUE,
-    coin_balance DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000,  -- cached for quick reads; authoritative balance is ledger-derived
+    wallet_address VARCHAR(128) UNIQUE,
+    public_key VARCHAR(512) UNIQUE,
+    coin_balance DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

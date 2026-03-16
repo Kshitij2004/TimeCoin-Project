@@ -20,17 +20,18 @@ VALUES
     (8,'testuser8', 'test8@wisc.edu', 'fakehash', NOW());
 
 -- Wallets for users
-INSERT INTO wallets (id, user_id, coin_balance, created_at)
+INSERT INTO wallets (id, user_id, wallet_address, public_key, coin_balance, created_at)
 VALUES
-    (1, 1, 100.00000000, NOW()),
-    (2, 2, 5000.00000000, NOW()),
-    (3, 3, 300.00000000, NOW()),
-    (4, 4, 10.00000000, NOW()),
-    (5, 5, 40.00000000, NOW()),
-    (6, 6, 90000.00000000, NOW()),
-    (7, 7, 490.00000000, NOW()),
-    (8, 8, 156.00000000, NOW());
+    (1, 1, 'addr_1', 'pubkey_1', 100.00000000, NOW()),
+    (2, 2, 'addr_2', 'pubkey_2', 5000.00000000, NOW()),
+    (3, 3, 'addr_3', 'pubkey_3', 300.00000000, NOW()),
+    (4, 4, 'addr_4', 'pubkey_4', 10.00000000, NOW()),
+    (5, 5, 'addr_5', 'pubkey_5', 40.00000000, NOW()),
+    (6, 6, 'addr_6', 'pubkey_6', 90000.00000000, NOW()),
+    (7, 7, 'addr_7', 'pubkey_7', 490.00000000, NOW()),
+    (8, 8, 'addr_8', 'pubkey_8', 156.00000000, NOW());
 
+/*
 -- Transaction data, need to change init.sql to reflect a transfer from account to account or if it goes into an intermediary acct. etc
 INSERT INTO transactions (id, user_id, type, amount, price_at_time, created_at)
 VALUES
@@ -46,3 +47,4 @@ VALUES
 -- Deposit/withdraw example
     (NULL, 7, 'DEPOSIT', 3, 10.00, NOW()),
     (NULL, 7, 'WITHDRAWAL', 1,  10.00, NOW());
+    */

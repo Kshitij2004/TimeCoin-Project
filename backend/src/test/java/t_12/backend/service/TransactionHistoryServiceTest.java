@@ -17,7 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 
-import t_12.backend.api.transaction.TransactionHistoryResponse;
+import t_12.backend.api.transaction.dto.TransactionHistoryResponseDTO;
 import t_12.backend.entity.Transaction;
 import t_12.backend.exception.ApiException;
 import t_12.backend.repository.TransactionRepository;
@@ -54,7 +54,7 @@ class TransactionHistoryServiceTest {
                 PageRequest.of(0, 2)
         )).thenReturn(new PageImpl<>(List.of(buy, sell), PageRequest.of(0, 2), 3));
 
-        TransactionHistoryResponse response = transactionHistoryService.getUserTransactions(1, 1, 2);
+        TransactionHistoryResponseDTO response = transactionHistoryService.getUserTransactions(1, 1, 2);
 
         assertEquals(2, response.getData().size());
         assertEquals("BUY", response.getData().get(0).getType());

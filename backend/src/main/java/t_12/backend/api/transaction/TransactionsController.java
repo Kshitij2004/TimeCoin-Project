@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import t_12.backend.api.coin.PurchaseRequest;
 import t_12.backend.api.coin.PurchaseResponse;
+import t_12.backend.api.transaction.dto.TransactionHistoryResponseDTO;
 import t_12.backend.service.PurchaseService;
 import t_12.backend.service.TransactionHistoryService;
 
@@ -25,6 +26,12 @@ public class TransactionsController {
     private final TransactionHistoryService transactionHistoryService;
     private final PurchaseService purchaseService;
 
+    /**
+     * Creates the transaction API controller.
+     *
+     * @param transactionHistoryService service used to fetch paginated history
+     * @param purchaseService service used for backward-compatible buy requests
+     */
     public TransactionsController(
             TransactionHistoryService transactionHistoryService,
             PurchaseService purchaseService) {
@@ -32,8 +39,16 @@ public class TransactionsController {
         this.purchaseService = purchaseService;
     }
 
+    /**
+     * Returns paginated buy and sell history for the resolved user.
+     *
+     * @param userId authenticated user id header
+     * @param page optional 1-based page number
+     * @param limit optional page size
+     * @return paginated transaction history
+     */
     @GetMapping
-    public ResponseEntity<TransactionHistoryResponse> getTransactions(
+    public ResponseEntity<TransactionHistoryResponseDTO> getTransactions(
             @RequestHeader(value = "x-user-id", required = false) Integer userId,
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "limit", required = false) Integer limit) {
@@ -42,6 +57,13 @@ public class TransactionsController {
         );
     }
 
+    /**
+     * Keeps the existing marketplace purchase route under the transactions API.
+     *
+     * @param request purchase request body
+     * @param userId authenticated user id header
+     * @return created purchase response
+     */
     @PostMapping("/buy")
     public ResponseEntity<PurchaseResponse> buyCoinViaTransactionsRoute(
             @RequestBody PurchaseRequest request,

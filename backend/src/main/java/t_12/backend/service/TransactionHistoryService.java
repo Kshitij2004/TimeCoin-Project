@@ -7,9 +7,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import t_12.backend.api.transaction.PaginationDTO;
-import t_12.backend.api.transaction.TransactionHistoryItem;
-import t_12.backend.api.transaction.TransactionHistoryResponse;
+import t_12.backend.api.transaction.dto.TransactionHistoryItemDTO;
+import t_12.backend.api.transaction.dto.TransactionHistoryPaginationDTO;
+import t_12.backend.api.transaction.dto.TransactionHistoryResponseDTO;
 import t_12.backend.entity.Transaction;
 import t_12.backend.exception.ApiException;
 import t_12.backend.repository.TransactionRepository;
@@ -31,7 +31,15 @@ public class TransactionHistoryService {
         this.transactionRepository = transactionRepository;
     }
 
-    public TransactionHistoryResponse getUserTransactions(
+    /**
+     * Returns paginated buy and sell history for a user.
+     *
+     * @param userId authenticated user id
+     * @param page requested 1-based page number, defaults to 1
+     * @param limit requested page size, defaults to 20
+     * @return paginated transaction history response DTO
+     */
+    public TransactionHistoryResponseDTO getUserTransactions(
             Integer userId,
             Integer page,
             Integer limit) {
@@ -55,14 +63,14 @@ public class TransactionHistoryService {
                 PageRequest.of(resolvedPage - 1, resolvedLimit)
         );
 
-        List<TransactionHistoryItem> items = results.getContent()
+        List<TransactionHistoryItemDTO> items = results.getContent()
                 .stream()
-                .map(TransactionHistoryItem::new)
+                .map(TransactionHistoryItemDTO::new)
                 .toList();
 
-        return new TransactionHistoryResponse(
+        return new TransactionHistoryResponseDTO(
                 items,
-                new PaginationDTO(
+                new TransactionHistoryPaginationDTO(
                         resolvedPage,
                         resolvedLimit,
                         results.getTotalElements(),

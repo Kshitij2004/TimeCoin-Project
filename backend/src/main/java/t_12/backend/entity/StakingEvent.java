@@ -12,6 +12,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+// Immutable audit log entry for a stake or unstake action. Kept separate
+// from the validators table so the current staked_amount can be independently
+// verified by summing events - important for ledger integrity.
 @Entity
 @Table(name = "staking_events")
 public class StakingEvent {
@@ -24,6 +27,7 @@ public class StakingEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    // references the on-chain wallet identity, not the user account
     @Column(name = "wallet_address", nullable = false, length = 128)
     private String walletAddress;
 
@@ -37,7 +41,8 @@ public class StakingEvent {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Getters
+    // getters and setters
+
     public Integer getId() {
         return id;
     }
@@ -58,7 +63,6 @@ public class StakingEvent {
         return createdAt;
     }
 
-    // Setters
     public void setId(Integer id) {
         this.id = id;
     }

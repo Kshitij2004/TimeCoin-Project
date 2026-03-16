@@ -7,6 +7,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+// Join table linking blocks to their transactions. Exists alongside
+// transactions.block_id so we can efficiently query "all txs in block X"
+// without scanning the full transactions table.
 @Entity
 @Table(name = "block_transactions")
 public class BlockTransaction {
@@ -21,7 +24,8 @@ public class BlockTransaction {
     @Column(name = "transaction_id", nullable = false)
     private Integer transactionId;
 
-    // Getters
+    // getters and setters
+
     public Integer getId() {
         return id;
     }
@@ -34,7 +38,6 @@ public class BlockTransaction {
         return transactionId;
     }
 
-    // Setters
     public void setId(Integer id) {
         this.id = id;
     }

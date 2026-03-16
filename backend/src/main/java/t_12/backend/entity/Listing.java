@@ -12,10 +12,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+// Marketplace listing where a user posts goods/services priced in TimeCoin.
+// References seller_id (user-level) rather than a wallet address because
+// marketplace identity is the account, not a specific wallet.
 @Entity
 @Table(name = "listings")
 public class Listing {
 
+    // ACTIVE = visible and purchasable
+    // SOLD = transaction completed, kept for history
+    // REMOVED = seller pulled the listing
     public enum Status {
         ACTIVE, SOLD, REMOVED
     }
@@ -33,6 +39,7 @@ public class Listing {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    // priced in TimeCoin; 18,8 precision matches the wallet/transaction scale
     @Column(name = "price", nullable = false, precision = 18, scale = 8)
     private BigDecimal price;
 
@@ -43,13 +50,15 @@ public class Listing {
     @Column(name = "status", nullable = false)
     private Status status;
 
+    // external URL; actual file uploads are handled by the frontend/CDN
     @Column(name = "image_url", length = 512)
     private String imageUrl;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Getters
+    // getters and setters
+
     public Integer getId() {
         return id;
     }
@@ -86,7 +95,6 @@ public class Listing {
         return createdAt;
     }
 
-    // Setters
     public void setId(Integer id) {
         this.id = id;
     }

@@ -5,6 +5,8 @@ import java.io.IOException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,15 +20,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class AuthFilter extends OncePerRequestFilter {
 
-    /**
-     * Filters incoming HTTP requests to enforce authorization requirements.
-     *
-     * @param request the HTTP request
-     * @param response the HTTP response
-     * @param filterChain the filter chain to proceed with
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response,
@@ -35,7 +28,7 @@ public class AuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Public endpoints (auth routes) bypass authorization checks.
+        // Public endpoints bypass authorization checks.
         if (path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
@@ -43,20 +36,56 @@ public class AuthFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        // Protected endpoints require a valid Authorization header.
+        // Protected endpoints require an Authorization header.
         if (authHeader == null || authHeader.isBlank()) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("""
-                {
-                    "status": 401,
-                    "error": "Unauthorized",
-                    "message": "Missing Authorization header"
-                }
-            """);
+            sendUnauthorized(response, "Missing Authorization header");
             return;
         }
 
-        filterChain.doFilter(request, response);
+        // The header must follow the format: "Bearer <token>"
+        if (!authHeader.startsWith("Bearer ")) {
+            sendUnauthorized(response, "Invalid Authorization format");
+            return;
+        }
+
+        // Strip the "Bearer " prefix to get the raw token string.
+        String token = authHeader.substring(7);
+
+        try {
+            // This both parses AND validates the token in one call.
+            // It will throw an exception if the signature is wrong,
+            // the token is malformed, or the token has expired.
+            String secretKey = "your-super-secret-key-change-this-in-production";
+            Jwts.parser()
+                    .verifyWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                    .build()
+                    .parseSignedClaims(token);
+
+            // Token is valid, let the request through.
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            // Any exception here means the token is invalid or expired.
+            sendUnauthorized(response, "Invalid or expired token");
+        }
+    }
+
+    /**
+     * Writes a 401 Unauthorized JSON response.
+     *
+     * @param response the HTTP response to write to
+     * @param message the error message to include
+     */
+    private void sendUnauthorized(HttpServletResponse response, String message)
+            throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write(String.format("""
+        {
+            "status": 401,
+            "error": "Unauthorized",
+            "message": "%s"
+        }
+    """, message));
     }
 }

@@ -24,10 +24,10 @@ public class Wallet {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
-    @Column(name = "wallet_address", nullable = false, unique = true, length = 128)
+    @Column(name = "wallet_address", nullable = true, unique = true, length = 128)
     private String walletAddress;
 
-    @Column(name = "public_key", nullable = false, unique = true, length = 512)
+    @Column(name = "public_key", nullable = true, unique = true, length = 512)
     private String publicKey;
 
     @Column(name = "coin_balance", nullable = false, precision = 18, scale = 8)

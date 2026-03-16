@@ -64,6 +64,11 @@ CREATE TABLE IF NOT EXISTS transactions (
     sender_address VARCHAR(128),                                -- null for coinbase (reward) transactions
     receiver_address VARCHAR(128) NOT NULL,
     amount DECIMAL(18, 8) NOT NULL,
+    user_id INT DEFAULT NULL,                                   -- set for user-facing buy/sell history rows
+    symbol VARCHAR(10) DEFAULT NULL,
+    transaction_type ENUM('BUY', 'SELL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL') DEFAULT NULL,
+    price_at_time DECIMAL(15, 2) DEFAULT NULL,
+    total_usd DECIMAL(18, 2) DEFAULT NULL,
     fee DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000,
     nonce INT NOT NULL DEFAULT 0,                                -- per-sender sequence number to prevent replay attacks
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -80,6 +85,7 @@ CREATE INDEX idx_tx_receiver ON transactions(receiver_address);
 CREATE INDEX idx_tx_status ON transactions(status);
 CREATE INDEX idx_tx_hash ON transactions(transaction_hash);
 CREATE INDEX idx_tx_block ON transactions(block_id);
+CREATE INDEX idx_tx_user_type_time ON transactions(user_id, transaction_type, timestamp);
 
 -- 6. Block-Transaction Join Table
 -- exists alongside transactions.block_id for efficient "get all txs in block X"

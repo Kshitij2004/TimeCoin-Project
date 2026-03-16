@@ -19,6 +19,10 @@ import jakarta.persistence.Table;
 @Table(name = "transactions")
 public class Transaction {
 
+    public enum TransactionType {
+        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL
+    }
+
     public enum Status {
         PENDING, CONFIRMED, REJECTED
     }
@@ -36,6 +40,23 @@ public class Transaction {
 
     @Column(name = "amount", nullable = false, precision = 18, scale = 8)
     private BigDecimal amount;
+
+    // Present for purchase history records; null for pure blockchain transfers.
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "symbol", length = 10)
+    private String symbol;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type")
+    private TransactionType transactionType;
+
+    @Column(name = "price_at_time", precision = 15, scale = 2)
+    private BigDecimal priceAtTime;
+
+    @Column(name = "total_usd", precision = 18, scale = 2)
+    private BigDecimal totalUsd;
 
     // paid by sender to incentivize validators
     @Column(name = "fee", nullable = false, precision = 18, scale = 8)
@@ -78,6 +99,26 @@ public class Transaction {
         return amount;
     }
 
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public TransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    public BigDecimal getPriceAtTime() {
+        return priceAtTime;
+    }
+
+    public BigDecimal getTotalUsd() {
+        return totalUsd;
+    }
+
     public BigDecimal getFee() {
         return fee;
     }
@@ -116,6 +157,26 @@ public class Transaction {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public void setTransactionType(TransactionType transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public void setPriceAtTime(BigDecimal priceAtTime) {
+        this.priceAtTime = priceAtTime;
+    }
+
+    public void setTotalUsd(BigDecimal totalUsd) {
+        this.totalUsd = totalUsd;
     }
 
     public void setFee(BigDecimal fee) {

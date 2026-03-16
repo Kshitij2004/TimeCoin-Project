@@ -66,4 +66,23 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         ));
     }
+
+    /**
+     * Handles request errors where the service already knows the intended HTTP
+     * status code.
+     *
+     * @param ex the thrown ApiException
+     * @return response with the exception's status and message
+     */
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<Map<String, Object>> handleApiException(
+            ApiException ex) {
+        HttpStatus status = ex.getStatus();
+        return ResponseEntity.status(status).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", status.value(),
+                "error", status.getReasonPhrase(),
+                "message", ex.getMessage()
+        ));
+    }
 }

@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/wallet/**").permitAll()
                 .requestMatchers("/api/coin/**").permitAll()
+                .requestMatchers("/api/coins/**").permitAll()
+                .requestMatchers("/api/transactions/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()
                 )

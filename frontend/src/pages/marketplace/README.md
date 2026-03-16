@@ -1,43 +1,77 @@
-# Marketplace Page
+# Marketplace Feature
 
-This folder contains the React marketplace page where the user can view TimeCoin pricing and submit a purchase.
+This directory contains all frontend code for the `/marketplace` page, where logged-in users can view the current coin price and purchase coins.
+
+---
 
 ## Files
 
-- `Marketplace.js`
-- `Marketplace.css`
-- `Marketplace.test.js`
+| File | Description |
+|------|-------------|
+| `Marketplace.js` | Main marketplace page component |
+| `Marketplace.css` | Styles for the marketplace page |
+| `Marketplace.test.jsx` | Unit tests for the marketplace component |
+| `README.md` | This file |
 
-## Current Behavior
+---
 
-- loads current coin price, total supply, and circulating supply
-- lets the user enter an amount to buy
-- shows a live estimated USD total
-- submits a purchase request to the backend
-- refreshes coin data after a successful purchase
+## What the Page Does
 
-## API Calls
+- Displays current coin price, circulating supply, and total supply
+- Input field for the amount of coins to buy
+- Shows a live cost estimate as the user types
+- Buy button that calls the purchase API
+- Shows success or error feedback after a transaction
+- Auth-gated — redirects to `/login` if not logged in
 
-- `GET /api/coin`
-- `POST /api/coin/buy`
+---
 
-The component uses the shared frontend API base URL from [src/services/api.js](../../services/api.js).
+## Auth
 
-## Auth Status
-
-Real auth is not finished yet. The page still uses:
+Auth is currently **stubbed** with a hardcoded user while the auth system is being built:
 
 ```js
+// TODO: replace with real auth context when built
 const user = { id: 1, username: "testuser1" };
 const token = "fake-token";
 ```
 
-That placeholder token is required because the backend `AuthFilter` still expects a non-empty `Authorization` header.
+When auth is ready, replace the stub with the real `useAuth` hook and remove the `.skip` from the auth gate test in `Marketplace.test.jsx`.
 
-## Tests
+---
 
-Run from `frontend/`:
+## API Endpoints Used
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/coins` | Fetches current price and supply |
+| `POST` | `/api/transactions/buy` | Submits a purchase |
+
+The backend routes for these live in `routes/marketplace.routes.js`.
+
+---
+
+## Running Tests
+
+First time setup — install dependencies from the project root:
 
 ```bash
-npm test -- --watchAll=false
+npm install -D vitest @testing-library/react @testing-library/user-event @testing-library/jest-dom jsdom
 ```
+
+Make sure `vite.config.js` has the test block and `src/test/setup.js` exists (see the main project README for details).
+
+Then run:
+
+```bash
+npm test
+```
+
+---
+
+## TODO
+
+- [ ] Replace stubbed auth with real `useAuth` context
+- [ ] Enable skipped auth gate tests in `Marketplace.test.jsx`
+- [ ] Add `Marketplace.css` for styling
+- [ ] Wire up `/marketplace` route in `App.js`

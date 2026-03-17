@@ -56,6 +56,7 @@ public class PurchaseService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Coin not found"));
         Wallet wallet = walletRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet not found"));
+        ensureWalletIdentity(wallet);
 
         if (coin.getCirculatingSupply().compareTo(amount) < 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Insufficient circulating supply");
@@ -119,5 +120,23 @@ public class PurchaseService {
             return DEFAULT_SYMBOL;
         }
         return symbol.trim().toUpperCase();
+    }
+
+    private void ensureWalletIdentity(Wallet wallet) {
+        boolean updated = false;
+
+        if (wallet.getWalletAddress() == null || wallet.getWalletAddress().isBlank()) {
+            wallet.setWalletAddress("addr_" + UUID.randomUUID());
+            updated = true;
+        }
+
+        if (wallet.getPublicKey() == null || wallet.getPublicKey().isBlank()) {
+            wallet.setPublicKey("pub_" + UUID.randomUUID() + "_" + UUID.randomUUID());
+            updated = true;
+        }
+
+        if (updated) {
+            walletRepository.save(wallet);
+        }
     }
 }

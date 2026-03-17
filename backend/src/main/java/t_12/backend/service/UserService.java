@@ -2,6 +2,7 @@ package t_12.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.UUID;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -82,6 +83,8 @@ public class UserService {
         // which user it belongs to. This is the link between the two tables.
         Wallet wallet = new Wallet();
         wallet.setUserId(savedUser.getId());
+        wallet.setWalletAddress(generateWalletAddress());
+        wallet.setPublicKey(generatePublicKey());
         wallet.setCoinBalance(java.math.BigDecimal.ZERO);
         wallet.setCreatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
@@ -126,5 +129,13 @@ public class UserService {
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                 .compact();
+    }
+
+    private String generateWalletAddress() {
+        return "addr_" + UUID.randomUUID();
+    }
+
+    private String generatePublicKey() {
+        return "pub_" + UUID.randomUUID() + "_" + UUID.randomUUID();
     }
 }

@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/coin/**").permitAll()
                 .requestMatchers("/api/coins/**").permitAll()
                 .requestMatchers("/api/transactions/**").permitAll()
+                .requestMatchers("/api/listings/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()
                 )

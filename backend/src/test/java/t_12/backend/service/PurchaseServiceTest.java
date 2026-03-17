@@ -1,8 +1,10 @@
 package t_12.backend.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -124,5 +126,39 @@ class PurchaseServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         assertEquals("Insufficient circulating supply", exception.getMessage());
+    }
+
+    @Test
+    void purchaseCoinBackfillsMissingWalletIdentity() {
+        User user = new User();
+        user.setId(9);
+
+        Coin coin = new Coin();
+        coin.setId(1L);
+        coin.setCurrentPrice(new BigDecimal("10.00"));
+        coin.setCirculatingSupply(new BigDecimal("500000.00"));
+        coin.setTotalSupply(new BigDecimal("1000000.00"));
+
+        Wallet wallet = new Wallet();
+        wallet.setUserId(9);
+        wallet.setCoinBalance(BigDecimal.ZERO);
+
+        when(userRepository.findById(9)).thenReturn(Optional.of(user));
+        when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
+        when(walletRepository.findByUserId(9)).thenReturn(Optional.of(wallet));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+            Transaction transaction = invocation.getArgument(0);
+            transaction.setId(99);
+            return transaction;
+        });
+
+        PurchaseResponse response = purchaseService.purchaseCoin(9, "TC", new BigDecimal("1.25"));
+
+        assertNotNull(response.getWallet().getWalletAddress());
+
+        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(transactionCaptor.capture());
+        verify(walletRepository, atLeastOnce()).save(wallet);
+        assertNotNull(transactionCaptor.getValue().getReceiverAddress());
     }
 }

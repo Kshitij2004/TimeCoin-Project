@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -79,6 +80,8 @@ class UserServiceTest {
         assertEquals("testuser", result.getUsername());
         assertEquals("test@email.com", result.getEmail());
 
+        ArgumentCaptor<Wallet> walletCaptor = ArgumentCaptor.forClass(Wallet.class);
+
         // Verify the right methods were called the right number of times
         verify(userRepository, times(1))
                 .existsByUsername("testuser");
@@ -87,7 +90,11 @@ class UserServiceTest {
         verify(userRepository, times(1))
                 .save(any(User.class));
         verify(walletRepository, times(1))
-                .save(any(Wallet.class));
+                .save(walletCaptor.capture());
+
+        Wallet createdWallet = walletCaptor.getValue();
+        assertNotNull(createdWallet.getWalletAddress());
+        assertNotNull(createdWallet.getPublicKey());
     }
 
     /**

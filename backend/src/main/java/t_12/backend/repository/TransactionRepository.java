@@ -30,4 +30,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
             Integer userId,
             Collection<Transaction.TransactionType> transactionTypes
     );
+    List<Transaction> findBySenderAddressOrReceiverAddress(String senderAddress, String receiverAddress);
+    boolean existsByTransactionHash(String transactionHash);
 }

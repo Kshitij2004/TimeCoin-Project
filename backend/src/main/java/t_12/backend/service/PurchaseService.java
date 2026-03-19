@@ -34,18 +34,38 @@ public class PurchaseService {
     private final CoinRepository coinRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final WalletService walletService;
 
+    /**
+     * Creates a purchase service with persistence and wallet dependencies.
+     *
+     * @param userRepository repository for users
+     * @param coinRepository repository for coin state
+     * @param walletRepository repository for wallet state
+     * @param transactionRepository repository for transaction ledger rows
+     * @param walletService service for wallet identity backfill logic
+     */
     public PurchaseService(
             UserRepository userRepository,
             CoinRepository coinRepository,
             WalletRepository walletRepository,
-            TransactionRepository transactionRepository) {
+            TransactionRepository transactionRepository,
+            WalletService walletService) {
         this.userRepository = userRepository;
         this.coinRepository = coinRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
+        this.walletService = walletService;
     }
 
+    /**
+     * Executes a TimeCoin purchase and writes all related state updates.
+     *
+     * @param userId authenticated user identifier
+     * @param symbol requested coin symbol
+     * @param amount amount to purchase
+     * @return purchase response containing transaction and wallet data
+     */
     @Transactional
     public PurchaseResponse purchaseCoin(Integer userId, String symbol, BigDecimal amount) {
         validateInput(userId, symbol, amount);
@@ -56,7 +76,7 @@ public class PurchaseService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Coin not found"));
         Wallet wallet = walletRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet not found"));
-        ensureWalletIdentity(wallet);
+        wallet = walletService.ensureWalletIdentity(wallet);
 
         if (coin.getCirculatingSupply().compareTo(amount) < 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Insufficient circulating supply");
@@ -97,6 +117,13 @@ public class PurchaseService {
         );
     }
 
+    /**
+     * Validates buy request payload fields.
+     *
+     * @param userId request user ID
+     * @param symbol request symbol
+     * @param amount request amount
+     */
     private void validateInput(Integer userId, String symbol, BigDecimal amount) {
         if (userId == null || userId <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "userId must be a positive integer");
@@ -115,28 +142,16 @@ public class PurchaseService {
         }
     }
 
+    /**
+     * Normalizes input symbol and applies default TimeCoin symbol when absent.
+     *
+     * @param symbol user-provided symbol
+     * @return normalized symbol
+     */
     private String normalizeSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             return DEFAULT_SYMBOL;
         }
         return symbol.trim().toUpperCase();
-    }
-
-    private void ensureWalletIdentity(Wallet wallet) {
-        boolean updated = false;
-
-        if (wallet.getWalletAddress() == null || wallet.getWalletAddress().isBlank()) {
-            wallet.setWalletAddress("addr_" + UUID.randomUUID());
-            updated = true;
-        }
-
-        if (wallet.getPublicKey() == null || wallet.getPublicKey().isBlank()) {
-            wallet.setPublicKey("pub_" + UUID.randomUUID() + "_" + UUID.randomUUID());
-            updated = true;
-        }
-
-        if (updated) {
-            walletRepository.save(wallet);
-        }
     }
 }

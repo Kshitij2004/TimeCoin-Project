@@ -10,6 +10,8 @@ import t_12.backend.entity.Wallet;
 public class WalletDTO {
 
     private final Integer userId;
+    private final String walletAddress;
+    private final String publicKey;
     private final BigDecimal coinBalance;
 
     /**
@@ -19,6 +21,8 @@ public class WalletDTO {
      */
     public WalletDTO(Wallet wallet) {
         this.userId = wallet.getUserId();
+        this.walletAddress = wallet.getWalletAddress();
+        this.publicKey = wallet.getPublicKey();
         this.coinBalance = wallet.getCoinBalance();
     }
 
@@ -28,5 +32,13 @@ public class WalletDTO {
 
     public BigDecimal getCoinBalance() {
         return coinBalance;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
     }
 }

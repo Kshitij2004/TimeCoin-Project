@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import t_12.backend.entity.Wallet;
@@ -87,6 +88,21 @@ class WalletServiceTest {
     }
 
     /**
+     * Tests that getWalletByAddress throws ResourceNotFoundException when the
+     * wallet does not exist.
+     */
+    @Test
+    void GetWalletByAddress_ThrowsException_WhenNotFoundTest() {
+        when(walletRepository.findByWalletAddress("wlt_missing")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            walletService.getWalletByAddress("wlt_missing");
+        });
+
+        verify(walletRepository, times(1)).findByWalletAddress("wlt_missing");
+    }
+
+    /**
      * Tests that getWalletByPublicKey returns the wallet when found.
      */
     @Test
@@ -100,6 +116,21 @@ class WalletServiceTest {
 
         assertEquals("pub_lookup", result.getPublicKey());
         verify(walletRepository, times(1)).findByPublicKey("pub_lookup");
+    }
+
+    /**
+     * Tests that getWalletByPublicKey throws ResourceNotFoundException when the
+     * wallet does not exist.
+     */
+    @Test
+    void GetWalletByPublicKey_ThrowsException_WhenNotFoundTest() {
+        when(walletRepository.findByPublicKey("pub_missing")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            walletService.getWalletByPublicKey("pub_missing");
+        });
+
+        verify(walletRepository, times(1)).findByPublicKey("pub_missing");
     }
 
     /**
@@ -199,5 +230,39 @@ class WalletServiceTest {
                 walletService.deriveWalletAddressFromPublicKey(result.getPublicKey())
         );
         verify(walletRepository, times(1)).save(wallet);
+    }
+
+    /**
+     * Tests that ensureWalletIdentity returns the original wallet without
+     * persisting when identity fields are already present.
+     */
+    @Test
+    void EnsureWalletIdentity_DoesNotPersist_WhenIdentityAlreadyPresentTest() {
+        Wallet wallet = new Wallet();
+        wallet.setId(12);
+        wallet.setUserId(12);
+        wallet.setWalletAddress("wlt_existing");
+        wallet.setPublicKey("pub_existing");
+        wallet.setCoinBalance(BigDecimal.ZERO);
+
+        Wallet result = walletService.ensureWalletIdentity(wallet);
+
+        assertEquals("wlt_existing", result.getWalletAddress());
+        assertEquals("pub_existing", result.getPublicKey());
+        verify(walletRepository, never()).save(any(Wallet.class));
+    }
+
+    /**
+     * Tests that deriveWalletAddressFromPublicKey is deterministic for the same
+     * public key input.
+     */
+    @Test
+    void DeriveWalletAddressFromPublicKey_ReturnsDeterministicAddress_ForSameInputTest() {
+        String publicKey = "MCowBQYDK2VwAyEA8vP4Vgjk5QxXqig3yQ2Q7NscsjYo8kz9kZe6Y8YZhsg=";
+
+        String firstAddress = walletService.deriveWalletAddressFromPublicKey(publicKey);
+        String secondAddress = walletService.deriveWalletAddressFromPublicKey(publicKey);
+
+        assertEquals(firstAddress, secondAddress);
     }
 }

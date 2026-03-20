@@ -9,9 +9,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import t_12.backend.filter.AuthFilter;
 
 /**
  * Spring Security configuration for the application. Configures CSRF
@@ -20,6 +23,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final AuthFilter authFilter;
+
+    /**
+     * Constructor for SecurityConfig. Injects the custom authentication filter.
+     *
+     * @param authFilter the authentication filter to use for securing endpoints
+     */
+    public SecurityConfig(AuthFilter authFilter) {
+        this.authFilter = authFilter;
+    }
 
     /**
      * Configures the security filter chain for HTTP requests.
@@ -50,7 +64,8 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+                )
+                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

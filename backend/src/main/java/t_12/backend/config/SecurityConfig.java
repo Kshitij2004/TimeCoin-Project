@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -40,7 +41,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/coin/**").permitAll()
                 .requestMatchers("/api/coins/**").permitAll()
                 .requestMatchers("/api/transactions/**").permitAll()
-                .requestMatchers("/api/listings/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/listings/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/listings/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/listings/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/listings/**").authenticated()
                 .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()
                 )

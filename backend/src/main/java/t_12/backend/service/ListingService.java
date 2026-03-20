@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
+import t_12.backend.exception.ForbiddenException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.ListingRepository;
 
@@ -85,7 +86,7 @@ public class ListingService {
      * @param sellerId the ID of the authenticated user making the request
      * @return the updated Listing entity
      * @throws ResourceNotFoundException if the listing does not exist
-     * @throws RuntimeException if the requesting user is not the seller
+     * @throws ForbiddenException if the requesting user is not the seller
      */
     public Listing updateListing(Integer id, UpdateListingRequest request,
             Integer sellerId) {
@@ -94,7 +95,7 @@ public class ListingService {
         // Ownership check, only the seller can modify their own listing.
         // We compare the authenticated user's ID against the stored sellerId.
         if (!listing.getSellerId().equals(sellerId)) {
-            throw new RuntimeException("Forbidden: you do not own this listing");
+            throw new ForbiddenException("Forbidden: you do not own this listing");
         }
 
         listing.setTitle(request.getTitle());
@@ -114,14 +115,14 @@ public class ListingService {
      * @param id the listing ID to remove
      * @param sellerId the ID of the authenticated user making the request
      * @throws ResourceNotFoundException if the listing does not exist
-     * @throws RuntimeException if the requesting user is not the seller
+     * @throws ForbiddenException if the requesting user is not the seller
      */
     public void deleteListing(Integer id, Integer sellerId) {
         Listing listing = getListingById(id);
 
         // Ownership check. Same pattern as updateListing.
         if (!listing.getSellerId().equals(sellerId)) {
-            throw new RuntimeException("Forbidden: you do not own this listing");
+            throw new ForbiddenException("Forbidden: you do not own this listing");
         }
 
         // Soft delete. Set status to REMOVED rather than deleting the row.

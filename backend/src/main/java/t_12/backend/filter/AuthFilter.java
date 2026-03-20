@@ -2,9 +2,12 @@ package t_12.backend.filter;
 
 import java.io.IOException;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -56,10 +59,21 @@ public class AuthFilter extends OncePerRequestFilter {
             // It will throw an exception if the signature is wrong,
             // the token is malformed, or the token has expired.
             String secretKey = "your-super-secret-key-change-this-in-production";
-            Jwts.parser()
+            Claims claims = Jwts.parser()
                     .verifyWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                     .build()
-                    .parseSignedClaims(token);
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            Integer userId = Integer.parseInt(claims.getSubject());
+
+            // Store the user ID in the SecurityContext so downstream code
+            // (controllers, services) can access it without re-parsing the token.
+            // The null arguments are credentials and authorities. They're not needed
+            // here since we handle authorization ourselves in the service layer.
+            UsernamePasswordAuthenticationToken authentication
+                    = new UsernamePasswordAuthenticationToken(userId, null, null);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Token is valid, let the request through.
             filterChain.doFilter(request, response);

@@ -82,7 +82,22 @@ public class GlobalExceptionHandler {
                 "timestamp", LocalDateTime.now().toString(),
                 "status", status.value(),
                 "error", status.getReasonPhrase(),
-                "message", ex.getMessage()
-        ));
+                "message", ex.getMessage()));
+    }
+
+    /**
+     * Handles forbidden access attempts, such as ownership violations.
+     *
+     * @param ex the caught ForbiddenException
+     * @return response with 403 status and the exception message
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                Map.of(
+                        "timestamp", LocalDateTime.now().toString(),
+                        "status", 403,
+                        "error", "Forbidden",
+                        "message", ex.getMessage()));
     }
 }

@@ -5,28 +5,30 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import t_12.backend.entity.Block;
 import t_12.backend.entity.BlockTransaction;
 import t_12.backend.entity.Transaction;
-import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.BlockRepository;
 import t_12.backend.repository.BlockTransactionRepository;
 import t_12.backend.repository.TransactionRepository;
 
 /**
- * Service class for handling block-related business logic. Manages block
- * creation, genesis block initialization, SHA-256 hash generation over
- * block contents, chain linking via previousHash, and transaction-to-block
- * association through the block_transactions join table.
+ * Service for block creation, chain linking, and block hash generation.
+ * Handles genesis block creation, assembling new blocks from pending
+ * transactions, and committing them to the chain with SHA-256 hashes
+ * that include the previous block's hash for tamper detection.
  */
 @Service
 public class BlockService {
+
+    private static final String GENESIS_PREVIOUS_HASH =
+            "0000000000000000000000000000000000000000000000000000000000000000";
 
     private final BlockRepository blockRepository;
     private final BlockTransactionRepository blockTransactionRepository;
@@ -42,226 +44,101 @@ public class BlockService {
 
     /**
      * Creates the genesis block (height 0) if the chain is empty.
-     * The genesis block has no previous hash, no validator, and zero
-     * transactions. Its hash is deterministic so every node produces
-     * the same genesis block.
+     * Uses a deterministic previousHash of all zeros. No-ops if a
+     * genesis block already exists.
      *
-     * @return the saved genesis Block, or the existing one if already created
+     * @return the genesis block, or the existing one if already created
      */
     public Block createGenesisBlock() {
-        // prevent duplicate genesis block
-        Optional<Block> existing = blockRepository.findByBlockHeight(0);
-        if (existing.isPresent()) {
-            return existing.get();
+        if (blockRepository.existsByBlockHeight(0)) {
+            return blockRepository.findByBlockHeight(0)
+                    .orElseThrow(() -> new ResourceNotFoundException("Genesis block exists but could not be loaded"));
         }
 
-        LocalDateTime timestamp = LocalDateTime.of(2026, 3, 4, 0, 0, 0);
-        String hash = generateBlockHash(0, null, null, timestamp, List.of());
+        LocalDateTime timestamp = LocalDateTime.now();
+        String blockHash = generateBlockHash(0, GENESIS_PREVIOUS_HASH, timestamp, List.of());
 
         Block genesis = new Block();
         genesis.setBlockHeight(0);
-        genesis.setPreviousHash(null);
-        genesis.setBlockHash(hash);
-        genesis.setValidatorAddress(null);
+        genesis.setPreviousHash(GENESIS_PREVIOUS_HASH);
+        genesis.setBlockHash(blockHash);
         genesis.setTimestamp(timestamp);
         genesis.setTransactionCount(0);
         genesis.setStatus(Block.Status.COMMITTED);
+        genesis.setValidatorAddress(null);
 
         return blockRepository.save(genesis);
     }
 
     /**
-     * Creates a new block linked to the current chain tip. Computes the
-     * block hash over the canonical fields, persists the block, and
-     * associates the given transactions via the block_transactions join
-     * table. Each transaction's status is updated to CONFIRMED and its
-     * blockId is set.
+     * Assembles and commits a new block from a list of transactions.
+     * Links to the previous block via its hash, computes the new block
+     * hash over the block contents (including transaction hashes), creates
+     * join table entries, and marks transactions as CONFIRMED.
      *
-     * @param validatorAddress the wallet address of the proposing validator
-     * @param transactions     the list of transactions to include in the block
-     * @return the saved Block entity
-     * @throws ResourceNotFoundException  if the chain is empty (no genesis block)
-     * @throws DuplicateResourceException if a block at the computed height already exists
+     * @param transactions     the transactions to include in the block
+     * @param validatorAddress the address of the validator creating the block (nullable)
+     * @return the committed block
+     * @throws IllegalStateException if the chain is empty (create genesis first)
      */
-    public Block createBlock(String validatorAddress, List<Transaction> transactions) {
-        // get the latest block to link to
-        Block previousBlock = getLatestBlock();
+    @Transactional
+    public Block createBlock(List<Transaction> transactions, String validatorAddress) {
+        Block previousBlock = blockRepository.findTopByOrderByBlockHeightDesc()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No blocks in chain. Create genesis block first."));
 
-        Integer newHeight = previousBlock.getBlockHeight() + 1;
-
-        // prevent duplicate height (shouldn't happen with unique constraint,
-        // but checking here gives a clearer error message)
-        if (blockRepository.existsByBlockHeight(newHeight)) {
-            throw new DuplicateResourceException(
-                    "Block at height " + newHeight + " already exists");
-        }
-
+        int newHeight = previousBlock.getBlockHeight() + 1;
+        String previousHash = previousBlock.getBlockHash();
         LocalDateTime timestamp = LocalDateTime.now();
 
-        // collect transaction hashes for block hash computation
-        List<String> transactionHashes = transactions.stream()
+        List<String> txHashes = transactions.stream()
                 .map(Transaction::getTransactionHash)
                 .collect(Collectors.toList());
 
-        String blockHash = generateBlockHash(
-                newHeight, previousBlock.getBlockHash(),
-                validatorAddress, timestamp, transactionHashes);
+        String blockHash = generateBlockHash(newHeight, previousHash, timestamp, txHashes);
 
-        // build and save the block
         Block block = new Block();
         block.setBlockHeight(newHeight);
-        block.setPreviousHash(previousBlock.getBlockHash());
+        block.setPreviousHash(previousHash);
         block.setBlockHash(blockHash);
-        block.setValidatorAddress(validatorAddress);
         block.setTimestamp(timestamp);
         block.setTransactionCount(transactions.size());
         block.setStatus(Block.Status.COMMITTED);
+        block.setValidatorAddress(validatorAddress);
 
         Block savedBlock = blockRepository.save(block);
 
-        // associate each transaction with this block
+        // create join table entries and confirm each transaction
         for (Transaction tx : transactions) {
-            // update the transaction itself
+            BlockTransaction bt = new BlockTransaction();
+            bt.setBlockId(savedBlock.getId());
+            bt.setTransactionId(tx.getId());
+            blockTransactionRepository.save(bt);
+
             tx.setBlockId(savedBlock.getId());
             tx.setStatus(Transaction.Status.CONFIRMED);
             transactionRepository.save(tx);
-
-            // create the join table entry
-            BlockTransaction blockTx = new BlockTransaction();
-            blockTx.setBlockId(savedBlock.getId());
-            blockTx.setTransactionId(tx.getId());
-            blockTransactionRepository.save(blockTx);
         }
 
         return savedBlock;
     }
 
     /**
-     * Retrieves a block by its height.
+     * Generates a deterministic SHA-256 hash over the block's contents.
+     * Canonical format: "height|previousHash|timestamp|txHash1,txHash2,..."
      *
-     * @param blockHeight the height to look up
-     * @return the Block entity
-     * @throws ResourceNotFoundException if no block exists at that height
-     */
-    public Block findByHeight(Integer blockHeight) {
-        return blockRepository.findByBlockHeight(blockHeight)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Block not found at height: " + blockHeight
-                ));
-    }
-
-    /**
-     * Retrieves a block by its hash.
-     *
-     * @param blockHash the hash to look up
-     * @return the Block entity
-     * @throws ResourceNotFoundException if no block exists with that hash
-     */
-    public Block findByHash(String blockHash) {
-        return blockRepository.findByBlockHash(blockHash)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Block not found with hash: " + blockHash
-                ));
-    }
-
-    /**
-     * Retrieves a block by its ID.
-     *
-     * @param id the block ID
-     * @return the Block entity
-     * @throws ResourceNotFoundException if no block exists with that ID
-     */
-    public Block findById(Integer id) {
-        return blockRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Block not found with id: " + id
-                ));
-    }
-
-    /**
-     * Retrieves the latest block in the chain (highest block_height).
-     *
-     * @return the latest Block entity
-     * @throws ResourceNotFoundException if the chain is empty
-     */
-    public Block getLatestBlock() {
-        return blockRepository.findTopByOrderByBlockHeightDesc()
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Chain is empty. Create genesis block first."
-                ));
-    }
-
-    /**
-     * Returns the current chain height (the block_height of the latest block).
-     *
-     * @return the chain height, or -1 if the chain is empty
-     */
-    public Integer getChainHeight() {
-        Optional<Block> latest = blockRepository.findTopByOrderByBlockHeightDesc();
-        return latest.map(Block::getBlockHeight).orElse(-1);
-    }
-
-    /**
-     * Retrieves all blocks in the chain.
-     *
-     * @return list of all blocks
-     */
-    public List<Block> findAll() {
-        return blockRepository.findAll();
-    }
-
-    /**
-     * Retrieves all blocks with a given status.
-     *
-     * @param status the status to filter by
-     * @return list of blocks with the given status
-     */
-    public List<Block> findByStatus(Block.Status status) {
-        return blockRepository.findByStatus(status);
-    }
-
-    /**
-     * Retrieves all transaction IDs associated with a block through
-     * the block_transactions join table.
-     *
-     * @param blockId the block ID
-     * @return list of transaction IDs in the block
-     */
-    public List<Integer> findTransactionIdsInBlock(Integer blockId) {
-        return blockTransactionRepository.findByBlockId(blockId)
-                .stream()
-                .map(BlockTransaction::getTransactionId)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Generates a deterministic SHA-256 hash over the canonical block
-     * fields. The canonical format is a pipe-delimited string:
-     * "height|previousHash|validatorAddress|timestamp|txHash1,txHash2,..."
-     *
-     * Including transaction hashes in the block hash means any change
-     * to any transaction in the block changes the block hash, making
-     * tampering detectable. This is a simplified version of a Merkle root.
-     *
-     * @param blockHeight       the block's position in the chain
-     * @param previousHash      the hash of the preceding block
-     * @param validatorAddress  the proposing validator's address
-     * @param timestamp         the block creation timestamp
-     * @param transactionHashes the hashes of all included transactions
-     * @return the hex-encoded SHA-256 hash string
+     * Changing any field (including adding/removing/reordering transactions)
+     * produces a completely different hash.
      */
     public String generateBlockHash(Integer blockHeight, String previousHash,
-                                     String validatorAddress, LocalDateTime timestamp,
-                                     List<String> transactionHashes) {
+                                     LocalDateTime timestamp, List<String> transactionHashes) {
 
-        // join all tx hashes with commas. empty list produces empty string.
-        String txDigest = String.join(",", transactionHashes);
+        String txHashesCombined = String.join(",", transactionHashes);
 
         String canonical = blockHeight
-                + "|" + (previousHash != null ? previousHash : "null")
-                + "|" + (validatorAddress != null ? validatorAddress : "null")
+                + "|" + previousHash
                 + "|" + timestamp.toString()
-                + "|" + txDigest;
+                + "|" + txHashesCombined;
 
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -272,12 +149,47 @@ public class BlockService {
         }
     }
 
+    // --- lookup methods ---
+
+    public Block findByHeight(Integer blockHeight) {
+        return blockRepository.findByBlockHeight(blockHeight)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Block not found at height: " + blockHeight));
+    }
+
+    public Block findByHash(String blockHash) {
+        return blockRepository.findByBlockHash(blockHash)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Block not found with hash: " + blockHash));
+    }
+
+    public Block findById(Integer id) {
+        return blockRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Block not found with id: " + id));
+    }
+
+    public Block getLatestBlock() {
+        return blockRepository.findTopByOrderByBlockHeightDesc()
+                .orElseThrow(() -> new ResourceNotFoundException("No blocks in chain"));
+    }
+
+    public List<Block> findAll() {
+        return blockRepository.findAll();
+    }
+
     /**
-     * Converts a byte array to a lowercase hex string.
-     *
-     * @param bytes the byte array to convert
-     * @return the hex-encoded string
+     * Returns the transactions associated with a block via the join table.
      */
+    public List<Transaction> getBlockTransactions(Integer blockId) {
+        List<BlockTransaction> joins = blockTransactionRepository.findByBlockId(blockId);
+        return joins.stream()
+                .map(bt -> transactionRepository.findById(bt.getTransactionId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Transaction not found: " + bt.getTransactionId())))
+                .collect(Collectors.toList());
+    }
+
     private String bytesToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder(2 * bytes.length);
         for (byte b : bytes) {

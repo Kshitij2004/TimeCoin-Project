@@ -1,13 +1,14 @@
 package t_12.backend.api.wallet;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import t_12.backend.exception.ForbiddenException;
+import t_12.backend.api.transaction.dto.TransactionHistoryResponseDTO;
+import t_12.backend.service.TransactionHistoryService;
 import t_12.backend.service.WalletService;
 
 /**
@@ -18,39 +19,44 @@ import t_12.backend.service.WalletService;
 public class WalletController {
 
     private final WalletService walletService;
+    private final TransactionHistoryService transactionHistoryService;
 
-    public WalletController(WalletService walletService) {
+    public WalletController(
+            WalletService walletService,
+            TransactionHistoryService transactionHistoryService) {
         this.walletService = walletService;
+        this.transactionHistoryService = transactionHistoryService;
     }
 
     /**
-     * Retrieves wallet information for the authenticated user. The optional
-     * userId query parameter is accepted only when it matches the JWT user.
+     * Retrieves the wallet information for the authenticated user.
      *
-     * @param userId optional user ID to validate against the authenticated user
+     * @param userId authenticated user id resolved from x-user-id header
      * @return ResponseEntity containing the WalletDTO with wallet data
      */
-    @GetMapping
     public ResponseEntity<WalletDTO> getWallet(
-            @RequestParam(required = false) Integer userId) {
-        Integer authenticatedUserId = getAuthenticatedUserId();
-        if (userId != null && !userId.equals(authenticatedUserId)) {
-            throw new ForbiddenException("Forbidden: userId does not match authenticated user");
-        }
-
+            @RequestHeader(value = "x-user-id", required = false) Integer userId) {
         return ResponseEntity.ok(
-                new WalletDTO(walletService.getWalletByUserId(authenticatedUserId))
+                new WalletDTO(walletService.getWalletByUserId(userId))
         );
     }
 
     /**
-     * Reads the authenticated user ID from the SecurityContext.
+     * Returns paginated transaction history for the authenticated user's
+     * wallet.
      *
-     * @return authenticated user ID from JWT principal
+     * @param userId authenticated user id resolved from x-user-id header
+     * @param page optional 1-based page number
+     * @param limit optional page size
+     * @return paginated transaction history
      */
-    private Integer getAuthenticatedUserId() {
-        return (Integer) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
+    @GetMapping("/transactions")
+    public ResponseEntity<TransactionHistoryResponseDTO> getWalletTransactions(
+            @RequestHeader(value = "x-user-id", required = false) Integer userId,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return ResponseEntity.ok(
+                transactionHistoryService.getUserTransactions(userId, page, limit)
+        );
     }
 }

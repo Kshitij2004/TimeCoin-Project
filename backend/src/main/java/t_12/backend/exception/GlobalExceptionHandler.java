@@ -100,4 +100,21 @@ public class GlobalExceptionHandler {
                         "error", "Forbidden",
                         "message", ex.getMessage()));
     }
+
+    /**
+     * Handles transactions rejected due to insufficient sender balance.
+     *
+     * @param ex the thrown InsufficientFundsException
+     * @return response with 400 status and error details
+     */
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientFunds(
+            InsufficientFundsException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 400,
+                "error", "Bad Request",
+                "message", ex.getMessage()
+        ));
+    }
 }

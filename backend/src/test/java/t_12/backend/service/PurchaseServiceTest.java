@@ -48,6 +48,9 @@ class PurchaseServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private WalletService walletService;
+
     @InjectMocks
     private PurchaseService purchaseService;
 
@@ -71,6 +74,7 @@ class PurchaseServiceTest {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
         when(walletRepository.findByUserId(1)).thenReturn(Optional.of(wallet));
+        when(walletService.ensureWalletIdentity(wallet)).thenReturn(wallet);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(42);
@@ -118,6 +122,7 @@ class PurchaseServiceTest {
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
         when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
         when(walletRepository.findByUserId(1)).thenReturn(Optional.of(wallet));
+        when(walletService.ensureWalletIdentity(wallet)).thenReturn(wallet);
 
         ApiException exception = assertThrows(
                 ApiException.class,
@@ -146,6 +151,12 @@ class PurchaseServiceTest {
         when(userRepository.findById(9)).thenReturn(Optional.of(user));
         when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
         when(walletRepository.findByUserId(9)).thenReturn(Optional.of(wallet));
+        when(walletService.ensureWalletIdentity(wallet)).thenAnswer(invocation -> {
+            Wallet backfilledWallet = invocation.getArgument(0);
+            backfilledWallet.setWalletAddress("wlt_backfilled");
+            backfilledWallet.setPublicKey("pub_backfilled");
+            return backfilledWallet;
+        });
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(99);
@@ -158,7 +169,7 @@ class PurchaseServiceTest {
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(transactionCaptor.capture());
-        verify(walletRepository, atLeastOnce()).save(wallet);
+        verify(walletService, atLeastOnce()).ensureWalletIdentity(wallet);
         assertNotNull(transactionCaptor.getValue().getReceiverAddress());
     }
 }

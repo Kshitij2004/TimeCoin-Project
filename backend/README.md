@@ -107,7 +107,7 @@ Requests to protected endpoints without a valid `Authorization` header receive:
 { "status": 401, "error": "Unauthorized", "message": "Missing Authorization header" }
 ```
 
-> **Note:** wallet, coin, and transaction routes are technically permitted in `SecurityConfig`, but `AuthFilter` still validates the JWT header before allowing the request through.
+> **Note:** wallet, coin, and transaction routes are protected. Use a valid JWT in `Authorization: Bearer <token>`.
 
 #### POST /api/auth/register
 
@@ -149,7 +149,7 @@ Returns the coin balance for a user.
 **Example:**
 ```
 GET http://localhost:8080/api/wallet?userId=1
-Authorization: dummy
+Authorization: Bearer <jwt>
 ```
 
 **Response:**
@@ -278,7 +278,22 @@ Content-Type: application/json
 
 Copy the token returned in the response body.
 
-3. Buy TimeCoin:
+Important:
+- Copy the full raw JWT (`header.payload.signature` with two dots)
+- Do not include quotes
+- Do not include the word `Bearer` in the token value field
+- Use a freshly registered user (seed users use placeholder hashes)
+
+3. Verify wallet keypair data:
+
+```http
+GET http://localhost:8080/api/wallet?userId=<user-id>
+Authorization: Bearer <token>
+```
+
+Expected result: `200 OK` with `walletAddress` and `publicKey`. `privateKey` is not returned by wallet lookup.
+
+4. Buy TimeCoin:
 
 ```http
 POST http://localhost:8080/api/transactions/buy
@@ -297,7 +312,7 @@ Content-Type: application/json
 
 Expected result: `201 Created` with `message`, `transaction`, and `wallet` in the response body.
 
-4. Check transaction history:
+5. Check transaction history:
 
 ```http
 GET http://localhost:8080/api/transactions?page=1&limit=10
@@ -308,6 +323,21 @@ x-user-id: <user-id>
 Expected result: `200 OK` with `data` and `pagination`, including the new `BUY` transaction.
 
 > Do not use the seeded users for login testing. The seeded rows are useful for wallet and data setup, but their stored password hashes are placeholders rather than real bcrypt hashes.
+
+### Postman JWT Troubleshooting
+
+If you see `401 Unauthorized` with message `Invalid or expired token`:
+- Re-run `POST /api/auth/login` and copy the newest token again.
+- In Postman `Authorization` tab, choose `Bearer Token` and paste only the raw JWT.
+- Remove any manually added `Authorization` header from the `Headers` tab.
+- For wallet endpoint, use `GET /api/wallet?userId=<id>` and remove unrelated headers like `x-user-id` or `userID`.
+
+If you see `ENOTFOUND {{baseUrl}}`:
+- Either select an environment that defines `baseUrl`, or use a literal URL like `http://localhost:8080/...`.
+
+If login returns `500`:
+- Verify you are logging in with the same username/password that you just registered.
+- Do not send `Authorization` header on `/api/auth/login`.
 
 ---
 

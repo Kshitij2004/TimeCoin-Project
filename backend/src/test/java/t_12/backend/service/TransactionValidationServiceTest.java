@@ -13,26 +13,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import t_12.backend.entity.Wallet;
+import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.exception.InsufficientFundsException;
 
 @ExtendWith(MockitoExtension.class)
 public class TransactionValidationServiceTest {
 
-    private WalletService walletService;
+    private BalanceService balanceService;
     private TransactionValidationService validationService;
 
     @BeforeEach
     void setUp() {
-        walletService = mock(WalletService.class);
-        validationService = new TransactionValidationService(walletService);
+        balanceService = mock(BalanceService.class);
+        validationService = new TransactionValidationService(balanceService);
     }
 
     @Test
     void validateBalance_sufficientFunds_doesNotThrowTest() {
-        Wallet wallet = new Wallet();
-        wallet.setCoinBalance(new BigDecimal("10.00000000"));
-        when(walletService.getWalletBySenderAddress("addr_abc")).thenReturn(wallet);
+        when(balanceService.getBalance("addr_abc")).thenReturn(
+                new BalanceResponse("addr_abc", new BigDecimal("10.00000000"), BigDecimal.ZERO, new BigDecimal("10.00000000")));
 
         assertDoesNotThrow(()
                 -> validationService.validateBalance("addr_abc",
@@ -43,9 +42,8 @@ public class TransactionValidationServiceTest {
 
     @Test
     void validateBalance_insufficientFunds_throwsInsufficientFundsExceptionTest() {
-        Wallet wallet = new Wallet();
-        wallet.setCoinBalance(new BigDecimal("5.00000000"));
-        when(walletService.getWalletBySenderAddress("addr_abc")).thenReturn(wallet);
+        when(balanceService.getBalance("addr_abc")).thenReturn(
+                new BalanceResponse("addr_abc", new BigDecimal("5.00000000"), BigDecimal.ZERO, new BigDecimal("5.00000000")));
 
         assertThrows(InsufficientFundsException.class, ()
                 -> validationService.validateBalance("addr_abc",
@@ -56,9 +54,8 @@ public class TransactionValidationServiceTest {
 
     @Test
     void validateBalance_exactFunds_doesNotThrowTest() {
-        Wallet wallet = new Wallet();
-        wallet.setCoinBalance(new BigDecimal("5.00000000"));
-        when(walletService.getWalletBySenderAddress("addr_abc")).thenReturn(wallet);
+        when(balanceService.getBalance("addr_abc")).thenReturn(
+                new BalanceResponse("addr_abc", new BigDecimal("5.00000000"), BigDecimal.ZERO, new BigDecimal("5.00000000")));
 
         assertDoesNotThrow(()
                 -> validationService.validateBalance("addr_abc",
@@ -74,6 +71,6 @@ public class TransactionValidationServiceTest {
                         new BigDecimal("10.00000000"),
                         new BigDecimal("1.00000000"))
         );
-        verify(walletService, never()).getWalletBySenderAddress(null);
+        verify(balanceService, never()).getBalance(null);
     }
 }

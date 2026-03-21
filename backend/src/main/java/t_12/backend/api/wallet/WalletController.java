@@ -2,10 +2,13 @@ package t_12.backend.api.wallet;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import t_12.backend.api.transaction.dto.TransactionHistoryResponseDTO;
+import t_12.backend.service.TransactionHistoryService;
 import t_12.backend.service.WalletService;
 
 /**
@@ -16,21 +19,45 @@ import t_12.backend.service.WalletService;
 public class WalletController {
 
     private final WalletService walletService;
+    private final TransactionHistoryService transactionHistoryService;
 
-    public WalletController(WalletService walletService) {
+    public WalletController(
+            WalletService walletService,
+            TransactionHistoryService transactionHistoryService) {
         this.walletService = walletService;
+        this.transactionHistoryService = transactionHistoryService;
     }
 
     /**
-     * Retrieves the wallet information for a specific user.
+     * Retrieves the wallet information for the authenticated user.
      *
-     * @param userId the ID of the user whose wallet to retrieve
+     * @param userId authenticated user id resolved from x-user-id header
      * @return ResponseEntity containing the WalletDTO with wallet data
      */
     @GetMapping
-    public ResponseEntity<WalletDTO> getWallet(@RequestParam Integer userId) {
+    public ResponseEntity<WalletDTO> getWallet(
+            @RequestHeader(value = "x-user-id", required = false) Integer userId) {
         return ResponseEntity.ok(
                 new WalletDTO(walletService.getWalletByUserId(userId))
+        );
+    }
+
+    /**
+     * Returns paginated transaction history for the authenticated user's
+     * wallet.
+     *
+     * @param userId authenticated user id resolved from x-user-id header
+     * @param page optional 1-based page number
+     * @param limit optional page size
+     * @return paginated transaction history
+     */
+    @GetMapping("/transactions")
+    public ResponseEntity<TransactionHistoryResponseDTO> getWalletTransactions(
+            @RequestHeader(value = "x-user-id", required = false) Integer userId,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        return ResponseEntity.ok(
+                transactionHistoryService.getUserTransactions(userId, page, limit)
         );
     }
 }

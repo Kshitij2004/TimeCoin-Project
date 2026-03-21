@@ -32,6 +32,14 @@ public class WalletDTO {
         return userId;
     }
 
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
+    }
+
     public BigDecimal getCoinBalance() {
         return coinBalance;
     }

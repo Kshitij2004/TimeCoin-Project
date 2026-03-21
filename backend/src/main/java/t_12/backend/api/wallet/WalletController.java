@@ -34,6 +34,7 @@ public class WalletController {
      * @param userId authenticated user id resolved from x-user-id header
      * @return ResponseEntity containing the WalletDTO with wallet data
      */
+    @GetMapping
     public ResponseEntity<WalletDTO> getWallet(
             @RequestHeader(value = "x-user-id", required = false) Integer userId) {
         return ResponseEntity.ok(

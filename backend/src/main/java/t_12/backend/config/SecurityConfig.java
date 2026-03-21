@@ -49,12 +49,13 @@ public class SecurityConfig {
                 // Use custom CORS configuration to allow cross-origin requests from the frontend.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/wallet/**").permitAll()
-                .requestMatchers("/api/coin/**").permitAll()
-                .requestMatchers("/api/coins/**").permitAll()
-                .requestMatchers("/api/transactions/**").permitAll()
+                .requestMatchers("/api/wallet/**").authenticated()
+                .requestMatchers("/api/coin/**").authenticated()
+                .requestMatchers("/api/coins/**").authenticated()
+                .requestMatchers("/api/transactions/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/listings/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/listings/**").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/listings/**").authenticated()

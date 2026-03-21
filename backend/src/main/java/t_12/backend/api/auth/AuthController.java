@@ -1,5 +1,6 @@
 package t_12.backend.api.auth;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import t_12.backend.service.UserRegistrationResult;
 import t_12.backend.service.UserService;
 
 /**
@@ -17,10 +19,19 @@ import t_12.backend.service.UserService;
 public class AuthController {
 
     private final UserService userService;
+    private final boolean exposePrivateKeyOnCreate;
 
-    // Constructor injection, same pattern as WalletController.
-    public AuthController(UserService userService) {
+    /**
+     * Creates an auth controller with user service and registration response mode.
+     *
+     * @param userService user business service
+     * @param exposePrivateKeyOnCreate true when register response may include private key
+     */
+    public AuthController(
+            UserService userService,
+            @Value("${wallet.expose-private-key-on-create:true}") boolean exposePrivateKeyOnCreate) {
         this.userService = userService;
+        this.exposePrivateKeyOnCreate = exposePrivateKeyOnCreate;
     }
 
     /**
@@ -28,19 +39,21 @@ public class AuthController {
      *
      * @param request the registration request containing username, email, and
      * password
-     * @return ResponseEntity containing the created UserDTO
+     * @return ResponseEntity containing created user and wallet metadata
      */
     @PostMapping("/register")
-    public ResponseEntity<UserDTO> register(@RequestBody RegisterRequest request) {
-
-        // Pass the raw fields to the service, which handles validation,
-        // hashing, and wallet creation. We get back the saved User entity.
-        // We then wrap it in a UserDTO before returning so the password is never exposed.
-        UserDTO dto = new UserDTO(userService.register(
+    public ResponseEntity<RegisterResponseDTO> register(@RequestBody RegisterRequest request) {
+        UserRegistrationResult registrationResult = userService.registerWithWallet(
                 request.getUsername(),
                 request.getEmail(),
                 request.getPassword()
-        ));
+        );
+
+        RegisterResponseDTO dto = new RegisterResponseDTO(
+                registrationResult,
+                exposePrivateKeyOnCreate
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 

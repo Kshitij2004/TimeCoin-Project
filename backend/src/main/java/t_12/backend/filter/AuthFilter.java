@@ -29,10 +29,7 @@ public class AuthFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-
-        // Public endpoints bypass authorization checks.
-        if (path.startsWith("/api/auth/")) {
+        if (isPublicEndpoint(request)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -82,6 +79,38 @@ public class AuthFilter extends OncePerRequestFilter {
             // Any exception here means the token is invalid or expired.
             sendUnauthorized(response, "Invalid or expired token");
         }
+    }
+
+    /**
+     * Determines whether the incoming request should bypass JWT checks.
+     * Public routes are auth endpoints, listing reads, health checks, and CORS
+     * preflight calls.
+     *
+     * @param request incoming HTTP request
+     * @return true when endpoint should skip auth checks
+     */
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            return true;
+        }
+
+        if (path.startsWith("/api/auth/")) {
+            return true;
+        }
+
+        if ("/health".equals(path)) {
+            return true;
+        }
+
+        if ("GET".equalsIgnoreCase(method)
+                && ("/api/listings".equals(path) || path.startsWith("/api/listings/"))) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

@@ -38,4 +38,28 @@ public interface WalletRepository extends JpaRepository<Wallet, Integer> {
      * @return Optional containing the wallet if found
      */
     Optional<Wallet> findByPublicKey(String publicKey);
+
+    /**
+     * Checks whether a wallet already exists for a user.
+     *
+     * @param userId the user ID to check
+     * @return true when a wallet already exists for the user
+     */
+    boolean existsByUserId(Integer userId);
+
+    /**
+     * Checks whether the wallet address is already used.
+     *
+     * @param walletAddress the wallet address to check
+     * @return true when the address is already present
+     */
+    boolean existsByWalletAddress(String walletAddress);
+
+    /**
+     * Checks whether the public key is already used.
+     *
+     * @param publicKey the public key to check
+     * @return true when the key is already present
+     */
+    boolean existsByPublicKey(String publicKey);
 }

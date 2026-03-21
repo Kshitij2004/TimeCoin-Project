@@ -21,7 +21,7 @@ public interface StakingEventRepository extends JpaRepository<StakingEvent, Inte
 
     /** Sum staking amounts by address and event type (STAKE or UNSTAKE) */
     @Query("SELECT COALESCE(SUM(se.amount), 0) FROM StakingEvent se " +
-           "WHERE se.stakerAddress = :address AND se.eventType = :eventType")
-    BigDecimal sumAmountByStakerAddressAndEventType(@Param("address") String address,
-                                                     @Param("eventType") String eventType);
+       "WHERE se.walletAddress = :address AND se.eventType = :eventType")
+BigDecimal sumAmountByWalletAddressAndEventType(@Param("address") String address,
+                                                 @Param("eventType") StakingEvent.EventType eventType);
 }

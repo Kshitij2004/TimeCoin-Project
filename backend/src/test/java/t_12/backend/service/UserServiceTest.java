@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -23,7 +22,6 @@ import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.repository.UserRepository;
-import t_12.backend.repository.WalletRepository;
 
 /**
  * Unit tests for UserService class. Tests user registration functionality
@@ -36,7 +34,7 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private WalletRepository walletRepository;
+    private WalletService walletService;
 
     @InjectMocks
     private UserService userService;
@@ -62,11 +60,14 @@ class UserServiceTest {
         savedUser.setCreatedAt(LocalDateTime.now());
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        // Simulate wallet save returning a wallet
+        // Simulate wallet creation returning a wallet identity.
         Wallet savedWallet = new Wallet();
         savedWallet.setUserId(1);
+        savedWallet.setWalletAddress("wlt_test");
+        savedWallet.setPublicKey("public_key_test");
         savedWallet.setCoinBalance(BigDecimal.ZERO);
-        when(walletRepository.save(any(Wallet.class))).thenReturn(savedWallet);
+        when(walletService.createWalletForUser(1))
+                .thenReturn(new WalletCreationResult(savedWallet, "private_key_test"));
 
         // Act
         User result = userService.register(
@@ -80,8 +81,6 @@ class UserServiceTest {
         assertEquals("testuser", result.getUsername());
         assertEquals("test@email.com", result.getEmail());
 
-        ArgumentCaptor<Wallet> walletCaptor = ArgumentCaptor.forClass(Wallet.class);
-
         // Verify the right methods were called the right number of times
         verify(userRepository, times(1))
                 .existsByUsername("testuser");
@@ -89,12 +88,8 @@ class UserServiceTest {
                 .existsByEmail("test@email.com");
         verify(userRepository, times(1))
                 .save(any(User.class));
-        verify(walletRepository, times(1))
-                .save(walletCaptor.capture());
-
-        Wallet createdWallet = walletCaptor.getValue();
-        assertNotNull(createdWallet.getWalletAddress());
-        assertNotNull(createdWallet.getPublicKey());
+        verify(walletService, times(1))
+                .createWalletForUser(1);
     }
 
     /**
@@ -116,7 +111,7 @@ class UserServiceTest {
 
         // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
-        verify(walletRepository, never()).save(any(Wallet.class));
+        verify(walletService, never()).createWalletForUser(any());
     }
 
     /**
@@ -138,7 +133,7 @@ class UserServiceTest {
 
         // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
-        verify(walletRepository, never()).save(any(Wallet.class));
+        verify(walletService, never()).createWalletForUser(any());
     }
 
     /**

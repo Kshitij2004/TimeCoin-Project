@@ -3,11 +3,13 @@ package t_12.backend.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
+import t_12.backend.exception.ApiException;
 import t_12.backend.exception.ForbiddenException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.ListingRepository;
@@ -33,6 +35,8 @@ public class ListingService {
      * @return the saved Listing entity
      */
     public Listing createListing(CreateListingRequest request, Integer sellerId) {
+        validateCreateRequest(request);
+
         Listing listing = new Listing();
         listing.setSellerId(sellerId);
         listing.setTitle(request.getTitle());
@@ -98,6 +102,8 @@ public class ListingService {
             throw new ForbiddenException("Forbidden: you do not own this listing");
         }
 
+        validateUpdateRequest(request);
+
         listing.setTitle(request.getTitle());
         listing.setDescription(request.getDescription());
         listing.setPrice(request.getPrice());
@@ -130,5 +136,71 @@ public class ListingService {
         // defined in the issue.
         listing.setStatus(Listing.Status.REMOVED);
         listingRepository.save(listing);
+    }
+
+    /**
+     * Validates listing creation inputs before persistence.
+     *
+     * @param request create listing request payload
+     */
+    private void validateCreateRequest(CreateListingRequest request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "request body is required");
+        }
+        if (!hasText(request.getTitle())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "title is required");
+        }
+        if (!hasText(request.getDescription())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "description is required");
+        }
+        if (request.getPrice() == null || request.getPrice().signum() <= 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "price must be greater than 0");
+        }
+        if (!hasText(request.getCategory())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "category is required");
+        }
+    }
+
+    /**
+     * Validates listing update inputs before persistence.
+     *
+     * @param request update listing request payload
+     */
+    private void validateUpdateRequest(UpdateListingRequest request) {
+        validateCreateRequest(convertToCreateRequest(request));
+        if (request.getStatus() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "status is required");
+        }
+    }
+
+    /**
+     * Maps shared fields from update request to create request for reusing base
+     * validation logic.
+     *
+     * @param request update request
+     * @return create request with shared field values
+     */
+    private CreateListingRequest convertToCreateRequest(UpdateListingRequest request) {
+        if (request == null) {
+            return null;
+        }
+
+        CreateListingRequest base = new CreateListingRequest();
+        base.setTitle(request.getTitle());
+        base.setDescription(request.getDescription());
+        base.setPrice(request.getPrice());
+        base.setCategory(request.getCategory());
+        base.setImageUrl(request.getImageUrl());
+        return base;
+    }
+
+    /**
+     * Checks whether a string has visible content.
+     *
+     * @param value field value
+     * @return true when non-null and non-blank
+     */
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

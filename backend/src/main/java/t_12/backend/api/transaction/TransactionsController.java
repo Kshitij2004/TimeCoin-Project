@@ -1,6 +1,7 @@
 package t_12.backend.api.transaction;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import t_12.backend.api.coin.PurchaseRequest;
 import t_12.backend.api.coin.PurchaseResponse;
 import t_12.backend.api.transaction.dto.TransactionHistoryResponseDTO;
+import t_12.backend.exception.ForbiddenException;
 import t_12.backend.service.PurchaseService;
 import t_12.backend.service.TransactionHistoryService;
 
@@ -52,8 +54,13 @@ public class TransactionsController {
             @RequestHeader(value = "x-user-id", required = false) Integer userId,
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "limit", required = false) Integer limit) {
+        Integer authenticatedUserId = getAuthenticatedUserId();
+        if (userId != null && !userId.equals(authenticatedUserId)) {
+            throw new ForbiddenException("Forbidden: x-user-id does not match authenticated user");
+        }
+
         return ResponseEntity.ok(
-                transactionHistoryService.getUserTransactions(userId, page, limit)
+                transactionHistoryService.getUserTransactions(authenticatedUserId, page, limit)
         );
     }
 
@@ -68,13 +75,31 @@ public class TransactionsController {
     public ResponseEntity<PurchaseResponse> buyCoinViaTransactionsRoute(
             @RequestBody PurchaseRequest request,
             @RequestHeader(value = "x-user-id", required = false) Integer userId) {
-        Integer resolvedUserId = request.getUserId() == null ? userId : request.getUserId();
+        Integer authenticatedUserId = getAuthenticatedUserId();
+        if (userId != null && !userId.equals(authenticatedUserId)) {
+            throw new ForbiddenException("Forbidden: x-user-id does not match authenticated user");
+        }
+        if (request.getUserId() != null && !request.getUserId().equals(authenticatedUserId)) {
+            throw new ForbiddenException("Forbidden: userId does not match authenticated user");
+        }
+
         return ResponseEntity.status(201).body(
                 purchaseService.purchaseCoin(
-                        resolvedUserId,
+                        authenticatedUserId,
                         request.getSymbol(),
                         request.getAmount()
                 )
         );
+    }
+
+    /**
+     * Reads the authenticated user ID from the SecurityContext.
+     *
+     * @return authenticated user ID from JWT principal
+     */
+    private Integer getAuthenticatedUserId() {
+        return (Integer) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
     }
 }

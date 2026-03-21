@@ -196,6 +196,33 @@ public class ListingsServiceTest {
     }
 
     /**
+     * Tests that updateListing throws ApiException when a required status is
+     * missing from the update request.
+     */
+    @Test
+    void UpdateListing_ThrowsException_WhenStatusMissingTest() {
+        Listing existing = new Listing();
+        existing.setId(1);
+        existing.setSellerId(9);
+
+        t_12.backend.api.listings.UpdateListingRequest request
+                = new t_12.backend.api.listings.UpdateListingRequest();
+        request.setTitle("Updated Title");
+        request.setDescription("Updated Description");
+        request.setPrice(new BigDecimal("10.00000000"));
+        request.setCategory("Updated Category");
+        request.setImageUrl("http://example.com/updated.jpg");
+        // Intentionally do not set status.
+
+        when(listingRepository.findById(1))
+                .thenReturn(java.util.Optional.of(existing));
+
+        assertThrows(t_12.backend.exception.ApiException.class,
+                () -> listingService.updateListing(1, request, 9));
+        verify(listingRepository, times(0)).save(any(Listing.class));
+    }
+
+    /**
      * Tests that deleteListing sets the listing status to REMOVED when the
      * requester is the owner.
      */
@@ -230,5 +257,22 @@ public class ListingsServiceTest {
                 t_12.backend.exception.ForbiddenException.class,
                 () -> listingService.deleteListing(1, 99)
         );
+    }
+
+    /**
+     * Tests that createListing throws ApiException when required fields are
+     * missing.
+     */
+    @Test
+    void CreateListing_ThrowsException_WhenRequiredFieldsMissingTest() {
+        CreateListingRequest request = new CreateListingRequest();
+        request.setDescription("Test Description");
+        request.setPrice(new BigDecimal("5.00000000"));
+        request.setCategory("Test Category");
+        request.setImageUrl("http://example.com/image.jpg");
+
+        assertThrows(t_12.backend.exception.ApiException.class,
+                () -> listingService.createListing(request, 9));
+        verify(listingRepository, times(0)).save(any(Listing.class));
     }
 }

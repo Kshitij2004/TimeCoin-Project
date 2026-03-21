@@ -10,6 +10,10 @@ import t_12.backend.entity.Wallet;
 public class WalletDTO {
 
     private final Integer userId;
+    private final String walletAddress;
+    private final String publicKey;
+    // !! TODO: swap coinBalance to BalanceService.getBalance(walletAddress).getAvailable()
+    // !! once ledger-derived balance issue lands.
     private final BigDecimal coinBalance;
 
     /**
@@ -19,11 +23,21 @@ public class WalletDTO {
      */
     public WalletDTO(Wallet wallet) {
         this.userId = wallet.getUserId();
+        this.walletAddress = wallet.getWalletAddress();
+        this.publicKey = wallet.getPublicKey();
         this.coinBalance = wallet.getCoinBalance();
     }
 
     public Integer getUserId() {
         return userId;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
     }
 
     public BigDecimal getCoinBalance() {

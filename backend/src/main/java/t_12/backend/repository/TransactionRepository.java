@@ -1,5 +1,6 @@
 package t_12.backend.repository;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -32,4 +33,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     );
     List<Transaction> findBySenderAddressOrReceiverAddress(String senderAddress, String receiverAddress);
     boolean existsByTransactionHash(String transactionHash);
+    boolean existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+            String senderAddress,
+            String receiverAddress,
+            BigDecimal amount,
+            BigDecimal fee,
+            Integer nonce,
+            Transaction.Status status
+    );
+    boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+            String receiverAddress,
+            BigDecimal amount,
+            BigDecimal fee,
+            Integer nonce,
+            Transaction.Status status
+    );
 }

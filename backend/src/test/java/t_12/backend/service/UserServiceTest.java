@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -22,6 +23,7 @@ import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.repository.UserRepository;
+import t_12.backend.repository.WalletRepository;
 
 /**
  * Unit tests for UserService class. Tests user registration functionality
@@ -34,7 +36,7 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private WalletService walletService;
+    private WalletRepository walletRepository;
 
     @InjectMocks
     private UserService userService;
@@ -60,14 +62,11 @@ class UserServiceTest {
         savedUser.setCreatedAt(LocalDateTime.now());
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        // Simulate wallet service returning the created wallet identity.
+        // Simulate wallet save returning a wallet
         Wallet savedWallet = new Wallet();
         savedWallet.setUserId(1);
-        savedWallet.setWalletAddress("wlt_test");
-        savedWallet.setPublicKey("pub_test");
         savedWallet.setCoinBalance(BigDecimal.ZERO);
-        when(walletService.createWalletForUser(1))
-                .thenReturn(new WalletCreationResult(savedWallet, "priv_test"));
+        when(walletRepository.save(any(Wallet.class))).thenReturn(savedWallet);
 
         // Act
         User result = userService.register(
@@ -81,6 +80,8 @@ class UserServiceTest {
         assertEquals("testuser", result.getUsername());
         assertEquals("test@email.com", result.getEmail());
 
+        ArgumentCaptor<Wallet> walletCaptor = ArgumentCaptor.forClass(Wallet.class);
+
         // Verify the right methods were called the right number of times
         verify(userRepository, times(1))
                 .existsByUsername("testuser");
@@ -88,8 +89,12 @@ class UserServiceTest {
                 .existsByEmail("test@email.com");
         verify(userRepository, times(1))
                 .save(any(User.class));
-        verify(walletService, times(1))
-                .createWalletForUser(1);
+        verify(walletRepository, times(1))
+                .save(walletCaptor.capture());
+
+        Wallet createdWallet = walletCaptor.getValue();
+        assertNotNull(createdWallet.getWalletAddress());
+        assertNotNull(createdWallet.getPublicKey());
     }
 
     /**
@@ -111,7 +116,7 @@ class UserServiceTest {
 
         // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
-        verify(walletService, never()).createWalletForUser(any(Integer.class));
+        verify(walletRepository, never()).save(any(Wallet.class));
     }
 
     /**
@@ -133,45 +138,7 @@ class UserServiceTest {
 
         // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
-        verify(walletService, never()).createWalletForUser(any(Integer.class));
-    }
-
-    /**
-     * Tests that registerWithWallet returns generated wallet metadata and
-     * private key on creation.
-     */
-    @Test
-    void RegisterWithWallet_ReturnsWalletAndPrivateKey_OnSuccessTest() {
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(false);
-        when(userRepository.existsByEmail("test@email.com"))
-                .thenReturn(false);
-
-        User savedUser = new User();
-        savedUser.setId(12);
-        savedUser.setUsername("testuser");
-        savedUser.setEmail("test@email.com");
-        savedUser.setCreatedAt(LocalDateTime.now());
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
-        Wallet wallet = new Wallet();
-        wallet.setUserId(12);
-        wallet.setWalletAddress("wlt_address");
-        wallet.setPublicKey("public_key");
-        wallet.setCoinBalance(BigDecimal.ZERO);
-        when(walletService.createWalletForUser(12))
-                .thenReturn(new WalletCreationResult(wallet, "private_key"));
-
-        UserRegistrationResult result = userService.registerWithWallet(
-                "testuser",
-                "test@email.com",
-                "password123"
-        );
-
-        assertEquals(12, result.getUser().getId());
-        assertEquals("wlt_address", result.getWallet().getWalletAddress());
-        assertEquals("public_key", result.getWallet().getPublicKey());
-        assertEquals("private_key", result.getPrivateKey());
+        verify(walletRepository, never()).save(any(Wallet.class));
     }
 
     /**

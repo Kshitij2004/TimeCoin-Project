@@ -16,33 +16,41 @@ import t_12.backend.repository.TransactionRepository;
 
 /**
  * Service class for handling transaction-related business logic. Manages
- * transaction creation, lookup, status transitions, and SHA-256 hash
- * generation over canonical transaction fields. Supports both pure
- * blockchain transfers and marketplace purchase history records.
+ * transaction creation, lookup, status transitions, and SHA-256 hash generation
+ * over canonical transaction fields. Supports both pure blockchain transfers
+ * and marketplace purchase history records.
  */
 @Service
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final TransactionValidationService transactionValidationService;
 
-    public TransactionService(TransactionRepository transactionRepository) {
+    public TransactionService(TransactionRepository transactionRepository, TransactionValidationService transactionValidationService) {
         this.transactionRepository = transactionRepository;
+        this.transactionValidationService = transactionValidationService;
     }
 
     /**
      * Creates a new blockchain transfer transaction with status PENDING.
-     * Generates a deterministic SHA-256 hash over the canonical fields.
-     * Rejects duplicate transaction hashes.
+     * Generates a deterministic SHA-256 hash over the canonical fields. Rejects
+     * duplicate transaction hashes.
      *
-     * @param senderAddress   the wallet address of the sender (nullable for minting)
+     * @param senderAddress the wallet address of the sender (nullable for
+     * minting)
      * @param receiverAddress the wallet address of the receiver
-     * @param amount          the amount of TimeCoin to transfer
-     * @param fee             the transaction fee
-     * @param nonce           the sender's transaction sequence number
-     * @return the saved Transaction entity with generated hash and PENDING status
-     * @throws DuplicateResourceException if a transaction with the same hash already exists
+     * @param amount the amount of TimeCoin to transfer
+     * @param fee the transaction fee
+     * @param nonce the sender's transaction sequence number
+     * @return the saved Transaction entity with generated hash and PENDING
+     * status
+     * @throws DuplicateResourceException if a transaction with the same hash
+     * already exists
      */
-    public Transaction createTransaction(String senderAddress, String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce) {
+    public Transaction createTransaction(String senderAddress,
+            String receiverAddress, BigDecimal amount,
+            BigDecimal fee, Integer nonce) {
+        transactionValidationService.validateBalance(senderAddress, amount, fee);
 
         LocalDateTime timestamp = LocalDateTime.now();
         String hash = generateTransactionHash(senderAddress, receiverAddress, amount, fee, nonce, timestamp);
@@ -72,28 +80,31 @@ public class TransactionService {
     }
 
     /**
-     * Creates a marketplace purchase transaction with status PENDING.
-     * Includes marketplace-specific fields (userId, symbol, transactionType,
+     * Creates a marketplace purchase transaction with status PENDING. Includes
+     * marketplace-specific fields (userId, symbol, transactionType,
      * priceAtTime, totalUsd) alongside the blockchain fields.
      *
-     * @param senderAddress   the buyer's wallet address
+     * @param senderAddress the buyer's wallet address
      * @param receiverAddress the seller's wallet address
-     * @param amount          the amount of TimeCoin
-     * @param fee             the transaction fee
-     * @param nonce           the sender's sequence number
-     * @param userId          the user ID for purchase history
-     * @param symbol          the coin symbol (e.g. "TC")
+     * @param amount the amount of TimeCoin
+     * @param fee the transaction fee
+     * @param nonce the sender's sequence number
+     * @param userId the user ID for purchase history
+     * @param symbol the coin symbol (e.g. "TC")
      * @param transactionType the type (BUY, SELL, etc.)
-     * @param priceAtTime     the coin price at time of transaction
-     * @param totalUsd        the total USD equivalent
+     * @param priceAtTime the coin price at time of transaction
+     * @param totalUsd the total USD equivalent
      * @return the saved Transaction entity
-     * @throws DuplicateResourceException if a transaction with the same hash already exists
+     * @throws DuplicateResourceException if a transaction with the same hash
+     * already exists
      */
     public Transaction createMarketplaceTransaction(String senderAddress, String receiverAddress,
-                                                     BigDecimal amount, BigDecimal fee, Integer nonce,
-                                                     Integer userId, String symbol,
-                                                     Transaction.TransactionType transactionType,
-                                                     BigDecimal priceAtTime, BigDecimal totalUsd) {
+            BigDecimal amount, BigDecimal fee, Integer nonce,
+            Integer userId, String symbol,
+            Transaction.TransactionType transactionType,
+            BigDecimal priceAtTime, BigDecimal totalUsd) {
+
+        transactionValidationService.validateBalance(senderAddress, amount, fee);
 
         LocalDateTime timestamp = LocalDateTime.now();
         String hash = generateTransactionHash(senderAddress, receiverAddress, amount, fee, nonce, timestamp);
@@ -126,13 +137,14 @@ public class TransactionService {
      *
      * @param transactionHash the SHA-256 hash of the transaction
      * @return the Transaction entity
-     * @throws ResourceNotFoundException if no transaction is found with the given hash
+     * @throws ResourceNotFoundException if no transaction is found with the
+     * given hash
      */
     public Transaction findByHash(String transactionHash) {
         return transactionRepository.findByTransactionHash(transactionHash)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Transaction not found with hash: " + transactionHash
-                ));
+                "Transaction not found with hash: " + transactionHash
+        ));
     }
 
     /**
@@ -140,13 +152,14 @@ public class TransactionService {
      *
      * @param id the transaction ID
      * @return the Transaction entity
-     * @throws ResourceNotFoundException if no transaction is found with the given ID
+     * @throws ResourceNotFoundException if no transaction is found with the
+     * given ID
      */
     public Transaction findById(Integer id) {
         return transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Transaction not found with id: " + id
-                ));
+                "Transaction not found with id: " + id
+        ));
     }
 
     /**
@@ -215,9 +228,10 @@ public class TransactionService {
      * fails during block commit.
      *
      * @param transactionHash the hash of the transaction to update
-     * @param newStatus       the new status
+     * @param newStatus the new status
      * @return the updated Transaction entity
-     * @throws ResourceNotFoundException if no transaction is found with the given hash
+     * @throws ResourceNotFoundException if no transaction is found with the
+     * given hash
      */
     public Transaction updateStatus(String transactionHash, Transaction.Status newStatus) {
         Transaction transaction = findByHash(transactionHash);
@@ -227,13 +241,14 @@ public class TransactionService {
 
     /**
      * Links a transaction to a block by setting its blockId and status to
-     * CONFIRMED. Called during block commit to associate confirmed
-     * transactions with their block.
+     * CONFIRMED. Called during block commit to associate confirmed transactions
+     * with their block.
      *
      * @param transactionHash the hash of the transaction
-     * @param blockId         the ID of the block that includes this transaction
+     * @param blockId the ID of the block that includes this transaction
      * @return the updated Transaction entity
-     * @throws ResourceNotFoundException if no transaction is found with the given hash
+     * @throws ResourceNotFoundException if no transaction is found with the
+     * given hash
      */
     public Transaction linkToBlock(String transactionHash, Integer blockId) {
         Transaction transaction = findByHash(transactionHash);
@@ -248,20 +263,20 @@ public class TransactionService {
      * "sender|receiver|amount|fee|nonce|timestamp"
      *
      * The same inputs always produce the same hash. Changing any single field
-     * produces a completely different hash. This is how we detect tampering
-     * and prevent duplicate transactions.
+     * produces a completely different hash. This is how we detect tampering and
+     * prevent duplicate transactions.
      *
-     * @param senderAddress   the sender wallet address
+     * @param senderAddress the sender wallet address
      * @param receiverAddress the receiver wallet address
-     * @param amount          the transfer amount
-     * @param fee             the transaction fee
-     * @param nonce           the sequence number
-     * @param timestamp       the transaction timestamp
+     * @param amount the transfer amount
+     * @param fee the transaction fee
+     * @param nonce the sequence number
+     * @param timestamp the transaction timestamp
      * @return the hex-encoded SHA-256 hash string
      */
     public String generateTransactionHash(String senderAddress, String receiverAddress,
-                                           BigDecimal amount, BigDecimal fee,
-                                           Integer nonce, LocalDateTime timestamp) {
+            BigDecimal amount, BigDecimal fee,
+            Integer nonce, LocalDateTime timestamp) {
 
         // pipe delimiter prevents field bleed. "AB|CD" hashes differently from "ABC|D"
         String canonical = (senderAddress != null ? senderAddress : "null")

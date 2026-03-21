@@ -23,16 +23,19 @@ import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.TransactionRepository;
 
 /**
- * Unit tests for TransactionService. Uses Mockito to mock the repository
- * layer so tests run fast without a database. Covers hash generation,
- * blockchain transfers, marketplace transactions, lookups, status
- * transitions, and error cases.
+ * Unit tests for TransactionService. Uses Mockito to mock the repository layer
+ * so tests run fast without a database. Covers hash generation, blockchain
+ * transfers, marketplace transactions, lookups, status transitions, and error
+ * cases.
  */
 @ExtendWith(MockitoExtension.class)
 public class TransactionServiceTest {
 
     @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
+    private TransactionValidationService transactionValidationService;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -53,7 +56,6 @@ public class TransactionServiceTest {
     }
 
     // Hash Generation Tests
-
     @Test
     void generateTransactionHash_sameInputs_producesSameHash() {
         LocalDateTime timestamp = LocalDateTime.of(2026, 3, 10, 12, 0, 0);
@@ -139,9 +141,10 @@ public class TransactionServiceTest {
     }
 
     // Create Blockchain Transfer Tests
-
     @Test
     void createTransaction_validInputs_returnsPendingWithNullMarketplaceFields() {
+        doNothing().when(transactionValidationService)
+                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
         when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(false);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction tx = invocation.getArgument(0);
@@ -173,10 +176,12 @@ public class TransactionServiceTest {
 
     @Test
     void createTransaction_duplicateHash_throwsDuplicateResourceException() {
+        doNothing().when(transactionValidationService)
+                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
         when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () ->
-                transactionService.createTransaction(
+        assertThrows(DuplicateResourceException.class, ()
+                -> transactionService.createTransaction(
                         senderAddress, receiverAddress, amount, fee, nonce)
         );
 
@@ -184,9 +189,10 @@ public class TransactionServiceTest {
     }
 
     // Create Marketplace Transaction Tests
-
     @Test
     void createMarketplaceTransaction_validInputs_setsMarketplaceFields() {
+        doNothing().when(transactionValidationService)
+                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
         when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(false);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction tx = invocation.getArgument(0);
@@ -214,10 +220,12 @@ public class TransactionServiceTest {
 
     @Test
     void createMarketplaceTransaction_duplicateHash_throwsDuplicateResourceException() {
+        doNothing().when(transactionValidationService)
+                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
         when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () ->
-                transactionService.createMarketplaceTransaction(
+        assertThrows(DuplicateResourceException.class, ()
+                -> transactionService.createMarketplaceTransaction(
                         senderAddress, receiverAddress, amount, fee, nonce,
                         1, "TC", Transaction.TransactionType.BUY,
                         new BigDecimal("10.00"), new BigDecimal("500.00"))
@@ -227,7 +235,6 @@ public class TransactionServiceTest {
     }
 
     // Find Tests
-
     @Test
     void findByHash_existingHash_returnsTransaction() {
         Transaction mockTx = new Transaction();
@@ -249,8 +256,8 @@ public class TransactionServiceTest {
         when(transactionRepository.findByTransactionHash("nonexistent"))
                 .thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () ->
-                transactionService.findByHash("nonexistent")
+        assertThrows(ResourceNotFoundException.class, ()
+                -> transactionService.findByHash("nonexistent")
         );
     }
 
@@ -272,8 +279,8 @@ public class TransactionServiceTest {
     void findById_nonExistentId_throwsResourceNotFoundException() {
         when(transactionRepository.findById(999)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () ->
-                transactionService.findById(999)
+        assertThrows(ResourceNotFoundException.class, ()
+                -> transactionService.findById(999)
         );
     }
 
@@ -353,7 +360,6 @@ public class TransactionServiceTest {
     }
 
     // Status Update Tests
-
     @Test
     void updateStatus_pendingToConfirmed_updatesSuccessfully() {
         Transaction mockTx = new Transaction();
@@ -394,13 +400,12 @@ public class TransactionServiceTest {
         when(transactionRepository.findByTransactionHash("nonexistent"))
                 .thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () ->
-                transactionService.updateStatus("nonexistent", Transaction.Status.CONFIRMED)
+        assertThrows(ResourceNotFoundException.class, ()
+                -> transactionService.updateStatus("nonexistent", Transaction.Status.CONFIRMED)
         );
     }
 
     // Link to Block Tests
-
     @Test
     void linkToBlock_setsBlockIdAndConfirmsTransaction() {
         Transaction mockTx = new Transaction();
@@ -424,8 +429,8 @@ public class TransactionServiceTest {
         when(transactionRepository.findByTransactionHash("nonexistent"))
                 .thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () ->
-                transactionService.linkToBlock("nonexistent", 5)
+        assertThrows(ResourceNotFoundException.class, ()
+                -> transactionService.linkToBlock("nonexistent", 5)
         );
     }
 }

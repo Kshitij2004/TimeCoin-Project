@@ -2,15 +2,23 @@ package t_12.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
+import t_12.backend.entity.Transaction;
+import t_12.backend.entity.Wallet;
 import t_12.backend.exception.ForbiddenException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.ListingRepository;
+import t_12.backend.repository.TransactionRepository;
+import t_12.backend.repository.WalletRepository;
 
 /**
  * Service class for handling marketplace listing business logic. Manages
@@ -20,9 +28,16 @@ import t_12.backend.repository.ListingRepository;
 public class ListingService {
 
     private final ListingRepository listingRepository;
+    private final WalletRepository walletRepository;
+    private final TransactionRepository transactionRepository;
+    private final TransactionService transactionService;
 
-    public ListingService(ListingRepository listingRepository) {
+    public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
+            TransactionRepository transactionRepository, TransactionService transactionService) {
         this.listingRepository = listingRepository;
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
+        this.transactionService = transactionService;
     }
 
     /**
@@ -130,5 +145,85 @@ public class ListingService {
         // defined in the issue.
         listing.setStatus(Listing.Status.REMOVED);
         listingRepository.save(listing);
+    }
+
+    /**
+     * Executes the purchase of a marketplace listing.
+     *
+     * All database operations occur within a single transaction. Any failure
+     * after wallet debiting (e.g. saving the transaction record) will trigger
+     * a full rollback, preventing partial state.
+     *
+     * @param listingId   the ID of the listing to purchase
+     * @param buyerUserId the ID of the user making the purchase
+     * @return the SHA-256 transaction hash for tracking on the chain
+     * @throws ResourceNotFoundException if the listing, buyer wallet, or seller wallet is not found
+     * @throws IllegalStateException     if the listing is not ACTIVE, the buyer is the seller,
+     *                                   or the buyer has insufficient balance
+     */
+    @Transactional
+    public String purchaseListing(Integer listingId, Integer buyerUserId) {
+
+        // 1. Load the listing — throws 404 if not found
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Listing not found: " + listingId));
+
+        // 2. Reject if the listing is no longer available (already SOLD or REMOVED)
+        if (listing.getStatus() != Listing.Status.ACTIVE) {
+            throw new IllegalStateException(
+                    "Listing is no longer available (status: " + listing.getStatus() + ")");
+        }
+
+        // 3. Reject if the buyer is the seller — cannot purchase your own listing
+        if (listing.getSellerId().equals(buyerUserId)) {
+            throw new IllegalStateException("You cannot purchase your own listing");
+        }
+
+        // 4. Load the buyer's wallet — throws 404 if not found
+        Wallet buyerWallet = walletRepository.findByUserId(buyerUserId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Buyer wallet not found for userId: " + buyerUserId));
+
+        // 5. Validate the buyer has enough TimeCoin to cover the listing price
+        BigDecimal price = listing.getPrice();
+        if (buyerWallet.getCoinBalance().compareTo(price) < 0) {
+            throw new IllegalStateException(
+                    "Insufficient balance. Required: " + price
+                            + ", Available: " + buyerWallet.getCoinBalance());
+        }
+
+        // 6. Load the seller's wallet — throws 404 if not found
+        Wallet sellerWallet = walletRepository.findByUserId(listing.getSellerId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Seller wallet not found for sellerId: " + listing.getSellerId()));
+
+        // 7. Transfer funds: debit buyer, credit seller
+        buyerWallet.setCoinBalance(buyerWallet.getCoinBalance().subtract(price));
+        sellerWallet.setCoinBalance(sellerWallet.getCoinBalance().add(price));
+        walletRepository.save(buyerWallet);
+        walletRepository.save(sellerWallet);
+
+        // 8. Record the transaction as PENDING in the database (acts as mempool entry).
+        //    The block assembler will later pick this up and include it in a block.
+        LocalDateTime now = LocalDateTime.now();
+        Transaction tx = new Transaction();
+        tx.setSenderAddress(buyerWallet.getWalletAddress());
+        tx.setReceiverAddress(sellerWallet.getWalletAddress());
+        tx.setAmount(price);
+        tx.setFee(BigDecimal.ZERO);
+        tx.setNonce(0); // TODO: implement per-sender nonce tracking in validation service
+        tx.setTimestamp(now);
+        tx.setStatus(Transaction.Status.PENDING);
+        tx.setTransactionHash(transactionService.generateTransactionHash(buyerWallet.getWalletAddress(),
+                sellerWallet.getWalletAddress(), price, BigDecimal.ZERO, 0, now));
+        transactionRepository.save(tx);
+
+        // 9. Mark the listing as SOLD so it can no longer be purchased
+        listing.setStatus(Listing.Status.SOLD);
+        listingRepository.save(listing);
+
+        // Return the transaction hash so the buyer can track it on the chain
+        return tx.getTransactionHash();
     }
 }

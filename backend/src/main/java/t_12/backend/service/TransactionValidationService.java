@@ -36,6 +36,8 @@ public class TransactionValidationService {
             return;
         }
 
+        // !! TODO: swap to BalanceService.getBalance(senderAddress).getAvailable()
+        // !! once ledger-derived balance issue lands.
         Wallet wallet = walletService.getWalletBySenderAddress(senderAddress);
         BigDecimal required = amount.add(fee);
 

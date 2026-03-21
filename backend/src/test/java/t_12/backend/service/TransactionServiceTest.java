@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.*;
@@ -35,7 +34,7 @@ public class TransactionServiceTest {
     private TransactionRepository transactionRepository;
 
     @Mock
-    private TransactionValidationService transactionValidationService;
+    private MempoolService mempoolService;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -143,10 +142,7 @@ public class TransactionServiceTest {
     // Create Blockchain Transfer Tests
     @Test
     void createTransaction_validInputs_returnsPendingWithNullMarketplaceFields() {
-        doNothing().when(transactionValidationService)
-                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
-        when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(false);
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction tx = invocation.getArgument(0);
             tx.setId(1);
             return tx;
@@ -171,30 +167,26 @@ public class TransactionServiceTest {
         assertNull(result.getPriceAtTime());
         assertNull(result.getTotalUsd());
 
-        verify(transactionRepository).save(any(Transaction.class));
+        verify(mempoolService).enqueueValidatedTransaction(any(Transaction.class));
     }
 
     @Test
     void createTransaction_duplicateHash_throwsDuplicateResourceException() {
-        doNothing().when(transactionValidationService)
-                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
-        when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(true);
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class)))
+                .thenThrow(new DuplicateResourceException("Transaction with this hash already exists: duplicate"));
 
         assertThrows(DuplicateResourceException.class, ()
                 -> transactionService.createTransaction(
                         senderAddress, receiverAddress, amount, fee, nonce)
         );
 
-        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(mempoolService).enqueueValidatedTransaction(any(Transaction.class));
     }
 
     // Create Marketplace Transaction Tests
     @Test
     void createMarketplaceTransaction_validInputs_setsMarketplaceFields() {
-        doNothing().when(transactionValidationService)
-                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
-        when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(false);
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction tx = invocation.getArgument(0);
             tx.setId(2);
             return tx;
@@ -215,14 +207,13 @@ public class TransactionServiceTest {
         assertNotNull(result.getTransactionHash());
         assertNull(result.getBlockId());
 
-        verify(transactionRepository).save(any(Transaction.class));
+        verify(mempoolService).enqueueValidatedTransaction(any(Transaction.class));
     }
 
     @Test
     void createMarketplaceTransaction_duplicateHash_throwsDuplicateResourceException() {
-        doNothing().when(transactionValidationService)
-                .validateBalance(anyString(), any(BigDecimal.class), any(BigDecimal.class));
-        when(transactionRepository.existsByTransactionHash(anyString())).thenReturn(true);
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class)))
+                .thenThrow(new DuplicateResourceException("Transaction with this hash already exists: duplicate"));
 
         assertThrows(DuplicateResourceException.class, ()
                 -> transactionService.createMarketplaceTransaction(
@@ -231,7 +222,7 @@ public class TransactionServiceTest {
                         new BigDecimal("10.00"), new BigDecimal("500.00"))
         );
 
-        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(mempoolService).enqueueValidatedTransaction(any(Transaction.class));
     }
 
     // Find Tests

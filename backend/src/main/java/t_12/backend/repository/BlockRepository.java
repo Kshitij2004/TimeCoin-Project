@@ -17,4 +17,6 @@ public interface BlockRepository extends JpaRepository<Block, Integer> {
     Optional<Block> findByBlockHash(String blockHash);
     List<Block> findByStatus(Block.Status status);
     List<Block> findByValidatorAddress(String validatorAddress);
+    Optional<Block> findTopByOrderByBlockHeightDesc();
+    boolean existsByBlockHeight(Integer blockHeight);
 }

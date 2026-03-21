@@ -1,12 +1,21 @@
-import axios from 'axios';
-
-// Create an instance to avoid repeating the base URL
-const api = axios.create({
-    baseURL: 'http://localhost:8080/api', // Your Java Spring Boot address
-});
+export const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:8080';
 
 export const registerUser = (userData) => {
-    return api.post('/auth/register', userData);
+    return fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+    }).then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw {
+                response: {
+                    data: payload
+                }
+            };
+        }
+        return payload;
+    });
 };
-
-export default api;

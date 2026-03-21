@@ -1,158 +1,134 @@
 package t_12.backend.service;
 
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import t_12.backend.api.listings.CreateListingRequest;
+import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
-import t_12.backend.entity.Transaction;
-import t_12.backend.entity.Wallet;
+import t_12.backend.exception.ForbiddenException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.ListingRepository;
-import t_12.backend.repository.TransactionRepository;
-import t_12.backend.repository.WalletRepository;
 
 /**
- * Service handling the purchase of a marketplace listing with TimeCoin.
- *
- * Implements the full purchase flow:
- *   1. Validate the listing exists and is still available
- *   2. Prevents a seller from buying their own listing
- *   3. Validates the buyer has sufficient balance
- *   4. Subtracts from the buyer's wallet and credits the seller's wallet
- *   5. Creates a PENDING transaction (enters the mempool)
- *   6. Marks the listing as SOLD
- *
- * The entire operation is wrapped in @Transactional — if any step fails,
- * all database changes are rolled back automatically.
+ * Service class for handling marketplace listing business logic. Manages
+ * listing creation, retrieval, updates, and removal.
  */
 @Service
 public class ListingService {
 
     private final ListingRepository listingRepository;
-    private final WalletRepository walletRepository;
-    private final TransactionRepository transactionRepository;
 
-    public ListingService(
-            ListingRepository listingRepository,
-            WalletRepository walletRepository,
-            TransactionRepository transactionRepository) {
+    public ListingService(ListingRepository listingRepository) {
         this.listingRepository = listingRepository;
-        this.walletRepository = walletRepository;
-        this.transactionRepository = transactionRepository;
     }
 
     /**
-     * Executes the purchase of a marketplace listing.
+     * Creates a new marketplace listing for the authenticated seller.
      *
-     * All database operations occur within a single transaction. Any failure
-     * after wallet debiting (e.g. saving the transaction record) will trigger
-     * a full rollback, preventing partial state.
-     *
-     * @param listingId   the ID of the listing to purchase
-     * @param buyerUserId the ID of the user making the purchase
-     * @return the SHA-256 transaction hash for tracking on the chain
-     * @throws ResourceNotFoundException if the listing, buyer wallet, or seller wallet is not found
-     * @throws IllegalStateException     if the listing is not ACTIVE, the buyer is the seller,
-     *                                   or the buyer has insufficient balance
+     * @param request the listing details from the client
+     * @param sellerId the ID of the authenticated user creating the listing
+     * @return the saved Listing entity
      */
-    @Transactional
-    public String purchaseListing(Integer listingId, Integer buyerUserId) {
+    public Listing createListing(CreateListingRequest request, Integer sellerId) {
+        Listing listing = new Listing();
+        listing.setSellerId(sellerId);
+        listing.setTitle(request.getTitle());
+        listing.setDescription(request.getDescription());
+        listing.setPrice(request.getPrice());
+        listing.setCategory(request.getCategory());
+        listing.setImageUrl(request.getImageUrl());
 
-        // 1. Load the listing — throws 404 if not found
-        Listing listing = listingRepository.findById(listingId)
+        // New listings always start as ACTIVE.
+        // Status can only change via updateListing or deleteListing.
+        listing.setStatus(Listing.Status.ACTIVE);
+        listing.setCreatedAt(LocalDateTime.now());
+
+        return listingRepository.save(listing);
+    }
+
+    /**
+     * Retrieves active listings, optionally filtered by category.
+     *
+     * @param category optional category filter; if null, returns all active
+     * listings
+     * @return list of matching active listings
+     */
+    public List<Listing> getListings(String category) {
+        if (category != null && !category.isBlank()) {
+            return listingRepository.findByStatusAndCategory(
+                    Listing.Status.ACTIVE, category);
+        }
+        return listingRepository.findByStatus(Listing.Status.ACTIVE);
+    }
+
+    /**
+     * Retrieves a single listing by its ID.
+     *
+     * @param id the listing ID
+     * @return the Listing entity
+     * @throws ResourceNotFoundException if no listing with that ID exists
+     */
+    public Listing getListingById(Integer id) {
+        return listingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Listing not found: " + listingId));
+                "Listing not found: " + id));
+    }
 
-        // 2. Reject if the listing is no longer available (already SOLD or REMOVED)
-        if (listing.getStatus() != Listing.Status.ACTIVE) {
-            throw new IllegalStateException(
-                    "Listing is no longer available (status: " + listing.getStatus() + ")");
+    /**
+     * Updates an existing listing. Only the seller who created the listing may
+     * update it.
+     *
+     * @param id the listing ID to update
+     * @param request the updated fields from the client
+     * @param sellerId the ID of the authenticated user making the request
+     * @return the updated Listing entity
+     * @throws ResourceNotFoundException if the listing does not exist
+     * @throws ForbiddenException if the requesting user is not the seller
+     */
+    public Listing updateListing(Integer id, UpdateListingRequest request,
+            Integer sellerId) {
+        Listing listing = getListingById(id);
+
+        // Ownership check, only the seller can modify their own listing.
+        // We compare the authenticated user's ID against the stored sellerId.
+        if (!listing.getSellerId().equals(sellerId)) {
+            throw new ForbiddenException("Forbidden: you do not own this listing");
         }
 
-        // 3. Reject if the buyer is the seller — cannot purchase your own listing
-        if (listing.getSellerId().equals(buyerUserId)) {
-            throw new IllegalStateException("You cannot purchase your own listing");
+        listing.setTitle(request.getTitle());
+        listing.setDescription(request.getDescription());
+        listing.setPrice(request.getPrice());
+        listing.setCategory(request.getCategory());
+        listing.setImageUrl(request.getImageUrl());
+        listing.setStatus(request.getStatus());
+
+        return listingRepository.save(listing);
+    }
+
+    /**
+     * Removes a listing by setting its status to REMOVED. Only the seller who
+     * created the listing may remove it. The row is kept for history.
+     *
+     * @param id the listing ID to remove
+     * @param sellerId the ID of the authenticated user making the request
+     * @throws ResourceNotFoundException if the listing does not exist
+     * @throws ForbiddenException if the requesting user is not the seller
+     */
+    public void deleteListing(Integer id, Integer sellerId) {
+        Listing listing = getListingById(id);
+
+        // Ownership check. Same pattern as updateListing.
+        if (!listing.getSellerId().equals(sellerId)) {
+            throw new ForbiddenException("Forbidden: you do not own this listing");
         }
 
-        // 4. Load the buyer's wallet — throws 404 if not found
-        Wallet buyerWallet = walletRepository.findByUserId(buyerUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Buyer wallet not found for userId: " + buyerUserId));
-
-        // 5. Validate the buyer has enough TimeCoin to cover the listing price
-        BigDecimal price = listing.getPrice();
-        if (buyerWallet.getCoinBalance().compareTo(price) < 0) {
-            throw new IllegalStateException(
-                    "Insufficient balance. Required: " + price
-                            + ", Available: " + buyerWallet.getCoinBalance());
-        }
-
-        // 6. Load the seller's wallet — throws 404 if not found
-        Wallet sellerWallet = walletRepository.findByUserId(listing.getSellerId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Seller wallet not found for sellerId: " + listing.getSellerId()));
-
-        // 7. Transfer funds: debit buyer, credit seller
-        buyerWallet.setCoinBalance(buyerWallet.getCoinBalance().subtract(price));
-        sellerWallet.setCoinBalance(sellerWallet.getCoinBalance().add(price));
-        walletRepository.save(buyerWallet);
-        walletRepository.save(sellerWallet);
-
-        // 8. Record the transaction as PENDING in the database (acts as mempool entry).
-        //    The block assembler will later pick this up and include it in a block.
-        LocalDateTime now = LocalDateTime.now();
-        Transaction tx = new Transaction();
-        tx.setSenderAddress(buyerWallet.getWalletAddress());
-        tx.setReceiverAddress(sellerWallet.getWalletAddress());
-        tx.setAmount(price);
-        tx.setFee(BigDecimal.ZERO);
-        tx.setNonce(0); // TODO: implement per-sender nonce tracking in validation service
-        tx.setTimestamp(now);
-        tx.setStatus(Transaction.Status.PENDING);
-        tx.setTransactionHash(generateHash(buyerWallet.getWalletAddress(),
-                sellerWallet.getWalletAddress(), price, now));
-        transactionRepository.save(tx);
-
-        // 9. Mark the listing as SOLD so it can no longer be purchased
-        listing.setStatus(Listing.Status.SOLD);
+        // Soft delete. Set status to REMOVED rather than deleting the row.
+        // This preserves listing history and matches the status transitions
+        // defined in the issue.
+        listing.setStatus(Listing.Status.REMOVED);
         listingRepository.save(listing);
-
-        // Return the transaction hash so the buyer can track it on the chain
-        return tx.getTransactionHash();
-    }
-
-    /**
-     * Generates a SHA-256 hash to uniquely identify a transaction.
-     *
-     * The hash is derived from the sender address, receiver address, amount,
-     * timestamp, and a nanosecond timestamp to ensure uniqueness even for
-     * identical transfers made at the same time.
-     *
-     * @param sender    wallet address of the sender
-     * @param receiver  wallet address of the receiver
-     * @param amount    amount of TimeCoin transferred
-     * @param timestamp time the transaction was created
-     * @return a hex-encoded SHA-256 hash string
-     */
-    private String generateHash(String sender, String receiver, BigDecimal amount, LocalDateTime timestamp) {
-        try {
-            String raw = sender + receiver + amount.toPlainString() + timestamp.toString()
-                    + System.nanoTime();
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to generate transaction hash", e);
-        }
     }
 }
-

@@ -99,7 +99,7 @@ HTTP Request
 
 ### Authentication
 
-Auth is handled by `AuthFilter` and configured in `SecurityConfig`. The `api/auth/` package currently exposes registration (login is planned but not implemented). Although `SecurityConfig` currently permits the wallet and coin endpoints (makes them publicly accessible at Spring Security layer), `AuthFilter` still **requires** an `Authorization` header on every request except `/api/auth/*`. In practice this means every call shown below must include a header (dummy values are accepted).
+Auth is handled by `AuthFilter` and configured in `SecurityConfig`. The `api/auth/` package exposes both registration and login. Every non-auth request must include a valid JWT in the `Authorization` header using the format `Bearer <token>`.
 
 Requests to protected endpoints without a valid `Authorization` header receive:
 
@@ -107,7 +107,7 @@ Requests to protected endpoints without a valid `Authorization` header receive:
 { "status": 401, "error": "Unauthorized", "message": "Missing Authorization header" }
 ```
 
-> **Note:** wallet and coin endpoints are technically "public" in `SecurityConfig`, but the `AuthFilter` still blocks requests that omit the header. This keeps the API simple while allowing the frontend to send any placeholder value.
+> **Note:** wallet, coin, and transaction routes are technically permitted in `SecurityConfig`, but `AuthFilter` still validates the JWT header before allowing the request through.
 
 #### POST /api/auth/register
 
@@ -117,17 +117,26 @@ Registers a new user.
 ```json
 {
     "username": "badger",
+    "email": "badger@wisc.edu",
     "password": "secret"
 }
 ```
 
-**Response:** `201 Created` with a `UserDTO`, or `409 Conflict` if the username is already taken.
+**Response:** `201 Created` with a `UserDTO`, or `409 Conflict` if the username or email is already taken.
 
 #### POST /api/auth/login
 
-**Status:** _Not implemented yet._
+Authenticates a user and returns a signed JWT as a plain string response body.
 
-The codebase currently has no controller method for handling login, and the frontend does not call this route. `AuthFilter` merely ensures an `Authorization` header is present on protected requests; it does **not** validate credentials. When the login feature is added, this section will describe the request/response payloads and any tokens returned.
+**Request body:**
+```json
+{
+    "username": "badger",
+    "password": "secret"
+}
+```
+
+**Response:** `200 OK` with a JWT token string.
 
 ---
 
@@ -171,6 +180,134 @@ Authorization: dummy
     "circulatingSupply": 500000.00
 }
 ```
+
+---
+
+### POST /api/transactions/buy
+
+Creates a purchase transaction and updates the user's wallet balance.
+
+**Headers:**
+```text
+Authorization: Bearer <jwt>
+x-user-id: 9
+```
+
+**Request body:**
+```json
+{
+    "userId": 9,
+    "symbol": "TC",
+    "amount": 1.25
+}
+```
+
+**Response:** `201 Created` with the created transaction and updated wallet.
+
+### GET /api/transactions
+
+Returns paginated transaction history for the authenticated user.
+
+**Headers:**
+```text
+Authorization: Bearer <jwt>
+x-user-id: 9
+```
+
+**Example:**
+```
+GET http://localhost:8080/api/transactions?page=1&limit=10
+```
+
+**Response shape:**
+```json
+{
+    "data": [
+        {
+            "type": "BUY",
+            "amount": 1.25,
+            "priceAtTime": 10.00,
+            "timestamp": "2026-03-16T23:00:00"
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 1,
+        "totalPages": 1
+    }
+}
+```
+
+---
+
+## Testing With Postman
+
+Use a freshly registered user after any `docker compose down -v`, because wiping volumes recreates the database from `seed.sql`.
+
+1. Register a user:
+
+```http
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+```
+
+```json
+{
+    "username": "postmanuser",
+    "email": "postmanuser@wisc.edu",
+    "password": "secret123"
+}
+```
+
+Save the returned `id`.
+
+2. Log in to get a JWT:
+
+```http
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+    "username": "postmanuser",
+    "password": "secret123"
+}
+```
+
+Copy the token returned in the response body.
+
+3. Buy TimeCoin:
+
+```http
+POST http://localhost:8080/api/transactions/buy
+Authorization: Bearer <token>
+x-user-id: <user-id>
+Content-Type: application/json
+```
+
+```json
+{
+    "userId": <user-id>,
+    "symbol": "TC",
+    "amount": 1.25
+}
+```
+
+Expected result: `201 Created` with `message`, `transaction`, and `wallet` in the response body.
+
+4. Check transaction history:
+
+```http
+GET http://localhost:8080/api/transactions?page=1&limit=10
+Authorization: Bearer <token>
+x-user-id: <user-id>
+```
+
+Expected result: `200 OK` with `data` and `pagination`, including the new `BUY` transaction.
+
+> Do not use the seeded users for login testing. The seeded rows are useful for wallet and data setup, but their stored password hashes are placeholders rather than real bcrypt hashes.
 
 ---
 

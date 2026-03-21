@@ -11,4 +11,5 @@ import t_12.backend.entity.Coin;
  */
 @Repository
 public interface CoinRepository extends JpaRepository<Coin, Long> {
+    java.util.Optional<Coin> findFirstByOrderByIdAsc();
 }

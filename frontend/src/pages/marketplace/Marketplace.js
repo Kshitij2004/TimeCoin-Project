@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Marketplace.css";
+import { API_BASE_URL } from "../../services/api";
 
 // ── Auth stub ─────────────────────────────────────────────────────────────────
 // TODO: replace with real auth context when built
@@ -8,7 +9,7 @@ import "./Marketplace.css";
 const user = { id: 1, username: "testuser1" };
 const token = "fake-token";
 
-const API_BASE = process.env.REACT_APP_API_URL ?? "http://localhost:3001";
+const API_BASE = API_BASE_URL;
 
 export default function Marketplace() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export default function Marketplace() {
   useEffect(() => {
     if (!user) return;
     setCoinLoading(true);
-    fetch(`${API_BASE}/api/coins`, {
+    fetch(`${API_BASE}/api/coin`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => {
@@ -56,13 +57,17 @@ export default function Marketplace() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/transactions/buy`, {
+      const res = await fetch(`${API_BASE}/api/coin/buy`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ amount: parsedAmount }),
+        body: JSON.stringify({
+          userId: user.id,
+          symbol: "TC",
+          amount: parsedAmount,
+        }),
       });
 
       // Guard against non-JSON response (e.g. backend not running)
@@ -77,13 +82,13 @@ export default function Marketplace() {
       setStatus({
         type: "success",
         message: `Successfully purchased ${parsedAmount} coins for $${(
-          parsedAmount * coin.current_price
+          parsedAmount * coin.currentPrice
         ).toFixed(2)}!`,
       });
       setAmount("");
 
       // Refresh coin supply after purchase
-      const updated = await fetch(`${API_BASE}/api/coins`, {
+      const updated = await fetch(`${API_BASE}/api/coin`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (updated.ok) setCoin(await updated.json());
@@ -96,7 +101,7 @@ export default function Marketplace() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const totalCost =
-    amount && coin ? (parseFloat(amount) * coin.current_price).toFixed(2) : null;
+    amount && coin ? (parseFloat(amount) * coin.currentPrice).toFixed(2) : null;
 
   if (!user) return null;
 
@@ -113,19 +118,19 @@ export default function Marketplace() {
           <div className="stat-card">
             <span className="stat-label">Current Price</span>
             <span className="stat-value" data-testid="coin-price">
-              {coinLoading ? "—" : coin ? `$${Number(coin.current_price).toFixed(2)}` : "—"}
+              {coinLoading ? "—" : coin ? `$${Number(coin.currentPrice).toFixed(2)}` : "—"}
             </span>
           </div>
           <div className="stat-card">
             <span className="stat-label">Circulating Supply</span>
             <span className="stat-value" data-testid="circulating-supply">
-              {coinLoading ? "—" : coin ? Number(coin.circulating_supply).toLocaleString() : "—"}
+              {coinLoading ? "—" : coin ? Number(coin.circulatingSupply).toLocaleString() : "—"}
             </span>
           </div>
           <div className="stat-card">
             <span className="stat-label">Total Supply</span>
             <span className="stat-value" data-testid="total-supply">
-              {coinLoading ? "—" : coin ? Number(coin.total_supply).toLocaleString() : "—"}
+              {coinLoading ? "—" : coin ? Number(coin.totalSupply).toLocaleString() : "—"}
             </span>
           </div>
         </section>

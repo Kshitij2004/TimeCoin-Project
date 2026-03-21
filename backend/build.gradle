@@ -24,7 +24,11 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-security' // added after using BCrypt in password hashing
+	implementation 'io.jsonwebtoken:jjwt-api:0.13.0' // added for JWT authentication
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0' // added for JWT authentication
 	runtimeOnly 'com.mysql:mysql-connector-j'
+	testRuntimeOnly 'com.h2database:h2'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test' // changed two statements for update
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

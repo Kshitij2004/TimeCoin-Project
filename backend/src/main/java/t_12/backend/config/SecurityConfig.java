@@ -4,13 +4,17 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import t_12.backend.filter.AuthFilter;
 
 /**
  * Spring Security configuration for the application. Configures CSRF
@@ -19,6 +23,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final AuthFilter authFilter;
+
+    /**
+     * Constructor for SecurityConfig. Injects the custom authentication filter.
+     *
+     * @param authFilter the authentication filter to use for securing endpoints
+     */
+    public SecurityConfig(AuthFilter authFilter) {
+        this.authFilter = authFilter;
+    }
 
     /**
      * Configures the security filter chain for HTTP requests.
@@ -35,14 +50,22 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register").permitAll()
+                .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/wallet/**").permitAll()
                 .requestMatchers("/api/coin/**").permitAll()
+                .requestMatchers("/api/coins/**").permitAll()
+                .requestMatchers("/api/transactions/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/listings/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/listings/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/listings/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/listings/**").authenticated()
                 .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+                )
+                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

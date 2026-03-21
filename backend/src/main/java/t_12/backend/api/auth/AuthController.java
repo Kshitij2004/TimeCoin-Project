@@ -43,4 +43,17 @@ public class AuthController {
         ));
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
+
+    /**
+     * Authenticates a user and returns a JWT token if successful.
+     *
+     * @param request the login request containing username and password
+     * @return ResponseEntity containing the JWT token string
+     */
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+        String token = userService.login(request.getUsername(), request.getPassword());
+        return ResponseEntity.ok(token);
+    }
+
 }

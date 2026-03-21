@@ -1,10 +1,14 @@
 package t_12.backend.service;
 
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.UUID;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.DuplicateResourceException;
@@ -79,10 +83,59 @@ public class UserService {
         // which user it belongs to. This is the link between the two tables.
         Wallet wallet = new Wallet();
         wallet.setUserId(savedUser.getId());
+        wallet.setWalletAddress(generateWalletAddress());
+        wallet.setPublicKey(generatePublicKey());
         wallet.setCoinBalance(java.math.BigDecimal.ZERO);
         wallet.setCreatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
 
         return savedUser;
+    }
+
+    /**
+     * Authenticates a user and returns a signed JWT token.
+     *
+     * @param username the username to authenticate
+     * @param password the raw password to verify
+     * @return a signed JWT string containing the user ID and expiry
+     * @throws RuntimeException if the username is not found or password is
+     * incorrect
+     */
+    public String login(String username, String password) {
+
+        // Look up the user. If they don't exist, fail immediately.
+        // We use a generic message intentionally: never tell the caller
+        // whether it was the username or password that was wrong, as that
+        // leaks information to attackers.
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+
+        // BCrypt's matches() re-hashes the submitted password and compares it
+        // to the stored hash. We never decrypt! BCrypt is one-way.
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new RuntimeException("Invalid credentials");
+        }
+
+        // Build and sign the JWT.
+        // The secret key is what makes the token tamper-proof. Only the
+        // server knows it, so only the server can produce a valid signature.
+        String secretKey = "your-super-secret-key-change-this-in-production";
+
+        return Jwts.builder()
+                // subject is the standard JWT field for "who this token is about"
+                .subject(String.valueOf(user.getId()))
+                // issuedAt and expiration are the standard fields for token lifetime
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+                .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                .compact();
+    }
+
+    private String generateWalletAddress() {
+        return "addr_" + UUID.randomUUID();
+    }
+
+    private String generatePublicKey() {
+        return "pub_" + UUID.randomUUID() + "_" + UUID.randomUUID();
     }
 }

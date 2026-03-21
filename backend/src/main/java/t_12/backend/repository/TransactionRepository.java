@@ -1,17 +1,35 @@
 package t_12.backend.repository;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import t_12.backend.entity.Transaction;
 
 /**
- * Repository for accessing and modifying Transaction records in the database.
- *
- * New transactions are inserted as PENDING status, effectively acting as
- * the mempool. The block assembler service will later query PENDING transactions
- * and package them into blocks, updating their status to CONFIRMED.
+ * Data access methods for blockchain and purchase transaction records.
  */
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
+    Optional<Transaction> findByTransactionHash(String transactionHash);
+    List<Transaction> findBySenderAddress(String senderAddress);
+    List<Transaction> findByReceiverAddress(String receiverAddress);
+    List<Transaction> findByStatus(Transaction.Status status);
+    List<Transaction> findByBlockId(Integer blockId);
+    Page<Transaction> findByUserIdAndTransactionTypeInOrderByTimestampDescIdDesc(
+            Integer userId,
+            Collection<Transaction.TransactionType> transactionTypes,
+            Pageable pageable
+    );
+    long countByUserIdAndTransactionTypeIn(
+            Integer userId,
+            Collection<Transaction.TransactionType> transactionTypes
+    );
+    List<Transaction> findBySenderAddressOrReceiverAddress(String senderAddress, String receiverAddress);
+    boolean existsByTransactionHash(String transactionHash);
 }

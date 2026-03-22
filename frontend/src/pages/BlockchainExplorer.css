@@ -20,9 +20,30 @@
   font-size: 28px;
 }
 
+.explorer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .explorer-header p {
   margin: 8px 0 0;
   color: #aeb8cf;
+}
+
+.explorer-refresh-btn {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.explorer-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .explorer-status-grid {
@@ -241,6 +262,11 @@
 @media (max-width: 640px) {
   .explorer-card {
     padding: 16px;
+  }
+
+  .explorer-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .explorer-status-grid {

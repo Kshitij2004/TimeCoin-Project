@@ -39,6 +39,7 @@ export default function BlockchainExplorer() {
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -78,7 +79,7 @@ export default function BlockchainExplorer() {
 
     run();
     return () => controller.abort();
-  }, [page, limit]);
+  }, [page, limit, refreshTick]);
 
   useEffect(() => {
     if (!copiedKey) {
@@ -203,8 +204,18 @@ export default function BlockchainExplorer() {
     <div className="explorer-page">
       <div className="explorer-card">
         <div className="explorer-header">
-          <h1>Blockchain Explorer</h1>
-          <p>Inspect the current chain status and recent blocks.</p>
+          <div>
+            <h1>Blockchain Explorer</h1>
+            <p>Inspect the current chain status and recent blocks.</p>
+          </div>
+          <button
+            type="button"
+            className="explorer-refresh-btn"
+            onClick={() => setRefreshTick((tick) => tick + 1)}
+            disabled={loading}
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
         {status && (

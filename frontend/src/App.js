@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/marketplace/Marketplace';
 import History from './pages/History';
+import Send from './pages/send/Send';
 
 function App() {
   // Mock authentication state for Sprint 1
@@ -29,6 +30,9 @@ function App() {
         } />
         <Route path="/marketplace" element={
           <ProtectedRoute isAuth={isAuthenticated}><Marketplace /></ProtectedRoute>
+        } />
+        <Route path="/send" element={
+          <ProtectedRoute isAuth={isAuthenticated}><Send /></ProtectedRoute>
         } />
         <Route path="/history" element={
           <ProtectedRoute isAuth={isAuthenticated}><History /></ProtectedRoute>

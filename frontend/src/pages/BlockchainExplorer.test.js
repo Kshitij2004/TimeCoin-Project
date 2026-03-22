@@ -105,10 +105,8 @@ test('refresh button re-fetches status and block listing', async () => {
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
-  await waitFor(() => {
-    expect(getChainStatus).toHaveBeenCalledTimes(2);
-    expect(getBlocks).toHaveBeenCalledTimes(2);
-  });
+  await waitFor(() => expect(getChainStatus).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(getBlocks).toHaveBeenCalledTimes(2));
 });
 
 test('auto refresh toggle schedules polling updates', async () => {
@@ -146,10 +144,8 @@ test('auto refresh toggle schedules polling updates', async () => {
     jest.advanceTimersByTime(15000);
   });
 
-  await waitFor(() => {
-    expect(getChainStatus).toHaveBeenCalledTimes(2);
-    expect(getBlocks).toHaveBeenCalledTimes(2);
-  });
+  await waitFor(() => expect(getChainStatus).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(getBlocks).toHaveBeenCalledTimes(2));
 
   fireEvent.click(screen.getByRole('button', { name: 'Auto Refresh: On' }));
   expect(clearSpy).toHaveBeenCalled();
@@ -374,10 +370,8 @@ test('copies full block hash from row action', async () => {
   fireEvent.click(copyButton);
 
   expect(navigator.clipboard.writeText).toHaveBeenCalledWith(fullHash);
-  await waitFor(() => {
-    expect(copyButton).toHaveTextContent('Copied');
-    expect(copyButton).toHaveClass('explorer-copy-btn-copied');
-  });
+  await waitFor(() => expect(copyButton).toHaveTextContent('Copied'));
+  expect(copyButton).toHaveClass('explorer-copy-btn-copied');
 });
 
 test('syncs page and selected height to query params', async () => {
@@ -413,20 +407,18 @@ test('syncs page and selected height to query params', async () => {
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-  await waitFor(() => {
-    expect(mockSetSearchParams).toHaveBeenCalled();
-    const latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
-    expect(latestParams.get('page')).toBe('2');
-  });
+  await waitFor(() => expect(mockSetSearchParams).toHaveBeenCalled());
+  let latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
+  expect(latestParams.get('page')).toBe('2');
 
   fireEvent.change(screen.getByLabelText('Block lookup input'), { target: { value: '0' } });
   fireEvent.click(screen.getByRole('button', { name: 'Find by Height' }));
 
   await waitFor(() => {
-    const latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
+    latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
     expect(latestParams.get('height')).toBe('0');
-    expect(latestParams.get('page')).toBe('2');
   });
+  expect(latestParams.get('page')).toBe('2');
 });
 
 test('hydrates page and hash from query params on initial load', async () => {
@@ -488,10 +480,11 @@ test('clear inspector resets detail state and removes hash/height query params',
   expect(screen.getByLabelText('Block lookup input')).toHaveValue('');
   expect(screen.getByText('Select a block row to inspect linked transactions.')).toBeInTheDocument();
 
+  let latestParams;
   await waitFor(() => {
-    const latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
+    latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
     expect(latestParams.get('page')).toBe('2');
-    expect(latestParams.has('hash')).toBe(false);
-    expect(latestParams.has('height')).toBe(false);
   });
+  expect(latestParams.has('hash')).toBe(false);
+  expect(latestParams.has('height')).toBe(false);
 });

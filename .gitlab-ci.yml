@@ -2,6 +2,7 @@ stages:
   - validate
   - build
   - test
+  - lint
 
 check-required-files:
   stage: validate
@@ -81,7 +82,7 @@ test-backend:
       junit:
         - backend/build/test-results/testUnit/*.xml
 
-test-backend-schema:
+test-schema:
   stage: test
   image: eclipse-temurin:21-jdk
   tags:
@@ -118,7 +119,7 @@ test-backend-schema:
         - backend/build/test-results/testIntegration/*.xml
 
 lint-frontend:
-  stage: test
+  stage: lint
   image: node:20-alpine
   tags:
     - cs506

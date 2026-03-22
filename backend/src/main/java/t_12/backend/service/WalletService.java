@@ -105,7 +105,7 @@ public class WalletService {
         wallet.setUserId(userId);
         wallet.setWalletAddress(identity.walletAddress());
         wallet.setPublicKey(identity.publicKey());
-        wallet.setCoinBalance(new BigDecimal("2.00000000"));
+        wallet.setCoinBalance(BigDecimal.ZERO.setScale(8));
         wallet.setCreatedAt(LocalDateTime.now());
 
         Wallet savedWallet = walletRepository.save(wallet);

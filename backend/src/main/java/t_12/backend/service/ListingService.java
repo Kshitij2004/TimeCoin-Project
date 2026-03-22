@@ -3,13 +3,10 @@ package t_12.backend.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
@@ -32,15 +29,15 @@ public class ListingService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
-    private final BalanceService balanceService;
+    private final TransactionValidationService transactionValidationService;
 
     public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService, BalanceService balanceService) {
+            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService) {
         this.listingRepository = listingRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
-        this.balanceService = balanceService;
+        this.transactionValidationService = transactionValidationService;
     }
 
     /**
@@ -198,6 +195,12 @@ public class ListingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                 "Seller wallet not found for sellerId: " + listing.getSellerId()));
 
+        // 7. Debit the buyer's wallet and credit the seller's wallet.
+        buyerWallet.setCoinBalance(buyerWallet.getCoinBalance().subtract(price));
+        sellerWallet.setCoinBalance(sellerWallet.getCoinBalance().add(price));
+        walletRepository.save(buyerWallet);
+        walletRepository.save(sellerWallet);
+
         // 8. Record the transaction as PENDING in the database (acts as mempool entry).
         //    The block assembler will later pick this up and include it in a block.
         LocalDateTime now = LocalDateTime.now();
@@ -205,12 +208,24 @@ public class ListingService {
         tx.setSenderAddress(buyerWallet.getWalletAddress());
         tx.setReceiverAddress(sellerWallet.getWalletAddress());
         tx.setAmount(price);
-        tx.setFee(BigDecimal.ZERO);
+        tx.setFee(BigDecimal.ZERO.setScale(8)); // previously a scaling issue based on columns (18, 8) and (18, 0)
+        // now both are (18, 8) to ensure fee can be zero with correct scale.
         tx.setNonce(0); // TODO: implement per-sender nonce tracking in validation service
+        // TODO: see TransactionValidationService.validateNonce() for details on nonce implementation.
         tx.setTimestamp(now);
         tx.setStatus(Transaction.Status.PENDING);
         tx.setTransactionHash(transactionService.generateTransactionHash(buyerWallet.getWalletAddress(),
-                sellerWallet.getWalletAddress(), price, BigDecimal.ZERO, 0, now));
+                sellerWallet.getWalletAddress(), price, BigDecimal.ZERO.setScale(8), 0, now));
+
+        // Marketplace fields — needed for purchase history and transaction ledger.
+        tx.setUserId(buyerUserId);
+        tx.setSymbol("TC");
+        tx.setTransactionType(Transaction.TransactionType.BUY);
+        tx.setPriceAtTime(listing.getPrice());
+        // TODO: calculate totalUsd using current coin price once CoinRepository
+        // TODO: is injected into ListingService. Left null for now as a known limitation.
+        tx.setTotalUsd(null); // USD price not available in this context — no coin price reference here
+
         transactionRepository.save(tx);
 
         // 9. Mark the listing as SOLD so it can no longer be purchased

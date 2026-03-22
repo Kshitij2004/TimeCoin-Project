@@ -1,0 +1,10 @@
+$kind: http-request
+url: http://localhost:8080/api/listings
+method: GET
+headers:
+  Authorization: Bearer
+    eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI4IiwiaWF0IjoxNzc0MjEyMDIxLCJleHAiOjE3NzQyOTg0MjF9.BMrcFzFK50SBd-P976vg8qdCxll2N8uPK_r7wISEBuI
+body:
+  type: json
+  content: ""
+order: 4503599017356165

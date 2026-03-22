@@ -36,3 +36,21 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.register('testUnit', Test) {
+	useJUnitPlatform()
+	description = 'Runs backend unit and controller tests (excludes integration tests).'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	exclude '**/integration/**'
+}
+
+tasks.register('testIntegration', Test) {
+	useJUnitPlatform()
+	description = 'Runs backend integration tests only.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	include '**/integration/**'
+}

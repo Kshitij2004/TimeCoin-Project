@@ -40,7 +40,7 @@ test-backend:
     - echo "Testing backend..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew test
+    - ./gradlew testUnit
 
 test-backend-schema:
   stage: test
@@ -51,7 +51,7 @@ test-backend-schema:
     - echo "Running backend schema/integration tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew test --tests "t_12.backend.integration.*"
+    - ./gradlew testIntegration
   artifacts:
     when: always
     paths:

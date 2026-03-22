@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// 1. Centralized Base URL configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+/**
+ * fallback
+ */
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,12 +12,11 @@ const api = axios.create({
   },
 });
 
-// 2. REQUEST INTERCEPTOR: Automatically attach JWT to every request
+// REQUEST INTERCEPTOR: Attach JWT to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Acceptance Criteria: "Consistent auth headers"
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -23,12 +24,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 3. RESPONSE INTERCEPTOR: Global Error & Auth Handling
+// RESPONSE INTERCEPTOR: Global 401 handling (Redirect to Login)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Acceptance Criteria: "Expired or missing tokens redirect to login page"
     if (error.response && error.response.status === 401) {
+      // Clear token and kick to login if unauthorized
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -36,7 +37,7 @@ api.interceptors.response.use(
   }
 );
 
-// 4. API Methods (Refactored from your current version)
+// Helper methods for Auth
 export const registerUser = async (userData) => {
   const response = await api.post('/auth/register', userData);
   return response.data;
@@ -44,12 +45,10 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (credentials) => {
   const response = await api.post('/auth/login', credentials);
-  // Store token upon successful login
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
   }
   return response.data;
 };
 
-// Export the base instance for use in other components/pages
 export default api;

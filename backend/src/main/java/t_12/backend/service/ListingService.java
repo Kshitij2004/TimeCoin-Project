@@ -29,16 +29,14 @@ public class ListingService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
-    private final BalanceService balanceService;
     private final TransactionValidationService transactionValidationService;
 
     public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService, BalanceService balanceService) {
+            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService) {
         this.listingRepository = listingRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
-        this.balanceService = balanceService;
         this.transactionValidationService = transactionValidationService;
     }
 

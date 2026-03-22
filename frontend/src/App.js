@@ -1,15 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/ProtectedRoute.js';
 
 // Import your pages from the /pages folder
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/dashboard/Dashboard';
-import Marketplace from './pages/marketplace/Marketplace';
-import History from './pages/History';
-import Send from './pages/send/Send';
+import Landing from './pages/Landing.js';
+import Login from './pages/Login.js';
+import Register from './pages/Register.js';
+import Dashboard from './pages/dashboard/Dashboard.js';
+import Marketplace from './pages/marketplace/Marketplace.js';
+import History from './pages/History.js';
+import Send from './pages/send/Send.js';
 
 function App() {
   // Mock authentication state for Sprint 1

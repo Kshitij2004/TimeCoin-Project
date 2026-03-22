@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { API_BASE_URL } from '../services/api';
+import { API_BASE_URL } from '../services/api.js';
 import './History.css';
 
 function formatDate(value) {

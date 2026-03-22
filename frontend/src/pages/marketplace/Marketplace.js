@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Marketplace.css";
-import { API_BASE_URL } from "../../services/api";
+import { API_BASE_URL } from "../../services/api.js";
 
 // ── Auth stub ─────────────────────────────────────────────────────────────────
 // TODO: replace with real auth context when built

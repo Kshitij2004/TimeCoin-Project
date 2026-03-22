@@ -2,7 +2,6 @@ stages:
   - validate
   - build
   - test
-  - lint
 
 check-required-files:
   stage: validate
@@ -25,6 +24,11 @@ build-backend:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - backend/**/*
+    - when: never
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
@@ -46,6 +50,13 @@ test-backend:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - backend/**/*
+    - when: never
+  needs:
+    - job: build-backend
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
@@ -75,6 +86,13 @@ test-backend-schema:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - backend/**/*
+    - when: never
+  needs:
+    - job: build-backend
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
@@ -100,10 +118,15 @@ test-backend-schema:
         - backend/build/test-results/testIntegration/*.xml
 
 lint-frontend:
-  stage: lint 
+  stage: test
   image: node:20-alpine
   tags:
     - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - frontend/**/*
+    - when: never
   variables:
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:
@@ -124,6 +147,11 @@ test-frontend:
   image: node:20-alpine
   tags:
     - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - frontend/**/*
+    - when: never
   variables:
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:

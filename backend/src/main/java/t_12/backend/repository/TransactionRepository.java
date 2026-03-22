@@ -9,6 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import t_12.backend.entity.Transaction;
 
@@ -33,19 +36,32 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     );
     List<Transaction> findBySenderAddressOrReceiverAddress(String senderAddress, String receiverAddress);
     boolean existsByTransactionHash(String transactionHash);
-    boolean existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
-            String senderAddress,
-            String receiverAddress,
-            BigDecimal amount,
-            BigDecimal fee,
-            Integer nonce,
-            Transaction.Status status
-    );
+
+
+
+
+    /** Sum of amounts received by this address in confirmed transactions */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.receiverAddress = :address AND t.status = :status")
+    BigDecimal sumAmountByReceiverAndStatus(@Param("address") String address,
+                                            @Param("status") Transaction.Status status);
+
+    /** Sum of amounts sent by this address in confirmed transactions */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.senderAddress = :address AND t.status = :status")
+    BigDecimal sumAmountBySenderAndStatus(@Param("address") String address,
+                                          @Param("status") Transaction.Status status);
+
+    /** Sum of fees paid by this address in confirmed transactions */
+    @Query("SELECT COALESCE(SUM(t.fee), 0) FROM Transaction t " +
+           "WHERE t.senderAddress = :address AND t.status = :status")
+    BigDecimal sumFeesBySenderAndStatus(@Param("address") String address,
+                                        @Param("status") Transaction.Status status);
+
     boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
-            String receiverAddress,
-            BigDecimal amount,
-            BigDecimal fee,
-            Integer nonce,
-            Transaction.Status status
-    );
+        String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce, Transaction.Status status);
+
+boolean existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+        String senderAddress, String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce, Transaction.Status status);
 }
+

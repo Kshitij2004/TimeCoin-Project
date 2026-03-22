@@ -6,10 +6,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashboard/Dashboard';
 import Marketplace from './pages/marketplace/Marketplace';
 import History from './pages/History';
 import BlockchainExplorer from './pages/BlockchainExplorer';
+import Send from './pages/send/Send';
 
 function App() {
   // Mock authentication state for Sprint 1
@@ -30,6 +31,9 @@ function App() {
         } />
         <Route path="/marketplace" element={
           <ProtectedRoute isAuth={isAuthenticated}><Marketplace /></ProtectedRoute>
+        } />
+        <Route path="/send" element={
+          <ProtectedRoute isAuth={isAuthenticated}><Send /></ProtectedRoute>
         } />
         <Route path="/history" element={
           <ProtectedRoute isAuth={isAuthenticated}><History /></ProtectedRoute>

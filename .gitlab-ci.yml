@@ -47,6 +47,31 @@ build-backend:
     - cd backend
     - chmod +x gradlew
     - ./gradlew build -x test
+    - ./gradlew compileTestJava
+
+build-frontend:
+  stage: build
+  image: node:20-alpine
+  tags:
+    - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - frontend/**/*
+    - when: never
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
+  script:
+    - echo "Building frontend..."
+    - cd frontend
+    - npm ci
+    - npm run build
 
 test-backend:
   stage: test
@@ -120,31 +145,6 @@ test-schema:
       junit:
         - backend/build/test-results/testIntegration/*.xml
 
-lint-frontend:
-  stage: lint
-  image: node:20-alpine
-  tags:
-    - cs506
-  rules:
-    - changes:
-        - .gitlab-ci.yml
-        - frontend/**/*
-    - when: never
-  variables:
-    npm_config_cache: "$CI_PROJECT_DIR/.npm"
-  cache:
-    key:
-      files:
-        - frontend/package-lock.json
-    paths:
-      - .npm/
-      - frontend/node_modules/
-  script:
-    - echo "Linting frontend..."
-    - cd frontend
-    - npm ci
-    - npm run lint
-
 test-frontend:
   stage: test
   image: node:20-alpine
@@ -165,7 +165,6 @@ test-frontend:
         - frontend/package-lock.json
     paths:
       - .npm/
-      - frontend/node_modules/
   script:
     - echo "Testing frontend..."
     - cd frontend
@@ -178,3 +177,29 @@ test-frontend:
     reports:
       junit:
         - frontend/junit.xml
+
+lint-frontend:
+  stage: lint
+  image: node:20-alpine
+  tags:
+    - cs506
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - frontend/**/*
+    - when: never
+  needs:
+    - job: build-frontend
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
+  script:
+    - echo "Linting frontend..."
+    - cd frontend
+    - npm ci
+    - npm run lint

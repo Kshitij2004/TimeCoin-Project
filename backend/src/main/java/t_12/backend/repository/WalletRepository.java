@@ -39,6 +39,7 @@ public interface WalletRepository extends JpaRepository<Wallet, Integer> {
      */
     Optional<Wallet> findByPublicKey(String publicKey);
 
+
     /**
      * Checks whether a wallet already exists for a user.
      *

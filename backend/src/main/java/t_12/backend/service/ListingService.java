@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
@@ -31,13 +32,15 @@ public class ListingService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
+    private final BalanceService balanceService;
 
     public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService) {
+            TransactionRepository transactionRepository, TransactionService transactionService, BalanceService balanceService) {
         this.listingRepository = listingRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
+        this.balanceService = balanceService;
     }
 
     /**
@@ -151,15 +154,16 @@ public class ListingService {
      * Executes the purchase of a marketplace listing.
      *
      * All database operations occur within a single transaction. Any failure
-     * after wallet debiting (e.g. saving the transaction record) will trigger
-     * a full rollback, preventing partial state.
+     * after wallet debiting (e.g. saving the transaction record) will trigger a
+     * full rollback, preventing partial state.
      *
-     * @param listingId   the ID of the listing to purchase
+     * @param listingId the ID of the listing to purchase
      * @param buyerUserId the ID of the user making the purchase
      * @return the SHA-256 transaction hash for tracking on the chain
-     * @throws ResourceNotFoundException if the listing, buyer wallet, or seller wallet is not found
-     * @throws IllegalStateException     if the listing is not ACTIVE, the buyer is the seller,
-     *                                   or the buyer has insufficient balance
+     * @throws ResourceNotFoundException if the listing, buyer wallet, or seller
+     * wallet is not found
+     * @throws IllegalStateException if the listing is not ACTIVE, the buyer is
+     * the seller, or the buyer has insufficient balance
      */
     @Transactional
     public String purchaseListing(Integer listingId, Integer buyerUserId) {
@@ -167,7 +171,7 @@ public class ListingService {
         // 1. Load the listing — throws 404 if not found
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Listing not found: " + listingId));
+                "Listing not found: " + listingId));
 
         // 2. Reject if the listing is no longer available (already SOLD or REMOVED)
         if (listing.getStatus() != Listing.Status.ACTIVE) {
@@ -183,26 +187,21 @@ public class ListingService {
         // 4. Load the buyer's wallet — throws 404 if not found
         Wallet buyerWallet = walletRepository.findByUserId(buyerUserId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Buyer wallet not found for userId: " + buyerUserId));
+                "Buyer wallet not found for userId: " + buyerUserId));
 
         // 5. Validate the buyer has enough TimeCoin to cover the listing price
         BigDecimal price = listing.getPrice();
-        if (buyerWallet.getCoinBalance().compareTo(price) < 0) {
+        BalanceResponse buyerBalance = balanceService.getBalance(buyerWallet.getWalletAddress());
+        if (buyerBalance.getAvailable().compareTo(price) < 0) {
             throw new IllegalStateException(
                     "Insufficient balance. Required: " + price
-                            + ", Available: " + buyerWallet.getCoinBalance());
+                    + ", Available: " + buyerBalance.getAvailable());
         }
 
         // 6. Load the seller's wallet — throws 404 if not found
         Wallet sellerWallet = walletRepository.findByUserId(listing.getSellerId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Seller wallet not found for sellerId: " + listing.getSellerId()));
-
-        // 7. Transfer funds: debit buyer, credit seller
-        buyerWallet.setCoinBalance(buyerWallet.getCoinBalance().subtract(price));
-        sellerWallet.setCoinBalance(sellerWallet.getCoinBalance().add(price));
-        walletRepository.save(buyerWallet);
-        walletRepository.save(sellerWallet);
+                "Seller wallet not found for sellerId: " + listing.getSellerId()));
 
         // 8. Record the transaction as PENDING in the database (acts as mempool entry).
         //    The block assembler will later pick this up and include it in a block.

@@ -191,12 +191,7 @@ public class ListingService {
 
         // 5. Validate the buyer has enough TimeCoin to cover the listing price
         BigDecimal price = listing.getPrice();
-        BalanceResponse buyerBalance = balanceService.getBalance(buyerWallet.getWalletAddress());
-        if (buyerBalance.getAvailable().compareTo(price) < 0) {
-            throw new IllegalStateException(
-                    "Insufficient balance. Required: " + price
-                    + ", Available: " + buyerBalance.getAvailable());
-        }
+        transactionValidationService.validateBalance(buyerWallet.getWalletAddress(), price, BigDecimal.ZERO);
 
         // 6. Load the seller's wallet — throws 404 if not found
         Wallet sellerWallet = walletRepository.findByUserId(listing.getSellerId())

@@ -17,15 +17,18 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-test('shows login message when not authenticated', () => {
-  // Note: Since we updated History.js to rely on localStorage/interceptors, 
-  // we simulate "unauthenticated" by ensuring no token exists.
+test('shows login message when not authenticated', async () => {
+  // Ensure no token exists in storage
+  localStorage.removeItem('token');
+  
   render(<History />); 
   
-  // If your ProtectedRoute isn't wrapping this in the test, 
-  // we check the internal "auth" logic of the component.
-  // Note: In the refactored History, 'auth' is true if the token exists.
-  expect(screen.queryByText(/Please log in/i)).toBeInTheDocument();
+  // findByText is used to wait for the component to evaluate the 
+  // missing token and render the "Please log in" message.
+  const loginMessage = await screen.findByText(/Please log in to view your transaction history/i);
+  expect(loginMessage).toBeInTheDocument();
+  
+  // Verify that no API call was attempted without a token
   expect(api.get).not.toHaveBeenCalled();
 });
 
@@ -49,14 +52,15 @@ test('renders transactions table after successful fetch', async () => {
 
   render(<History pageSize={10} />);
 
+  // findByText automatically handles the 'act' wrapping by waiting for 
+  // the state to update and the text to appear in the DOM.
   expect(await screen.findByText('BUY')).toBeInTheDocument();
   expect(screen.getByRole('table', { name: /Transaction history table/i })).toBeInTheDocument();
   
-  // Verify the call uses the correct URL. 
-  // Interceptors handle the headers, so we just check the endpoint.
+  // Verify the call uses the correct URL
   expect(api.get).toHaveBeenCalledWith(
     expect.stringContaining('/transactions?page=1&limit=10'),
-    expect.any(Object) // for the AbortSignal
+    expect.any(Object) // Placeholder for the AbortSignal
   );
 });
 
@@ -94,14 +98,13 @@ test('supports basic next-page pagination', async () => {
 
   render(<History pageSize={1} />);
 
-  // First page
+  // Wait for first page to load successfully
   expect(await screen.findByText('BUY')).toBeInTheDocument();
   
-  // Click Next
   const nextButton = screen.getByRole('button', { name: /Next/i });
   fireEvent.click(nextButton);
 
-  // Second page
+  // Wait for the second page (SELL) to appear
   expect(await screen.findByText('SELL')).toBeInTheDocument();
   expect(api.get).toHaveBeenCalledTimes(2);
 });

@@ -56,5 +56,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
            "WHERE t.senderAddress = :address AND t.status = :status")
     BigDecimal sumFeesBySenderAndStatus(@Param("address") String address,
                                         @Param("status") Transaction.Status status);
+
+    boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+        String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce, Transaction.Status status);
+
+boolean existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+        String senderAddress, String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce, Transaction.Status status);
 }
 

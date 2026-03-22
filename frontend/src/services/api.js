@@ -1,19 +1,29 @@
-export const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:8080';
+import axios from 'axios';
 
-export const registerUser = (userData) => {
-    return fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
-    }).then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-            const error = new Error(payload.message || 'Request failed');
-            error.response = { data: payload };
-            throw error;
-        }
-        return payload;
-    });
-};
+// Pull the URL from the .env file we just fixed
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+});
+
+// REQUEST INTERCEPTOR: Automatically adds the JWT to every outgoing call
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// RESPONSE INTERCEPTOR: Global 401 handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token'); // Clear the bad token
+      window.location.href = '/login'; // Redirect to login page
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;

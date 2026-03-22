@@ -3,6 +3,8 @@ package t_12.backend.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,6 +20,7 @@ public interface BlockRepository extends JpaRepository<Block, Integer> {
     List<Block> findByStatus(Block.Status status);
     List<Block> findByValidatorAddress(String validatorAddress);
     Optional<Block> findTopByOrderByBlockHeightDesc();
+    Page<Block> findAllByOrderByBlockHeightDesc(Pageable pageable);
     boolean existsByBlockHeight(Integer blockHeight);
     long countByStatus(Block.Status status);
 }

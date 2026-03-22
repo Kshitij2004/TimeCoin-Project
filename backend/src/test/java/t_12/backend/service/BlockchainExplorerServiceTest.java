@@ -2,6 +2,7 @@ package t_12.backend.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -14,11 +15,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 
 import t_12.backend.api.blockchain.dto.BlockDetailDTO;
+import t_12.backend.api.blockchain.dto.BlockListResponseDTO;
 import t_12.backend.api.blockchain.dto.ChainStatusDTO;
 import t_12.backend.entity.Block;
 import t_12.backend.entity.Transaction;
+import t_12.backend.exception.ApiException;
 import t_12.backend.repository.BlockRepository;
 import t_12.backend.repository.TransactionRepository;
 
@@ -107,5 +113,59 @@ class BlockchainExplorerServiceTest {
         assertNull(result.getLatestBlockHeight());
         assertNull(result.getLatestBlockHash());
         assertNull(result.getLatestBlockTimestamp());
+    }
+
+    @Test
+    void getRecentBlocks_returnsNewestFirstWithPagination() {
+        Block block9 = new Block();
+        block9.setBlockHeight(9);
+        block9.setBlockHash("hash9");
+        block9.setPreviousHash("hash8");
+        block9.setTransactionCount(2);
+        block9.setStatus(Block.Status.COMMITTED);
+        block9.setTimestamp(LocalDateTime.of(2026, 3, 22, 12, 0, 0));
+
+        Block block8 = new Block();
+        block8.setBlockHeight(8);
+        block8.setBlockHash("hash8");
+        block8.setPreviousHash("hash7");
+        block8.setTransactionCount(1);
+        block8.setStatus(Block.Status.COMMITTED);
+        block8.setTimestamp(LocalDateTime.of(2026, 3, 22, 11, 0, 0));
+
+        when(blockRepository.findAllByOrderByBlockHeightDesc(PageRequest.of(0, 2)))
+                .thenReturn(new PageImpl<>(List.of(block9, block8), PageRequest.of(0, 2), 9));
+
+        BlockListResponseDTO result = blockchainExplorerService.getRecentBlocks(1, 2);
+
+        assertEquals(2, result.getData().size());
+        assertEquals(9, result.getData().get(0).getBlockHeight());
+        assertEquals(8, result.getData().get(1).getBlockHeight());
+        assertEquals(1, result.getPagination().getPage());
+        assertEquals(2, result.getPagination().getLimit());
+        assertEquals(9, result.getPagination().getTotal());
+        assertEquals(5, result.getPagination().getTotalPages());
+    }
+
+    @Test
+    void getRecentBlocks_invalidPage_throwsBadRequest() {
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> blockchainExplorerService.getRecentBlocks(0, 20)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("page must be a positive integer", exception.getMessage());
+    }
+
+    @Test
+    void getRecentBlocks_invalidLimit_throwsBadRequest() {
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> blockchainExplorerService.getRecentBlocks(1, 0)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("limit must be an integer between 1 and 100", exception.getMessage());
     }
 }

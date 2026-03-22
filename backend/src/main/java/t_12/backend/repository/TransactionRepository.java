@@ -1,5 +1,6 @@
 package t_12.backend.repository;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

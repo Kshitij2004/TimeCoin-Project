@@ -239,6 +239,44 @@ GET http://localhost:8080/api/transactions?page=1&limit=10
 }
 ```
 
+### POST /api/transactions/transfer
+
+Submits a blockchain transfer. Valid transactions are enqueued in the mempool as `PENDING`.
+
+**Headers:**
+```text
+Authorization: Bearer <jwt>
+```
+
+**Request body:**
+```json
+{
+    "senderAddress": "wlt_sender_address",
+    "receiverAddress": "wlt_receiver_address",
+    "amount": 5.00000000,
+    "fee": 0.01000000,
+    "nonce": 1
+}
+```
+
+**Response:** `201 Created` with a transaction entity whose `status` is `PENDING` and `blockId` is `null`.
+
+### GET /api/transactions/{hash}
+
+Looks up a single transaction by its `transactionHash`.
+
+**Headers:**
+```text
+Authorization: Bearer <jwt>
+```
+
+**Example:**
+```text
+GET http://localhost:8080/api/transactions/0cd3e34249e38f1dd6dd14e1fe56ab94751d07a6005d1ecc9f0a3947919c80bc
+```
+
+**Response:** `200 OK` with the matching transaction, or `404 Not Found` if no transaction exists for that hash.
+
 ---
 
 ## Testing With Postman
@@ -321,6 +359,47 @@ x-user-id: <user-id>
 ```
 
 Expected result: `200 OK` with `data` and `pagination`, including the new `BUY` transaction.
+
+6. Submit a transfer (mempool enqueue):
+
+```http
+POST http://localhost:8080/api/transactions/transfer
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+    "senderAddress": "<sender-wallet-address>",
+    "receiverAddress": "<receiver-wallet-address>",
+    "amount": 5.00000000,
+    "fee": 0.01000000,
+    "nonce": 1
+}
+```
+
+Expected result: `201 Created` with `status: "PENDING"` and `blockId: null`.
+
+7. Look up the transfer by hash:
+
+```http
+GET http://localhost:8080/api/transactions/<transaction-hash>
+Authorization: Bearer <token>
+```
+
+Expected result: `200 OK` and the same transaction in `PENDING` state.
+
+8. Duplicate prevention check:
+
+Re-send the exact same `POST /api/transactions/transfer` payload from step 6.
+
+Expected result: `409 Conflict` because the same transaction cannot appear twice in `PENDING` state.
+
+9. New pending transfer check:
+
+Send the same transfer payload again, but increment `nonce` (for example, `nonce: 2`).
+
+Expected result: `201 Created` with a new pending transaction.
 
 > Do not use the seeded users for login testing. The seeded rows are useful for wallet and data setup, but their stored password hashes are placeholders rather than real bcrypt hashes.
 

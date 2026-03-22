@@ -10,7 +10,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import t_12.backend.entity.Transaction;
-import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.TransactionRepository;
 
@@ -24,11 +23,11 @@ import t_12.backend.repository.TransactionRepository;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final TransactionValidationService transactionValidationService;
+    private final MempoolService mempoolService;
 
-    public TransactionService(TransactionRepository transactionRepository, TransactionValidationService transactionValidationService) {
+    public TransactionService(TransactionRepository transactionRepository, MempoolService mempoolService) {
         this.transactionRepository = transactionRepository;
-        this.transactionValidationService = transactionValidationService;
+        this.mempoolService = mempoolService;
     }
 
     /**
@@ -50,14 +49,8 @@ public class TransactionService {
     public Transaction createTransaction(String senderAddress,
             String receiverAddress, BigDecimal amount,
             BigDecimal fee, Integer nonce) {
-        transactionValidationService.validateBalance(senderAddress, amount, fee);
-
         LocalDateTime timestamp = LocalDateTime.now();
         String hash = generateTransactionHash(senderAddress, receiverAddress, amount, fee, nonce, timestamp);
-
-        if (transactionRepository.existsByTransactionHash(hash)) {
-            throw new DuplicateResourceException("Transaction with this hash already exists: " + hash);
-        }
 
         Transaction transaction = new Transaction();
         transaction.setSenderAddress(senderAddress);
@@ -76,7 +69,7 @@ public class TransactionService {
         transaction.setPriceAtTime(null);
         transaction.setTotalUsd(null);
 
-        return transactionRepository.save(transaction);
+        return mempoolService.enqueueValidatedTransaction(transaction);
     }
 
     /**
@@ -103,15 +96,8 @@ public class TransactionService {
             Integer userId, String symbol,
             Transaction.TransactionType transactionType,
             BigDecimal priceAtTime, BigDecimal totalUsd) {
-
-        transactionValidationService.validateBalance(senderAddress, amount, fee);
-
         LocalDateTime timestamp = LocalDateTime.now();
         String hash = generateTransactionHash(senderAddress, receiverAddress, amount, fee, nonce, timestamp);
-
-        if (transactionRepository.existsByTransactionHash(hash)) {
-            throw new DuplicateResourceException("Transaction with this hash already exists: " + hash);
-        }
 
         Transaction transaction = new Transaction();
         transaction.setSenderAddress(senderAddress);
@@ -129,7 +115,7 @@ public class TransactionService {
         transaction.setPriceAtTime(priceAtTime);
         transaction.setTotalUsd(totalUsd);
 
-        return transactionRepository.save(transaction);
+        return mempoolService.enqueueValidatedTransaction(transaction);
     }
 
     /**

@@ -1,7 +1,7 @@
-import axios from 'axios';
+// Change the import to use the CommonJS version for Jest compatibility
+import axios from 'axios/dist/node/axios.cjs';
 
 // 1. Centralized Base URL configuration
-// Using the fallback logic from your original file
 export const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:8080';
 
 const api = axios.create({
@@ -10,6 +10,8 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// ... the rest of your interceptor code stays exactly the same
 
 // 2. REQUEST INTERCEPTOR: Attach JWT to every request
 // Requirement: "Attach JWT token from localStorage/context to Authorization header"

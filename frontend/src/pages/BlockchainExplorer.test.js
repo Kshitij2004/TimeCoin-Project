@@ -458,3 +458,40 @@ test('hydrates page and hash from query params on initial load', async () => {
   expect(await screen.findByText('hash_two')).toBeInTheDocument();
   expect(getBlockByHash).toHaveBeenCalledWith(expect.objectContaining({ hash: 'hash_two' }));
 });
+
+test('clear inspector resets detail state and removes hash/height query params', async () => {
+  getChainStatus.mockResolvedValue({
+    latestBlockHeight: 12,
+    totalBlocks: 13,
+    pendingTransactions: 4,
+    latestBlockHash: '1234567890abcdef1234567890abcdef'
+  });
+
+  getBlocks.mockResolvedValue({
+    data: [],
+    pagination: { page: 2, limit: 10, total: 13, totalPages: 2 }
+  });
+
+  getBlockByHash.mockResolvedValue({
+    blockHeight: 2,
+    blockHash: 'hash_two',
+    previousHash: 'hash_one',
+    status: 'COMMITTED',
+    transactions: []
+  });
+
+  renderExplorer('/blockchain?page=2&hash=hash_two');
+
+  expect(await screen.findByText('hash_two')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Clear inspector' }));
+
+  expect(screen.getByLabelText('Block lookup input')).toHaveValue('');
+  expect(screen.getByText('Select a block row to inspect linked transactions.')).toBeInTheDocument();
+
+  await waitFor(() => {
+    const latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
+    expect(latestParams.get('page')).toBe('2');
+    expect(latestParams.has('hash')).toBe(false);
+    expect(latestParams.has('height')).toBe(false);
+  });
+});

@@ -220,6 +220,15 @@ export default function BlockchainExplorer() {
     await handleLookupByHashValue(lookupValue, true);
   }
 
+  function handleClearInspector() {
+    setLookupValue('');
+    setSelectedHeight(null);
+    setBlockDetail(null);
+    setDetailError('');
+    setInspectingHeight(null);
+    updateSearchQuery({ height: null, hash: null });
+  }
+
   function handlePageChange(nextPage) {
     setPage(nextPage);
     updateSearchQuery({
@@ -426,6 +435,14 @@ export default function BlockchainExplorer() {
             />
             <button type="button" onClick={handleLookupByHeight}>Find by Height</button>
             <button type="button" onClick={handleLookupByHash}>Find by Hash</button>
+            <button
+              type="button"
+              className="explorer-clear-btn"
+              onClick={handleClearInspector}
+              aria-label="Clear inspector"
+            >
+              Clear
+            </button>
           </div>
 
           {!selectedHeight && !detailLoading && !detailError && (

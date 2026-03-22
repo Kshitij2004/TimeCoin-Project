@@ -246,6 +246,12 @@
   cursor: pointer;
 }
 
+.explorer-clear-btn {
+  border-color: #6d7b9f;
+  background: #162035;
+  color: #d9e4ff;
+}
+
 .explorer-detail-grid {
   margin-top: 12px;
   display: grid;

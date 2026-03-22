@@ -23,7 +23,31 @@ function resolveAuthState(isAuthenticated) {
   return localStorage.getItem('isAuthenticated') === 'true';
 }
 
-function resolveUserId(userId) {
+function tryResolveUserIdFromToken(token) {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  try {
+    const tokenParts = token.split('.');
+    if (tokenParts.length < 2) {
+      return null;
+    }
+
+    const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = base64Payload.padEnd(
+      base64Payload.length + ((4 - (base64Payload.length % 4)) % 4),
+      '='
+    );
+    const payload = JSON.parse(window.atob(normalized));
+    const tokenUserId = Number(payload?.sub);
+    return Number.isInteger(tokenUserId) && tokenUserId > 0 ? tokenUserId : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function resolveUserId(userId, token) {
   if (Number.isInteger(userId) && userId > 0) {
     return userId;
   }
@@ -33,14 +57,34 @@ function resolveUserId(userId) {
     return stored;
   }
 
-  return 1;
+  const fromToken = tryResolveUserIdFromToken(token);
+  if (Number.isInteger(fromToken) && fromToken > 0) {
+    return fromToken;
+  }
+
+  return null;
 }
 
-async function fetchTransactionHistory({ apiBaseUrl, userId, page, limit, signal }) {
+function resolveAuthToken(authToken) {
+  if (typeof authToken === 'string' && authToken.trim().length > 0) {
+    return authToken.trim();
+  }
+
+  const candidates = [
+    localStorage.getItem('token'),
+    localStorage.getItem('authToken'),
+    localStorage.getItem('jwt')
+  ];
+
+  const found = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+  return found ? found.trim() : null;
+}
+
+async function fetchTransactionHistory({ apiBaseUrl, userId, page, limit, token, signal }) {
   const response = await fetch(`${apiBaseUrl}/api/transactions?page=${page}&limit=${limit}`, {
     method: 'GET',
     headers: {
-      Authorization: 'Bearer fake-token',
+      Authorization: `Bearer ${token}`,
       'x-user-id': String(userId)
     },
     signal
@@ -68,20 +112,24 @@ async function fetchTransactionHistory({ apiBaseUrl, userId, page, limit, signal
 export default function History({
   apiBaseUrl = API_BASE_URL,
   isAuthenticated = true,
+  authToken = null,
   userId = 1,
   pageSize = 10
 }) {
   const [page, setPage] = useState(1);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: pageSize, total: 0, totalPages: 0 });
 
   const auth = resolveAuthState(isAuthenticated);
-  const resolvedUserId = resolveUserId(userId);
+  const resolvedToken = resolveAuthToken(authToken);
+  const resolvedUserId = resolveUserId(userId, resolvedToken);
+  const hasSession = auth && Boolean(resolvedToken) && Boolean(resolvedUserId);
 
   useEffect(() => {
-    if (!auth) {
+    if (!hasSession) {
       return undefined;
     }
 
@@ -97,6 +145,7 @@ export default function History({
           userId: resolvedUserId,
           page,
           limit: pageSize,
+          token: resolvedToken,
           signal: controller.signal
         });
         setRows(Array.isArray(payload?.data) ? payload.data : []);
@@ -113,7 +162,7 @@ export default function History({
 
     run();
     return () => controller.abort();
-  }, [auth, apiBaseUrl, resolvedUserId, page, pageSize]);
+  }, [hasSession, apiBaseUrl, resolvedUserId, page, pageSize, refreshTick, resolvedToken]);
 
   const canPrev = page > 1 && !loading;
   const canNext = useMemo(() => {
@@ -121,12 +170,23 @@ export default function History({
     return !loading && totalPages > 0 && page < totalPages;
   }, [loading, pagination.totalPages, page]);
 
-  if (!auth) {
+  if (!hasSession) {
+    const missingToken = auth && !resolvedToken;
+    const missingUserId = auth && resolvedToken && !resolvedUserId;
     return (
       <div className="history-page">
         <div className="history-card">
-          <h1>Transaction History</h1>
-          <p className="history-empty">Please log in to view your transaction history.</p>
+          <div className="history-header">
+            <h1>Transaction History</h1>
+            <p>Track your most recent coin purchases and sales.</p>
+          </div>
+          <p className="history-empty">
+            {missingToken
+              ? 'No JWT token found. Save your login token in localStorage as token/authToken/jwt.'
+              : missingUserId
+                ? 'Unable to resolve user ID from props/localStorage/JWT subject.'
+                : 'Please log in to view your transaction history.'}
+          </p>
         </div>
       </div>
     );
@@ -136,9 +196,40 @@ export default function History({
     <div className="history-page">
       <div className="history-card">
         <div className="history-header">
-          <h1>Transaction History</h1>
-          <p>Track your most recent coin purchases and sales.</p>
+          <div>
+            <h1>Transaction History</h1>
+            <p>Track your most recent coin purchases and sales.</p>
+          </div>
+          <div className="history-header-actions">
+            <button
+              type="button"
+              className="history-refresh-btn"
+              onClick={() => setRefreshTick((tick) => tick + 1)}
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
+
+        <section className="history-status-grid" aria-label="History summary">
+          <div className="history-stat">
+            <span className="history-stat-label">User ID</span>
+            <strong>{resolvedUserId}</strong>
+          </div>
+          <div className="history-stat">
+            <span className="history-stat-label">Total Transactions</span>
+            <strong>{pagination.total || 0}</strong>
+          </div>
+          <div className="history-stat">
+            <span className="history-stat-label">Current Page</span>
+            <strong>{pagination.page || page}</strong>
+          </div>
+          <div className="history-stat">
+            <span className="history-stat-label">Page Size</span>
+            <strong>{pagination.limit || pageSize}</strong>
+          </div>
+        </section>
 
         {loading && <p className="history-loading">Loading transactions...</p>}
         {error && <p className="history-error">{error}</p>}

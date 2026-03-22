@@ -34,7 +34,14 @@ test('renders transactions table after successful fetch', async () => {
     })
   });
 
-  render(<History isAuthenticated userId={1} apiBaseUrl="http://localhost:3000" />);
+  render(
+    <History
+      isAuthenticated
+      authToken="real-test-token"
+      userId={1}
+      apiBaseUrl="http://localhost:3000"
+    />
+  );
 
   expect(await screen.findByText('BUY')).toBeInTheDocument();
   expect(screen.getByRole('table', { name: /Transaction history table/i })).toBeInTheDocument();
@@ -43,7 +50,7 @@ test('renders transactions table after successful fetch', async () => {
     expect.objectContaining({
       method: 'GET',
       headers: {
-        Authorization: 'Bearer fake-token',
+        Authorization: 'Bearer real-test-token',
         'x-user-id': '1'
       }
     })
@@ -59,7 +66,7 @@ test('shows empty state when no transactions are returned', async () => {
     })
   });
 
-  render(<History isAuthenticated userId={1} />);
+  render(<History isAuthenticated authToken="real-test-token" userId={1} />);
 
   expect(await screen.findByText(/No transactions yet/i)).toBeInTheDocument();
 });
@@ -81,7 +88,7 @@ test('supports basic next-page pagination', async () => {
       })
     });
 
-  render(<History isAuthenticated userId={1} pageSize={1} />);
+  render(<History isAuthenticated authToken="real-test-token" userId={1} pageSize={1} />);
 
   expect(await screen.findByText('BUY')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));

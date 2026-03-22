@@ -403,6 +403,24 @@ Expected result: `201 Created` with a new pending transaction.
 
 > Do not use the seeded users for login testing. The seeded rows are useful for wallet and data setup, but their stored password hashes are placeholders rather than real bcrypt hashes.
 
+### Blockchain Explorer Postman Collection
+
+The explorer endpoints are public `GET` routes, so no JWT is required:
+
+- `GET /api/chain/status`
+- `GET /api/chain/blocks?page=1&limit=10`
+- `GET /api/chain/blocks/{height}`
+- `GET /api/chain/blocks/hash/{hash}`
+
+Import this collection into Postman:
+
+- `backend/postman/blockchain_explorer.postman_collection.json`
+
+After import, set:
+
+- `baseUrl` to `http://localhost:8080`
+- `blockHeight` and `blockHash` to values from your local data (defaults are included)
+
 ### Postman JWT Troubleshooting
 
 If you see `401 Unauthorized` with message `Invalid or expired token`:

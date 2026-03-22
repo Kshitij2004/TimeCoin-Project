@@ -1,12 +1,13 @@
 package t_12.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.math.BigDecimal;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.api.listings.UpdateListingRequest;
 import t_12.backend.entity.Listing;
@@ -29,14 +30,16 @@ public class ListingService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
+    private final BalanceService balanceService;
     private final TransactionValidationService transactionValidationService;
 
     public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService) {
+            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService, BalanceService balanceService) {
         this.listingRepository = listingRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
+        this.balanceService = balanceService;
         this.transactionValidationService = transactionValidationService;
     }
 

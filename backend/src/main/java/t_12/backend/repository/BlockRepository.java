@@ -19,4 +19,5 @@ public interface BlockRepository extends JpaRepository<Block, Integer> {
     List<Block> findByValidatorAddress(String validatorAddress);
     Optional<Block> findTopByOrderByBlockHeightDesc();
     boolean existsByBlockHeight(Integer blockHeight);
+    long countByStatus(Block.Status status);
 }

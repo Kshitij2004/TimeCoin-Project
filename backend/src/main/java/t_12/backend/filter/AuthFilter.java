@@ -106,6 +106,11 @@ public class AuthFilter extends OncePerRequestFilter {
         }
 
         if ("GET".equalsIgnoreCase(method)
+                && path.startsWith("/api/chain/")) {
+            return true;
+        }
+
+        if ("GET".equalsIgnoreCase(method)
                 && ("/api/listings".equals(path) || path.startsWith("/api/listings/"))) {
             return true;
         }

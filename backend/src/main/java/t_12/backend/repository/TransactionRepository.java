@@ -48,4 +48,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
             Integer nonce,
             Transaction.Status status
     );
+    long countByStatus(Transaction.Status status);
 }

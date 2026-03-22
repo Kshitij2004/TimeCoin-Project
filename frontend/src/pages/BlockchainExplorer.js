@@ -40,6 +40,7 @@ export default function BlockchainExplorer() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -92,6 +93,18 @@ export default function BlockchainExplorer() {
 
     return () => window.clearTimeout(timeoutId);
   }, [copiedKey]);
+
+  useEffect(() => {
+    if (!autoRefresh) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setRefreshTick((tick) => tick + 1);
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [autoRefresh]);
 
   const canPrev = page > 1 && !loading;
   const canNext = useMemo(() => {
@@ -208,14 +221,24 @@ export default function BlockchainExplorer() {
             <h1>Blockchain Explorer</h1>
             <p>Inspect the current chain status and recent blocks.</p>
           </div>
-          <button
-            type="button"
-            className="explorer-refresh-btn"
-            onClick={() => setRefreshTick((tick) => tick + 1)}
-            disabled={loading}
-          >
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="explorer-header-actions">
+            <button
+              type="button"
+              className={`explorer-auto-btn ${autoRefresh ? 'explorer-auto-btn-on' : ''}`}
+              onClick={() => setAutoRefresh((enabled) => !enabled)}
+              aria-label={`Auto Refresh: ${autoRefresh ? 'On' : 'Off'}`}
+            >
+              Auto Refresh: {autoRefresh ? 'On' : 'Off'}
+            </button>
+            <button
+              type="button"
+              className="explorer-refresh-btn"
+              onClick={() => setRefreshTick((tick) => tick + 1)}
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {status && (

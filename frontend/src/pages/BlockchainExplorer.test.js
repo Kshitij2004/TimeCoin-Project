@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import BlockchainExplorer from './BlockchainExplorer';
 import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
@@ -78,6 +78,54 @@ test('refresh button re-fetches status and block listing', async () => {
     expect(getChainStatus).toHaveBeenCalledTimes(2);
     expect(getBlocks).toHaveBeenCalledTimes(2);
   });
+});
+
+test('auto refresh toggle schedules polling updates', async () => {
+  jest.useFakeTimers();
+  const intervalSpy = jest.spyOn(window, 'setInterval');
+  const clearSpy = jest.spyOn(window, 'clearInterval');
+
+  getChainStatus.mockResolvedValue({
+    latestBlockHeight: 12,
+    totalBlocks: 13,
+    pendingTransactions: 4,
+    latestBlockHash: '1234567890abcdef1234567890abcdef'
+  });
+
+  getBlocks.mockResolvedValue({
+    data: [
+      {
+        blockHeight: 12,
+        blockHash: 'hash12',
+        timestamp: '2026-03-22T17:30:00',
+        transactionCount: 3
+      }
+    ],
+    pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
+  });
+
+  render(<BlockchainExplorer />);
+
+  await screen.findByText('Page 1 of 2');
+  fireEvent.click(screen.getByRole('button', { name: 'Auto Refresh: Off' }));
+  expect(screen.getByRole('button', { name: 'Auto Refresh: On' })).toBeInTheDocument();
+  expect(intervalSpy).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    jest.advanceTimersByTime(15000);
+  });
+
+  await waitFor(() => {
+    expect(getChainStatus).toHaveBeenCalledTimes(2);
+    expect(getBlocks).toHaveBeenCalledTimes(2);
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Auto Refresh: On' }));
+  expect(clearSpy).toHaveBeenCalled();
+
+  intervalSpy.mockRestore();
+  clearSpy.mockRestore();
+  jest.useRealTimers();
 });
 
 test('supports next-page pagination', async () => {

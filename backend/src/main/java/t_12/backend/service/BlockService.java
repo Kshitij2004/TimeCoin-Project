@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import t_12.backend.entity.Block;
@@ -27,8 +28,11 @@ import t_12.backend.repository.TransactionRepository;
 @Service
 public class BlockService {
 
+    private static final Integer GENESIS_BLOCK_HEIGHT = 0;
     private static final String GENESIS_PREVIOUS_HASH =
             "0000000000000000000000000000000000000000000000000000000000000000";
+    private static final LocalDateTime GENESIS_TIMESTAMP =
+            LocalDateTime.of(2026, 1, 1, 0, 0, 0);
 
     private final BlockRepository blockRepository;
     private final BlockTransactionRepository blockTransactionRepository;
@@ -50,24 +54,34 @@ public class BlockService {
      * @return the genesis block, or the existing one if already created
      */
     public Block createGenesisBlock() {
-        if (blockRepository.existsByBlockHeight(0)) {
-            return blockRepository.findByBlockHeight(0)
+        if (blockRepository.existsByBlockHeight(GENESIS_BLOCK_HEIGHT)) {
+            return blockRepository.findByBlockHeight(GENESIS_BLOCK_HEIGHT)
                     .orElseThrow(() -> new ResourceNotFoundException("Genesis block exists but could not be loaded"));
         }
 
-        LocalDateTime timestamp = LocalDateTime.now();
-        String blockHash = generateBlockHash(0, GENESIS_PREVIOUS_HASH, timestamp, List.of());
+        String blockHash = generateBlockHash(
+                GENESIS_BLOCK_HEIGHT,
+                GENESIS_PREVIOUS_HASH,
+                GENESIS_TIMESTAMP,
+                List.of()
+        );
 
         Block genesis = new Block();
-        genesis.setBlockHeight(0);
+        genesis.setBlockHeight(GENESIS_BLOCK_HEIGHT);
         genesis.setPreviousHash(GENESIS_PREVIOUS_HASH);
         genesis.setBlockHash(blockHash);
-        genesis.setTimestamp(timestamp);
+        genesis.setTimestamp(GENESIS_TIMESTAMP);
         genesis.setTransactionCount(0);
         genesis.setStatus(Block.Status.COMMITTED);
         genesis.setValidatorAddress(null);
 
-        return blockRepository.save(genesis);
+        try {
+            return blockRepository.save(genesis);
+        } catch (DataIntegrityViolationException ex) {
+            // Another startup thread/node created it first; load and return canonical genesis.
+            return blockRepository.findByBlockHeight(GENESIS_BLOCK_HEIGHT)
+                    .orElseThrow(() -> new ResourceNotFoundException("Genesis block exists but could not be loaded"));
+        }
     }
 
     /**

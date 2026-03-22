@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import t_12.backend.entity.Block;
 import t_12.backend.entity.BlockTransaction;
@@ -52,6 +53,8 @@ class BlockServiceTest {
 
     private static final String GENESIS_PREV_HASH =
             "0000000000000000000000000000000000000000000000000000000000000000";
+    private static final LocalDateTime GENESIS_TIMESTAMP =
+            LocalDateTime.of(2026, 1, 1, 0, 0, 0);
 
     private Block genesisBlock;
 
@@ -85,6 +88,11 @@ class BlockServiceTest {
         assertEquals(0, result.getTransactionCount());
         assertEquals(Block.Status.COMMITTED, result.getStatus());
         assertNotNull(result.getBlockHash());
+        assertEquals(GENESIS_TIMESTAMP, result.getTimestamp());
+        assertEquals(
+                blockService.generateBlockHash(0, GENESIS_PREV_HASH, GENESIS_TIMESTAMP, List.of()),
+                result.getBlockHash()
+        );
         verify(blockRepository).save(any(Block.class));
     }
 
@@ -108,6 +116,19 @@ class BlockServiceTest {
 
         assertEquals(64, result.getBlockHash().length());
         assertTrue(result.getBlockHash().matches("[0-9a-f]+"));
+    }
+
+    @Test
+    void createGenesisBlock_duplicateInsertRace_returnsExistingBlock() {
+        when(blockRepository.existsByBlockHeight(0)).thenReturn(false);
+        when(blockRepository.save(any(Block.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate genesis"));
+        when(blockRepository.findByBlockHeight(0)).thenReturn(Optional.of(genesisBlock));
+
+        Block result = blockService.createGenesisBlock();
+
+        assertEquals(genesisBlock.getId(), result.getId());
+        verify(blockRepository).save(any(Block.class));
     }
 
     // Block Hash Generation

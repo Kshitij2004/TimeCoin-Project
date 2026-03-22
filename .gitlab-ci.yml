@@ -42,6 +42,22 @@ test-backend:
     - chmod +x gradlew
     - ./gradlew test
 
+test-backend-schema:
+  stage: test
+  image: eclipse-temurin:21-jdk
+  tags:
+    - cs506
+  script:
+    - echo "Running backend schema/integration tests..."
+    - cd backend
+    - chmod +x gradlew
+    - ./gradlew test --tests "t_12.backend.integration.*"
+  artifacts:
+    when: always
+    paths:
+      - backend/build/reports/tests/test/
+      - backend/build/test-results/test/
+
 lint-frontend:
   stage: lint 
   image: node:20-alpine

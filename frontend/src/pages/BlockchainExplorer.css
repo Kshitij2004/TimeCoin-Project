@@ -39,6 +39,11 @@
   background: #131b2c;
 }
 
+.explorer-stat-hash {
+  position: relative;
+  padding-right: 80px;
+}
+
 .explorer-stat-label {
   display: block;
   color: #9ba7c2;
@@ -85,6 +90,33 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+.explorer-hash-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.explorer-copy-btn {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.explorer-copy-btn-top {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.explorer-copy-btn-copied {
+  color: #57d07f;
+  border-color: #57d07f;
+}
+
 .explorer-view-btn {
   margin-left: 10px;
   border: 1px solid #4b5f8a;
@@ -94,6 +126,28 @@
   padding: 4px 8px;
   cursor: pointer;
   font-size: 12px;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.explorer-view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(20, 34, 64, 0.45);
+  border-color: #78a1ff;
+}
+
+.explorer-view-btn:active {
+  transform: translateY(0);
+}
+
+.explorer-view-btn-loading {
+  color: #a9c2ff;
+  border-color: #78a1ff;
+  cursor: wait;
+}
+
+.explorer-view-btn-selected {
+  color: #57d07f;
+  border-color: #57d07f;
 }
 
 .explorer-pagination {
@@ -127,6 +181,32 @@
 .explorer-detail-panel h2 {
   margin: 0;
   font-size: 18px;
+}
+
+.explorer-lookup {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.explorer-lookup input {
+  min-width: 260px;
+  flex: 1;
+  border: 1px solid #4b5f8a;
+  border-radius: 8px;
+  background: #11192b;
+  color: #e6ecff;
+  padding: 8px 10px;
+}
+
+.explorer-lookup button {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
 }
 
 .explorer-detail-grid {
@@ -165,6 +245,10 @@
 
   .explorer-pagination {
     justify-content: space-between;
+  }
+
+  .explorer-lookup input {
+    min-width: 100%;
   }
 
   .explorer-detail-grid {

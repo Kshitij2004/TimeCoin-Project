@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
+import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
 import './BlockchainExplorer.css';
 
 function formatDate(value) {
@@ -33,6 +33,9 @@ export default function BlockchainExplorer() {
   const [blockDetail, setBlockDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [inspectingHeight, setInspectingHeight] = useState(null);
+  const [lookupValue, setLookupValue] = useState('');
+  const [copiedKey, setCopiedKey] = useState('');
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -58,6 +61,7 @@ export default function BlockchainExplorer() {
         setSelectedHeight(null);
         setBlockDetail(null);
         setDetailError('');
+        setInspectingHeight(null);
       } catch (err) {
         if (err.name !== 'AbortError') {
           setError(err.message || 'Failed to fetch blockchain explorer data');
@@ -65,6 +69,7 @@ export default function BlockchainExplorer() {
           setBlocks([]);
           setSelectedHeight(null);
           setBlockDetail(null);
+          setInspectingHeight(null);
         }
       } finally {
         setLoading(false);
@@ -75,6 +80,18 @@ export default function BlockchainExplorer() {
     return () => controller.abort();
   }, [page, limit]);
 
+  useEffect(() => {
+    if (!copiedKey) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopiedKey('');
+    }, 1500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [copiedKey]);
+
   const canPrev = page > 1 && !loading;
   const canNext = useMemo(() => {
     const totalPages = Number(pagination?.totalPages || 0);
@@ -83,6 +100,7 @@ export default function BlockchainExplorer() {
 
   async function handleSelectBlock(height) {
     setSelectedHeight(height);
+    setInspectingHeight(height);
     setDetailLoading(true);
     setDetailError('');
 
@@ -94,7 +112,91 @@ export default function BlockchainExplorer() {
       setBlockDetail(null);
     } finally {
       setDetailLoading(false);
+      setInspectingHeight(null);
     }
+  }
+
+  async function handleLookupByHeight() {
+    const parsedHeight = Number(lookupValue);
+    if (!Number.isInteger(parsedHeight) || parsedHeight < 0) {
+      setDetailError('Enter a valid non-negative block height');
+      return;
+    }
+    await handleSelectBlock(parsedHeight);
+  }
+
+  async function handleLookupByHash() {
+    const trimmed = lookupValue.trim();
+    if (!trimmed) {
+      setDetailError('Enter a block hash');
+      return;
+    }
+
+    setSelectedHeight(null);
+    setDetailLoading(true);
+    setDetailError('');
+
+    try {
+      const detailPayload = await getBlockByHash({ hash: trimmed });
+      setBlockDetail(detailPayload);
+    } catch (err) {
+      setDetailError(err.message || 'Failed to load block detail');
+      setBlockDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function handleCopyHash(hashValue, key) {
+    if (!hashValue || typeof hashValue !== 'string') {
+      return;
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(hashValue);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = hashValue;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedKey(key);
+    } catch (err) {
+      setCopiedKey('');
+    }
+  }
+
+  function renderCopyButton(hashValue, label, key, topRight = false) {
+    const isCopied = copiedKey === key;
+    return (
+      <button
+        type="button"
+        className={`explorer-copy-btn ${topRight ? 'explorer-copy-btn-top' : ''} ${isCopied ? 'explorer-copy-btn-copied' : ''}`}
+        onClick={() => handleCopyHash(hashValue, key)}
+        aria-label={label}
+      >
+        {isCopied ? 'Copied' : 'Copy'}
+      </button>
+    );
+  }
+
+  function renderHashWithCopy(hashValue, label, key) {
+    if (!hashValue || typeof hashValue !== 'string') {
+      return <span>-</span>;
+    }
+
+    return (
+      <span className="explorer-hash-cell">
+        <span className="explorer-hash">{shortHash(hashValue)}</span>
+        {renderCopyButton(hashValue, label, key)}
+      </span>
+    );
   }
 
   return (
@@ -119,9 +221,10 @@ export default function BlockchainExplorer() {
               <span className="explorer-stat-label">Pending Transactions</span>
               <strong>{status.pendingTransactions ?? 0}</strong>
             </div>
-            <div className="explorer-stat">
+            <div className="explorer-stat explorer-stat-hash">
               <span className="explorer-stat-label">Latest Hash</span>
               <strong className="explorer-hash">{shortHash(status.latestBlockHash)}</strong>
+              {renderCopyButton(status.latestBlockHash, 'Copy latest block hash', 'latest-hash', true)}
             </div>
           </section>
         )}
@@ -151,17 +254,34 @@ export default function BlockchainExplorer() {
                         className={selectedHeight === block.blockHeight ? 'explorer-row-selected' : ''}
                       >
                         <td>{block.blockHeight}</td>
-                        <td className="explorer-hash">{shortHash(block.blockHash)}</td>
+                        <td>
+                          {renderHashWithCopy(
+                            block.blockHash,
+                            `Copy block hash at height ${block.blockHeight}`,
+                            `row-${block.blockHeight}`
+                          )}
+                        </td>
                         <td>{formatDate(block.timestamp)}</td>
                         <td>
                           {block.transactionCount}
-                          <button
-                            type="button"
-                            className="explorer-view-btn"
-                            onClick={() => handleSelectBlock(block.blockHeight)}
-                          >
-                            Inspect
-                          </button>
+                          {(() => {
+                            const isInspecting = detailLoading && inspectingHeight === block.blockHeight;
+                            const isSelected = !isInspecting
+                              && selectedHeight === block.blockHeight
+                              && Boolean(blockDetail)
+                              && !detailError;
+                            return (
+                              <button
+                                type="button"
+                                className={`explorer-view-btn ${isInspecting ? 'explorer-view-btn-loading' : ''} ${isSelected ? 'explorer-view-btn-selected' : ''}`}
+                                onClick={() => handleSelectBlock(block.blockHeight)}
+                                disabled={isInspecting}
+                                aria-busy={isInspecting ? 'true' : 'false'}
+                              >
+                                {isInspecting ? 'Inspecting...' : isSelected ? 'Selected' : 'Inspect'}
+                              </button>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -194,6 +314,17 @@ export default function BlockchainExplorer() {
 
         <section className="explorer-detail-panel" aria-label="Block inspector">
           <h2>Block Inspector</h2>
+          <div className="explorer-lookup">
+            <input
+              type="text"
+              value={lookupValue}
+              onChange={(event) => setLookupValue(event.target.value)}
+              placeholder="Enter block height or hash"
+              aria-label="Block lookup input"
+            />
+            <button type="button" onClick={handleLookupByHeight}>Find by Height</button>
+            <button type="button" onClick={handleLookupByHash}>Find by Hash</button>
+          </div>
 
           {!selectedHeight && !detailLoading && !detailError && (
             <p className="explorer-detail-empty">Select a block row to inspect linked transactions.</p>
@@ -213,13 +344,15 @@ export default function BlockchainExplorer() {
                   <span className="explorer-stat-label">Status</span>
                   <strong>{blockDetail.status}</strong>
                 </div>
-                <div>
+                <div className="explorer-stat-hash">
                   <span className="explorer-stat-label">Hash</span>
                   <strong className="explorer-hash">{shortHash(blockDetail.blockHash)}</strong>
+                  {renderCopyButton(blockDetail.blockHash, 'Copy selected block hash', 'detail-hash', true)}
                 </div>
-                <div>
+                <div className="explorer-stat-hash">
                   <span className="explorer-stat-label">Previous Hash</span>
                   <strong className="explorer-hash">{shortHash(blockDetail.previousHash)}</strong>
+                  {renderCopyButton(blockDetail.previousHash, 'Copy previous block hash', 'detail-prev-hash', true)}
                 </div>
               </div>
 
@@ -238,7 +371,13 @@ export default function BlockchainExplorer() {
                   <tbody>
                     {blockDetail.transactions.map((tx) => (
                       <tr key={tx.transactionHash || tx.id}>
-                        <td className="explorer-hash">{shortHash(tx.transactionHash)}</td>
+                        <td>
+                          {renderHashWithCopy(
+                            tx.transactionHash,
+                            `Copy transaction hash ${tx.id ?? tx.transactionHash}`,
+                            `tx-${tx.id ?? tx.transactionHash}`
+                          )}
+                        </td>
                         <td>{tx.senderAddress || '-'}</td>
                         <td>{tx.receiverAddress || '-'}</td>
                         <td>{tx.amount ?? '-'}</td>

@@ -12,9 +12,8 @@ import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 
 function App() {
-  // Mock authentication state for Sprint 1
-  const isAuthenticated = true; // Change to false to test unauthenticated flow
-
+  // 1. Removed the mock isAuthenticated variable. 
+  // The ProtectedRoute component now handles this by checking localStorage.
 
   return (
     <Router>
@@ -25,17 +24,18 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}
+        {/* 2. Removed the isAuth prop from ProtectedRoute calls */}
         <Route path="/dashboard" element={
-          <ProtectedRoute isAuth={isAuthenticated}><Dashboard /></ProtectedRoute>
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
         <Route path="/marketplace" element={
-          <ProtectedRoute isAuth={isAuthenticated}><Marketplace /></ProtectedRoute>
+          <ProtectedRoute><Marketplace /></ProtectedRoute>
         } />
         <Route path="/send" element={
-          <ProtectedRoute isAuth={isAuthenticated}><Send /></ProtectedRoute>
+          <ProtectedRoute><Send /></ProtectedRoute>
         } />
         <Route path="/history" element={
-          <ProtectedRoute isAuth={isAuthenticated}><History /></ProtectedRoute>
+          <ProtectedRoute><History /></ProtectedRoute>
         } />
       </Routes>
     </Router>

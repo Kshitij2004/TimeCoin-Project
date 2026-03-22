@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.lenient;
 
 import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.entity.StakingEvent;
@@ -45,7 +46,7 @@ class BalanceServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(walletRepository.existsByWalletAddress(WALLET)).thenReturn(true);
+        lenient().when(walletRepository.existsByWalletAddress(WALLET)).thenReturn(true);
     }
 
     //wallet existence

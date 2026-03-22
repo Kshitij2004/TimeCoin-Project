@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashboard/Dashboard';
 import Marketplace from './pages/marketplace/Marketplace';
 import History from './pages/History';
 import Send from './pages/send/Send';

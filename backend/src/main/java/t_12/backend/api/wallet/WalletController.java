@@ -1,8 +1,8 @@
 package t_12.backend.api.wallet;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,8 +35,8 @@ public class WalletController {
      * @return ResponseEntity containing the WalletDTO with wallet data
      */
     @GetMapping
-    public ResponseEntity<WalletDTO> getWallet(
-            @RequestHeader(value = "x-user-id", required = false) Integer userId) {
+    public ResponseEntity<WalletDTO> getWallet() {
+        Integer userId = getAuthenticatedUserId();
         return ResponseEntity.ok(
                 new WalletDTO(walletService.getWalletByUserId(userId))
         );
@@ -53,11 +53,17 @@ public class WalletController {
      */
     @GetMapping("/transactions")
     public ResponseEntity<TransactionHistoryResponseDTO> getWalletTransactions(
-            @RequestHeader(value = "x-user-id", required = false) Integer userId,
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "limit", required = false) Integer limit) {
+        Integer userId = getAuthenticatedUserId();
         return ResponseEntity.ok(
                 transactionHistoryService.getUserTransactions(userId, page, limit)
         );
+    }
+
+    private Integer getAuthenticatedUserId() {
+        return (Integer) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
     }
 }

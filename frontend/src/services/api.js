@@ -1,29 +1,58 @@
 import axios from 'axios';
 
-// Pull the URL from the .env file we just fixed
+// 1. Centralized Base URL configuration
+// Using the fallback logic from your original file
+export const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:8080';
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+    baseURL: `${API_BASE_URL}/api`,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
-// REQUEST INTERCEPTOR: Automatically adds the JWT to every outgoing call
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// RESPONSE INTERCEPTOR: Global 401 handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token'); // Clear the bad token
-      window.location.href = '/login'; // Redirect to login page
-    }
-    return Promise.reject(error);
-  }
+// 2. REQUEST INTERCEPTOR: Attach JWT to every request
+// Requirement: "Attach JWT token from localStorage/context to Authorization header"
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
 );
+
+// 3. RESPONSE INTERCEPTOR: Global 401 handling
+// Requirement: "Handle 401 responses globally (redirect to login)"
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            // Expired or missing tokens redirect to login page
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+// 4. API Methods (Refactored to use the centralized 'api' instance)
+
+export const registerUser = async (userData) => {
+    // Post to /auth/register relative to the baseURL defined above
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+};
+
+// Added Login helper to ensure the token is handled properly
+export const loginUser = async (credentials) => {
+    const response = await api.post('/auth/login', credentials);
+    if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+    }
+    return response.data;
+};
 
 export default api;

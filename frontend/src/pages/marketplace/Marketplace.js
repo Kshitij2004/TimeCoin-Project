@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../../services/api.js"; // Using our new centralized client
 import "./Marketplace.css";
 
 export default function Marketplace() {
-  const navigate = useNavigate();
-
   const [coin, setCoin] = useState(null);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState(null);
@@ -18,11 +15,10 @@ export default function Marketplace() {
       setCoinLoading(true);
       try {
         // Interceptor automatically attaches the JWT from localStorage
-        const res = await api.get("/coin");
-        setCoin(res.data);
+        const response = await api.get("/coin");
+        setCoin(response.data);
       } catch (err) {
-        // If 401, interceptor redirects to /login. 
-        // Otherwise, we show a silent fail or error message.
+        // If 401, interceptor redirects to /login automatically
         setCoin(null);
       } finally {
         setCoinLoading(false);
@@ -46,7 +42,8 @@ export default function Marketplace() {
     setLoading(true);
     try {
       // Acceptance Criteria: Uses shared utility for POST request
-      const res = await api.post("/coin/buy", {
+      // Variable 'res' removed to satisfy ESLint 'no-unused-vars'
+      await api.post("/coin/buy", {
         symbol: "TC", // TimeCoin
         amount: parsedAmount,
       });

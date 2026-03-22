@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
 import './BlockchainExplorer.css';
@@ -49,6 +49,8 @@ export default function BlockchainExplorer() {
   const [lookupValue, setLookupValue] = useState(initialLookup);
   const [copiedKey, setCopiedKey] = useState('');
   const [hydratedFromQuery, setHydratedFromQuery] = useState(false);
+  const detailRequestIdRef = useRef(0);
+  const detailAbortControllerRef = useRef(null);
 
   const [page, setPage] = useState(initialPage);
   const [limit] = useState(10);
@@ -87,6 +89,13 @@ export default function BlockchainExplorer() {
     run();
     return () => controller.abort();
   }, [page, limit, refreshTick]);
+
+  useEffect(() => () => {
+    if (detailAbortControllerRef.current) {
+      detailAbortControllerRef.current.abort();
+      detailAbortControllerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!copiedKey) {
@@ -161,7 +170,23 @@ export default function BlockchainExplorer() {
     setSearchParams(next, { replace: true });
   }
 
+  function beginDetailRequest() {
+    if (detailAbortControllerRef.current) {
+      detailAbortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    detailAbortControllerRef.current = controller;
+    detailRequestIdRef.current += 1;
+
+    return {
+      requestId: detailRequestIdRef.current,
+      signal: controller.signal
+    };
+  }
+
   async function handleSelectBlock(height, syncQuery = true) {
+    const { requestId, signal } = beginDetailRequest();
     setSelectedHeight(height);
     setInspectingHeight(height);
     setDetailLoading(true);
@@ -171,14 +196,23 @@ export default function BlockchainExplorer() {
     }
 
     try {
-      const detailPayload = await getBlockByHeight({ height });
+      const detailPayload = await getBlockByHeight({ height, signal });
+      if (requestId !== detailRequestIdRef.current) {
+        return;
+      }
       setBlockDetail(detailPayload);
     } catch (err) {
+      if (err.name === 'AbortError' || requestId !== detailRequestIdRef.current) {
+        return;
+      }
       setDetailError(err.message || 'Failed to load block detail');
       setBlockDetail(null);
     } finally {
-      setDetailLoading(false);
-      setInspectingHeight(null);
+      if (requestId === detailRequestIdRef.current) {
+        detailAbortControllerRef.current = null;
+        setDetailLoading(false);
+        setInspectingHeight(null);
+      }
     }
   }
 
@@ -198,7 +232,9 @@ export default function BlockchainExplorer() {
       return;
     }
 
+    const { requestId, signal } = beginDetailRequest();
     setSelectedHeight(null);
+    setInspectingHeight(null);
     setDetailLoading(true);
     setDetailError('');
     if (syncQuery) {
@@ -206,13 +242,22 @@ export default function BlockchainExplorer() {
     }
 
     try {
-      const detailPayload = await getBlockByHash({ hash: trimmed });
+      const detailPayload = await getBlockByHash({ hash: trimmed, signal });
+      if (requestId !== detailRequestIdRef.current) {
+        return;
+      }
       setBlockDetail(detailPayload);
     } catch (err) {
+      if (err.name === 'AbortError' || requestId !== detailRequestIdRef.current) {
+        return;
+      }
       setDetailError(err.message || 'Failed to load block detail');
       setBlockDetail(null);
     } finally {
-      setDetailLoading(false);
+      if (requestId === detailRequestIdRef.current) {
+        detailAbortControllerRef.current = null;
+        setDetailLoading(false);
+      }
     }
   }
 
@@ -221,11 +266,17 @@ export default function BlockchainExplorer() {
   }
 
   function handleClearInspector() {
+    if (detailAbortControllerRef.current) {
+      detailAbortControllerRef.current.abort();
+      detailAbortControllerRef.current = null;
+    }
+    detailRequestIdRef.current += 1;
     setLookupValue('');
     setSelectedHeight(null);
     setBlockDetail(null);
     setDetailError('');
     setInspectingHeight(null);
+    setDetailLoading(false);
     updateSearchQuery({ height: null, hash: null });
   }
 

@@ -28,7 +28,7 @@ import t_12.backend.repository.TransactionRepository;
  */
 @SpringBootTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL",
+        "spring.datasource.url=jdbc:h2:mem:blockchain_explorer_api_test_db;DB_CLOSE_DELAY=-1;MODE=MySQL",
         "spring.datasource.driverClassName=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",

@@ -115,6 +115,27 @@ class BlockchainExplorerApiIntegrationTest {
     }
 
     @Test
+    void blockByHashEndpointReturnsMatchingBlockDetail() throws Exception {
+        Block block = saveBlock(9, "hash9", "hash8", Block.Status.COMMITTED, LocalDateTime.of(2026, 3, 1, 11, 15));
+        Transaction tx = saveTransaction("tx_hash_9", block.getId(), Transaction.Status.CONFIRMED, 31);
+        saveBlockTransaction(block.getId(), tx.getId());
+
+        mockMvc.perform(get("/api/chain/blocks/hash/hash9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.blockHeight").value(9))
+                .andExpect(jsonPath("$.blockHash").value("hash9"))
+                .andExpect(jsonPath("$.transactions.length()").value(1))
+                .andExpect(jsonPath("$.transactions[0].transactionHash").value("tx_hash_9"));
+    }
+
+    @Test
+    void blockByHashEndpointReturnsNotFoundForUnknownHash() throws Exception {
+        mockMvc.perform(get("/api/chain/blocks/hash/missing_hash"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Not Found"));
+    }
+
+    @Test
     void blocksEndpointRejectsInvalidPagination() throws Exception {
         mockMvc.perform(get("/api/chain/blocks")
                         .param("page", "0")

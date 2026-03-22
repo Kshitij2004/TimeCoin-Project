@@ -77,8 +77,23 @@
   text-transform: uppercase;
 }
 
+.explorer-row-selected {
+  background: rgba(95, 176, 255, 0.08);
+}
+
 .explorer-hash {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.explorer-view-btn {
+  margin-left: 10px;
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
 }
 
 .explorer-pagination {
@@ -103,6 +118,36 @@
   cursor: not-allowed;
 }
 
+.explorer-detail-panel {
+  margin-top: 22px;
+  border-top: 1px solid #2f3b56;
+  padding-top: 18px;
+}
+
+.explorer-detail-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.explorer-detail-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.explorer-detail-grid > div {
+  border: 1px solid #34415f;
+  border-radius: 8px;
+  padding: 10px;
+  background: #131b2c;
+}
+
+.explorer-detail-empty {
+  margin-top: 12px;
+  color: #b8c5dd;
+}
+
 @media (max-width: 900px) {
   .explorer-status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -120,5 +165,9 @@
 
   .explorer-pagination {
     justify-content: space-between;
+  }
+
+  .explorer-detail-grid {
+    grid-template-columns: 1fr;
   }
 }

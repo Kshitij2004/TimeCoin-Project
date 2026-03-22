@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
+import { getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
 import './BlockchainExplorer.css';
 
 function formatDate(value) {
@@ -29,6 +29,10 @@ export default function BlockchainExplorer() {
   const [status, setStatus] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+  const [selectedHeight, setSelectedHeight] = useState(null);
+  const [blockDetail, setBlockDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -51,11 +55,16 @@ export default function BlockchainExplorer() {
         setStatus(statusPayload);
         setBlocks(Array.isArray(blocksPayload?.data) ? blocksPayload.data : []);
         setPagination(blocksPayload?.pagination || { page, limit, total: 0, totalPages: 0 });
+        setSelectedHeight(null);
+        setBlockDetail(null);
+        setDetailError('');
       } catch (err) {
         if (err.name !== 'AbortError') {
           setError(err.message || 'Failed to fetch blockchain explorer data');
           setStatus(null);
           setBlocks([]);
+          setSelectedHeight(null);
+          setBlockDetail(null);
         }
       } finally {
         setLoading(false);
@@ -71,6 +80,22 @@ export default function BlockchainExplorer() {
     const totalPages = Number(pagination?.totalPages || 0);
     return !loading && totalPages > 0 && page < totalPages;
   }, [loading, pagination, page]);
+
+  async function handleSelectBlock(height) {
+    setSelectedHeight(height);
+    setDetailLoading(true);
+    setDetailError('');
+
+    try {
+      const detailPayload = await getBlockByHeight({ height });
+      setBlockDetail(detailPayload);
+    } catch (err) {
+      setDetailError(err.message || 'Failed to load block detail');
+      setBlockDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   return (
     <div className="explorer-page">
@@ -121,11 +146,23 @@ export default function BlockchainExplorer() {
                   </thead>
                   <tbody>
                     {blocks.map((block) => (
-                      <tr key={`${block.blockHeight}-${block.blockHash}`}>
+                      <tr
+                        key={`${block.blockHeight}-${block.blockHash}`}
+                        className={selectedHeight === block.blockHeight ? 'explorer-row-selected' : ''}
+                      >
                         <td>{block.blockHeight}</td>
                         <td className="explorer-hash">{shortHash(block.blockHash)}</td>
                         <td>{formatDate(block.timestamp)}</td>
-                        <td>{block.transactionCount}</td>
+                        <td>
+                          {block.transactionCount}
+                          <button
+                            type="button"
+                            className="explorer-view-btn"
+                            onClick={() => handleSelectBlock(block.blockHeight)}
+                          >
+                            Inspect
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -154,6 +191,69 @@ export default function BlockchainExplorer() {
             )}
           </section>
         )}
+
+        <section className="explorer-detail-panel" aria-label="Block inspector">
+          <h2>Block Inspector</h2>
+
+          {!selectedHeight && !detailLoading && !detailError && (
+            <p className="explorer-detail-empty">Select a block row to inspect linked transactions.</p>
+          )}
+
+          {detailLoading && <p className="explorer-loading">Loading block detail...</p>}
+          {detailError && <p className="explorer-error">{detailError}</p>}
+
+          {blockDetail && !detailLoading && !detailError && (
+            <>
+              <div className="explorer-detail-grid">
+                <div>
+                  <span className="explorer-stat-label">Height</span>
+                  <strong>{blockDetail.blockHeight}</strong>
+                </div>
+                <div>
+                  <span className="explorer-stat-label">Status</span>
+                  <strong>{blockDetail.status}</strong>
+                </div>
+                <div>
+                  <span className="explorer-stat-label">Hash</span>
+                  <strong className="explorer-hash">{shortHash(blockDetail.blockHash)}</strong>
+                </div>
+                <div>
+                  <span className="explorer-stat-label">Previous Hash</span>
+                  <strong className="explorer-hash">{shortHash(blockDetail.previousHash)}</strong>
+                </div>
+              </div>
+
+              {Array.isArray(blockDetail.transactions) && blockDetail.transactions.length > 0 ? (
+                <table className="explorer-table" aria-label="Linked transactions table">
+                  <thead>
+                    <tr>
+                      <th>Tx Hash</th>
+                      <th>Sender</th>
+                      <th>Receiver</th>
+                      <th>Amount</th>
+                      <th>Fee</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blockDetail.transactions.map((tx) => (
+                      <tr key={tx.transactionHash || tx.id}>
+                        <td className="explorer-hash">{shortHash(tx.transactionHash)}</td>
+                        <td>{tx.senderAddress || '-'}</td>
+                        <td>{tx.receiverAddress || '-'}</td>
+                        <td>{tx.amount ?? '-'}</td>
+                        <td>{tx.fee ?? '-'}</td>
+                        <td>{tx.status || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="explorer-detail-empty">This block has no linked transactions.</p>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

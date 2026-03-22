@@ -2,11 +2,12 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import BlockchainExplorer from './BlockchainExplorer';
-import { getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
+import { getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
 
 jest.mock('../services/blockchainExplorerApi', () => ({
   getChainStatus: jest.fn(),
-  getBlocks: jest.fn()
+  getBlocks: jest.fn(),
+  getBlockByHeight: jest.fn()
 }));
 
 beforeEach(() => {
@@ -82,4 +83,52 @@ test('supports next-page pagination', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
   expect(getBlocks).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, limit: 10 }));
+});
+
+test('loads block detail and linked transactions on inspect', async () => {
+  getChainStatus.mockResolvedValue({
+    latestBlockHeight: 12,
+    totalBlocks: 13,
+    pendingTransactions: 4,
+    latestBlockHash: '1234567890abcdef1234567890abcdef'
+  });
+
+  getBlocks.mockResolvedValue({
+    data: [
+      {
+        blockHeight: 12,
+        blockHash: 'hash12',
+        timestamp: '2026-03-22T17:30:00',
+        transactionCount: 1
+      }
+    ],
+    pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
+  });
+
+  getBlockByHeight.mockResolvedValue({
+    blockHeight: 12,
+    blockHash: 'hash12',
+    previousHash: 'hash11',
+    status: 'COMMITTED',
+    transactions: [
+      {
+        id: 77,
+        transactionHash: 'txhash77abcdef',
+        senderAddress: 'sender_wallet',
+        receiverAddress: 'receiver_wallet',
+        amount: 5,
+        fee: 0.01,
+        status: 'CONFIRMED'
+      }
+    ]
+  });
+
+  render(<BlockchainExplorer />);
+
+  await screen.findByText('Page 1 of 2');
+  fireEvent.click(screen.getByRole('button', { name: 'Inspect' }));
+
+  expect(await screen.findByLabelText(/Linked transactions table/i)).toBeInTheDocument();
+  expect(screen.getByText('sender_wallet')).toBeInTheDocument();
+  expect(getBlockByHeight).toHaveBeenCalledWith(expect.objectContaining({ height: 12 }));
 });

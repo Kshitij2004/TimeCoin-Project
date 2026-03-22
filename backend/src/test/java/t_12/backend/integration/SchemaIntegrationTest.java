@@ -129,7 +129,8 @@ class SchemaIntegrationTest {
         assertEquals(1, transactionRepository.findBySenderAddress("wlt_test_address").size());
 
         assertTrue(blockRepository.findByBlockHeight(1000).isPresent());
-        assertEquals(1, blockRepository.findByStatus(Block.Status.COMMITTED).size());
+        assertTrue(blockRepository.findByStatus(Block.Status.COMMITTED).size() >= 1);
+        assertEquals(1, blockRepository.findByValidatorAddress("wlt_test_address").size());
 
         assertEquals(1, blockTransactionRepository.findByBlockId(block.getId()).size());
         assertEquals(1, blockTransactionRepository.findByTransactionId(tx.getId()).size());

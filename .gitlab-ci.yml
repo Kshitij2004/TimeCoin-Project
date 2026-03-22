@@ -154,6 +154,8 @@ test-frontend:
     - when: never
   variables:
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
+    JEST_JUNIT_OUTPUT_DIR: "$CI_PROJECT_DIR/frontend"
+    JEST_JUNIT_OUTPUT_NAME: "junit.xml"
   cache:
     key:
       files:
@@ -165,4 +167,11 @@ test-frontend:
     - echo "Testing frontend..."
     - cd frontend
     - npm ci
-    - npm test -- --watchAll=false --passWithNoTests
+    - npm test -- --watchAll=false --passWithNoTests --reporters=default --reporters=jest-junit
+  artifacts:
+    when: always
+    paths:
+      - frontend/junit.xml
+    reports:
+      junit:
+        - frontend/junit.xml

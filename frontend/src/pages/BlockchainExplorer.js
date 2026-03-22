@@ -341,6 +341,18 @@ export default function BlockchainExplorer() {
     );
   }
 
+  function renderAddress(addressValue) {
+    if (!addressValue || typeof addressValue !== 'string') {
+      return '-';
+    }
+
+    return (
+      <span className="explorer-hash" title={addressValue}>
+        {shortHash(addressValue)}
+      </span>
+    );
+  }
+
   return (
     <div className="explorer-page">
       <div className="explorer-card">
@@ -548,8 +560,8 @@ export default function BlockchainExplorer() {
                             `tx-${tx.id ?? tx.transactionHash}`
                           )}
                         </td>
-                        <td>{tx.senderAddress || '-'}</td>
-                        <td>{tx.receiverAddress || '-'}</td>
+                        <td>{renderAddress(tx.senderAddress)}</td>
+                        <td>{renderAddress(tx.receiverAddress)}</td>
                         <td>{tx.amount ?? '-'}</td>
                         <td>{tx.fee ?? '-'}</td>
                         <td>{tx.status || '-'}</td>

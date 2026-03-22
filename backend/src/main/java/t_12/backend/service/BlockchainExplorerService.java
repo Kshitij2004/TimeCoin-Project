@@ -1,5 +1,6 @@
 package t_12.backend.service;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -26,14 +27,17 @@ import t_12.backend.repository.TransactionRepository;
 public class BlockchainExplorerService {
 
     private final BlockService blockService;
+    private final MempoolService mempoolService;
     private final BlockRepository blockRepository;
     private final TransactionRepository transactionRepository;
 
     public BlockchainExplorerService(
             BlockService blockService,
+            MempoolService mempoolService,
             BlockRepository blockRepository,
             TransactionRepository transactionRepository) {
         this.blockService = blockService;
+        this.mempoolService = mempoolService;
         this.blockRepository = blockRepository;
         this.transactionRepository = transactionRepository;
     }
@@ -91,6 +95,42 @@ public class BlockchainExplorerService {
         );
     }
 
+    public BlockDetailDTO minePendingTransactions(Integer limit, String validatorAddress) {
+        try {
+            int resolvedLimit = limit == null ? 100 : limit;
+            if (resolvedLimit < 1 || resolvedLimit > 1000) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "limit must be an integer between 1 and 1000");
+            }
+
+            List<Transaction> pending = mempoolService.getPendingTransactions()
+                    .stream()
+                    .filter(tx -> tx != null && tx.getId() != null && tx.getTransactionHash() != null)
+                    .sorted(Comparator
+                            .comparing(Transaction::getTimestamp, Comparator.nullsLast(Comparator.naturalOrder()))
+                            .thenComparing(Transaction::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .limit(resolvedLimit)
+                    .toList();
+
+            if (pending.isEmpty()) {
+                throw new ApiException(HttpStatus.CONFLICT, "No pending transactions to mine");
+            }
+
+            if (blockRepository.count() == 0) {
+                blockService.createGenesisBlock();
+            }
+
+            Block mined = blockService.createBlock(pending, validatorAddress);
+            return toBlockDetail(mined);
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Mining failed: " + rootCauseMessage(ex)
+            );
+        }
+    }
+
     private BlockDetailDTO toBlockDetail(Block block) {
         List<ExplorerTransactionDTO> transactions = blockService.getBlockTransactions(block.getId())
                 .stream()
@@ -98,5 +138,15 @@ public class BlockchainExplorerService {
                 .toList();
 
         return new BlockDetailDTO(block, transactions);
+    }
+
+    private String rootCauseMessage(Exception ex) {
+        Throwable root = ex;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+
+        String message = root.getMessage();
+        return root.getClass().getSimpleName() + (message == null ? "" : ": " + message);
     }
 }

@@ -3,6 +3,10 @@ package t_12.backend.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -33,6 +37,9 @@ class BlockchainExplorerServiceTest {
 
     @Mock
     private BlockService blockService;
+
+    @Mock
+    private MempoolService mempoolService;
 
     @Mock
     private BlockRepository blockRepository;
@@ -167,5 +174,63 @@ class BlockchainExplorerServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("limit must be an integer between 1 and 100", exception.getMessage());
+    }
+
+    @Test
+    void minePendingTransactions_minesNewBlockFromPendingPool() {
+        Transaction pending1 = new Transaction();
+        pending1.setId(10);
+        pending1.setTransactionHash("tx_hash_1");
+        pending1.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 0, 0));
+
+        Transaction pending2 = new Transaction();
+        pending2.setId(11);
+        pending2.setTransactionHash("tx_hash_2");
+        pending2.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 1, 0));
+
+        Block mined = new Block();
+        mined.setId(3);
+        mined.setBlockHeight(2);
+        mined.setBlockHash("mined_hash");
+        mined.setPreviousHash("prev_hash");
+        mined.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 2, 0));
+        mined.setStatus(Block.Status.COMMITTED);
+        mined.setTransactionCount(2);
+
+        when(mempoolService.getPendingTransactions()).thenReturn(List.of(pending2, pending1));
+        when(blockRepository.count()).thenReturn(1L);
+        when(blockService.createBlock(anyList(), eq("validator_addr"))).thenReturn(mined);
+        when(blockService.getBlockTransactions(3)).thenReturn(List.of(pending1, pending2));
+
+        BlockDetailDTO result = blockchainExplorerService.minePendingTransactions(10, "validator_addr");
+
+        assertEquals(2, result.getBlockHeight());
+        assertEquals("mined_hash", result.getBlockHash());
+        assertEquals(2, result.getTransactions().size());
+        verify(blockService, never()).createGenesisBlock();
+    }
+
+    @Test
+    void minePendingTransactions_emptyPool_throwsConflict() {
+        when(mempoolService.getPendingTransactions()).thenReturn(List.of());
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> blockchainExplorerService.minePendingTransactions(10, null)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("No pending transactions to mine", exception.getMessage());
+    }
+
+    @Test
+    void minePendingTransactions_invalidLimit_throwsBadRequest() {
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> blockchainExplorerService.minePendingTransactions(0, null)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("limit must be an integer between 1 and 1000", exception.getMessage());
     }
 }

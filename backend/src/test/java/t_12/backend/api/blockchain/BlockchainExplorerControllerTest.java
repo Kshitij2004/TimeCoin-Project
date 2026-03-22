@@ -153,4 +153,36 @@ class BlockchainExplorerControllerTest {
 
         verify(blockchainExplorerService).getRecentBlocks(0, 20);
     }
+
+    @Test
+    void minePending_returnsCreatedBlockDetail() {
+        Block mined = new Block();
+        mined.setId(2);
+        mined.setBlockHeight(1);
+        mined.setPreviousHash("genesis_hash");
+        mined.setBlockHash("mined_hash");
+        mined.setTimestamp(LocalDateTime.of(2026, 3, 22, 20, 0, 0));
+        mined.setTransactionCount(1);
+        mined.setStatus(Block.Status.COMMITTED);
+
+        Transaction tx = new Transaction();
+        tx.setId(100);
+        tx.setTransactionHash("tx_hash_mined");
+        tx.setSenderAddress("sender_addr");
+        tx.setReceiverAddress("receiver_addr");
+        tx.setNonce(1);
+        tx.setStatus(Transaction.Status.CONFIRMED);
+
+        when(blockchainExplorerService.minePendingTransactions(10, "validator_addr"))
+                .thenReturn(new BlockDetailDTO(mined, List.of(new ExplorerTransactionDTO(tx))));
+
+        ResponseEntity<BlockDetailDTO> response = blockchainExplorerController.minePending(10, "validator_addr");
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getBlockHeight());
+        assertEquals("mined_hash", response.getBody().getBlockHash());
+        assertEquals(1, response.getBody().getTransactions().size());
+        verify(blockchainExplorerService).minePendingTransactions(10, "validator_addr");
+    }
 }

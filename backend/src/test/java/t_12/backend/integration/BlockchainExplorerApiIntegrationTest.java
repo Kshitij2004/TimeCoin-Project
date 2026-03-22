@@ -2,6 +2,7 @@ package t_12.backend.integration;
 
 import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import t_12.backend.entity.Block;
 import t_12.backend.entity.BlockTransaction;
 import t_12.backend.entity.Transaction;
@@ -142,6 +145,25 @@ class BlockchainExplorerApiIntegrationTest {
                         .param("limit", "10"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("page must be a positive integer"));
+    }
+
+    @Test
+    void minePendingEndpointCommitsPendingTransactionsIntoNewBlock() throws Exception {
+        saveBlock(0, "genesis_hash", "000", Block.Status.COMMITTED, LocalDateTime.of(2026, 3, 1, 9, 0));
+        saveTransaction("tx_pending_1", null, Transaction.Status.PENDING, 77);
+
+        String token = Jwts.builder()
+                .subject("1")
+                .signWith(Keys.hmacShaKeyFor("your-super-secret-key-change-this-in-production".getBytes()))
+                .compact();
+
+        mockMvc.perform(post("/api/chain/mine-pending")
+                        .param("limit", "10")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.blockHeight").value(1))
+                .andExpect(jsonPath("$.transactions.length()").value(1))
+                .andExpect(jsonPath("$.transactions[0].transactionHash").value("tx_pending_1"));
     }
 
     private Block saveBlock(

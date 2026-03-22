@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
 import './BlockchainExplorer.css';
 
@@ -26,6 +27,17 @@ function shortHash(hash) {
 }
 
 export default function BlockchainExplorer() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialPage = useMemo(() => {
+    const raw = Number(searchParams.get('page'));
+    return Number.isInteger(raw) && raw > 0 ? raw : 1;
+  }, [searchParams]);
+
+  const initialLookup = useMemo(() => (
+    searchParams.get('hash') || searchParams.get('height') || ''
+  ), [searchParams]);
+
   const [status, setStatus] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
@@ -34,10 +46,11 @@ export default function BlockchainExplorer() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [inspectingHeight, setInspectingHeight] = useState(null);
-  const [lookupValue, setLookupValue] = useState('');
+  const [lookupValue, setLookupValue] = useState(initialLookup);
   const [copiedKey, setCopiedKey] = useState('');
+  const [hydratedFromQuery, setHydratedFromQuery] = useState(false);
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [limit] = useState(10);
   const [refreshTick, setRefreshTick] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -60,18 +73,11 @@ export default function BlockchainExplorer() {
         setStatus(statusPayload);
         setBlocks(Array.isArray(blocksPayload?.data) ? blocksPayload.data : []);
         setPagination(blocksPayload?.pagination || { page, limit, total: 0, totalPages: 0 });
-        setSelectedHeight(null);
-        setBlockDetail(null);
-        setDetailError('');
-        setInspectingHeight(null);
       } catch (err) {
         if (err.name !== 'AbortError') {
           setError(err.message || 'Failed to fetch blockchain explorer data');
           setStatus(null);
           setBlocks([]);
-          setSelectedHeight(null);
-          setBlockDetail(null);
-          setInspectingHeight(null);
         }
       } finally {
         setLoading(false);
@@ -106,17 +112,63 @@ export default function BlockchainExplorer() {
     return () => window.clearInterval(intervalId);
   }, [autoRefresh]);
 
+  useEffect(() => {
+    if (hydratedFromQuery) {
+      return;
+    }
+
+    const queryHash = searchParams.get('hash');
+    const queryHeight = Number(searchParams.get('height'));
+
+    if (queryHash) {
+      setLookupValue(queryHash);
+      handleLookupByHashValue(queryHash, false);
+    } else if (Number.isInteger(queryHeight) && queryHeight >= 0) {
+      setLookupValue(String(queryHeight));
+      handleSelectBlock(queryHeight, false);
+    }
+
+    setHydratedFromQuery(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydratedFromQuery, searchParams]);
+
   const canPrev = page > 1 && !loading;
   const canNext = useMemo(() => {
     const totalPages = Number(pagination?.totalPages || 0);
     return !loading && totalPages > 0 && page < totalPages;
   }, [loading, pagination, page]);
 
-  async function handleSelectBlock(height) {
+  function updateSearchQuery({ nextPage = page, height = null, hash = null } = {}) {
+    const next = new URLSearchParams(searchParams);
+
+    if (Number.isInteger(nextPage) && nextPage > 1) {
+      next.set('page', String(nextPage));
+    } else {
+      next.delete('page');
+    }
+
+    if (Number.isInteger(height) && height >= 0) {
+      next.set('height', String(height));
+      next.delete('hash');
+    } else if (typeof hash === 'string' && hash.trim().length > 0) {
+      next.set('hash', hash.trim());
+      next.delete('height');
+    } else {
+      next.delete('height');
+      next.delete('hash');
+    }
+
+    setSearchParams(next, { replace: true });
+  }
+
+  async function handleSelectBlock(height, syncQuery = true) {
     setSelectedHeight(height);
     setInspectingHeight(height);
     setDetailLoading(true);
     setDetailError('');
+    if (syncQuery) {
+      updateSearchQuery({ height, hash: null });
+    }
 
     try {
       const detailPayload = await getBlockByHeight({ height });
@@ -136,11 +188,11 @@ export default function BlockchainExplorer() {
       setDetailError('Enter a valid non-negative block height');
       return;
     }
-    await handleSelectBlock(parsedHeight);
+    await handleSelectBlock(parsedHeight, true);
   }
 
-  async function handleLookupByHash() {
-    const trimmed = lookupValue.trim();
+  async function handleLookupByHashValue(value, syncQuery = true) {
+    const trimmed = value.trim();
     if (!trimmed) {
       setDetailError('Enter a block hash');
       return;
@@ -149,6 +201,9 @@ export default function BlockchainExplorer() {
     setSelectedHeight(null);
     setDetailLoading(true);
     setDetailError('');
+    if (syncQuery) {
+      updateSearchQuery({ height: null, hash: trimmed });
+    }
 
     try {
       const detailPayload = await getBlockByHash({ hash: trimmed });
@@ -159,6 +214,19 @@ export default function BlockchainExplorer() {
     } finally {
       setDetailLoading(false);
     }
+  }
+
+  async function handleLookupByHash() {
+    await handleLookupByHashValue(lookupValue, true);
+  }
+
+  function handlePageChange(nextPage) {
+    setPage(nextPage);
+    updateSearchQuery({
+      nextPage,
+      height: selectedHeight,
+      hash: selectedHeight == null && blockDetail?.blockHash ? blockDetail.blockHash : null
+    });
   }
 
   async function handleCopyHash(hashValue, key) {
@@ -325,7 +393,7 @@ export default function BlockchainExplorer() {
                 <div className="explorer-pagination">
                   <button
                     type="button"
-                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    onClick={() => handlePageChange(Math.max(1, page - 1))}
                     disabled={!canPrev}
                   >
                     Previous
@@ -335,7 +403,7 @@ export default function BlockchainExplorer() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setPage((prev) => prev + 1)}
+                    onClick={() => handlePageChange(page + 1)}
                     disabled={!canNext}
                   >
                     Next

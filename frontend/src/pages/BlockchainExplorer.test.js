@@ -4,6 +4,30 @@ import '@testing-library/jest-dom';
 import BlockchainExplorer from './BlockchainExplorer';
 import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
 
+const mockSetSearchParams = jest.fn();
+let mockInitialSearch = '';
+
+jest.mock('react-router-dom', () => {
+  const actualReact = require('react');
+
+  return {
+    useSearchParams: () => {
+      const [params, setParams] = actualReact.useState(new URLSearchParams(mockInitialSearch));
+
+      const wrappedSetter = (nextParams) => {
+        const resolved = typeof nextParams === 'function' ? nextParams(params) : nextParams;
+        const next = resolved instanceof URLSearchParams
+          ? new URLSearchParams(resolved.toString())
+          : new URLSearchParams(resolved);
+        mockSetSearchParams(next);
+        setParams(next);
+      };
+
+      return [params, wrappedSetter];
+    }
+  };
+}, { virtual: true });
+
 jest.mock('../services/blockchainExplorerApi', () => ({
   getChainStatus: jest.fn(),
   getBlocks: jest.fn(),
@@ -13,11 +37,18 @@ jest.mock('../services/blockchainExplorerApi', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockInitialSearch = '';
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText: jest.fn().mockResolvedValue(undefined) },
     configurable: true
   });
 });
+
+function renderExplorer(initialPath = '/blockchain') {
+  const queryIndex = initialPath.indexOf('?');
+  mockInitialSearch = queryIndex >= 0 ? initialPath.slice(queryIndex + 1) : '';
+  return render(<BlockchainExplorer />);
+}
 
 test('renders chain status and recent blocks', async () => {
   getChainStatus.mockResolvedValueOnce({
@@ -39,7 +70,7 @@ test('renders chain status and recent blocks', async () => {
     pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   expect(await screen.findByText('Latest Height')).toBeInTheDocument();
   expect(screen.getByText('abcdef12...34567890')).toBeInTheDocument();
@@ -69,7 +100,7 @@ test('refresh button re-fetches status and block listing', async () => {
     pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -104,7 +135,7 @@ test('auto refresh toggle schedules polling updates', async () => {
     pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Auto Refresh: Off' }));
@@ -161,7 +192,7 @@ test('supports next-page pagination', async () => {
       pagination: { page: 2, limit: 10, total: 13, totalPages: 2 }
     });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
@@ -207,7 +238,7 @@ test('loads block detail and linked transactions on inspect', async () => {
     ]
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Inspect' }));
@@ -239,7 +270,7 @@ test('shows inspect button loading interaction while detail is fetching', async 
 
   getBlockByHeight.mockImplementation(() => new Promise(() => {}));
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('Page 1 of 2');
   fireEvent.click(screen.getByRole('button', { name: 'Inspect' }));
@@ -271,7 +302,7 @@ test('supports manual lookup by height', async () => {
     transactions: []
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('No blocks available.');
   fireEvent.change(screen.getByLabelText('Block lookup input'), { target: { value: '0' } });
@@ -302,7 +333,7 @@ test('supports manual lookup by hash', async () => {
     transactions: []
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('No blocks available.');
   fireEvent.change(screen.getByLabelText('Block lookup input'), { target: { value: 'hash_two' } });
@@ -336,7 +367,7 @@ test('copies full block hash from row action', async () => {
     pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
   });
 
-  render(<BlockchainExplorer />);
+  renderExplorer();
 
   await screen.findByText('Page 1 of 2');
   const copyButton = screen.getByRole('button', { name: 'Copy block hash at height 12' });
@@ -347,4 +378,83 @@ test('copies full block hash from row action', async () => {
     expect(copyButton).toHaveTextContent('Copied');
     expect(copyButton).toHaveClass('explorer-copy-btn-copied');
   });
+});
+
+test('syncs page and selected height to query params', async () => {
+  getChainStatus.mockResolvedValue({
+    latestBlockHeight: 12,
+    totalBlocks: 13,
+    pendingTransactions: 4,
+    latestBlockHash: '1234567890abcdef1234567890abcdef'
+  });
+
+  getBlocks.mockResolvedValue({
+    data: [
+      {
+        blockHeight: 12,
+        blockHash: 'hash12',
+        timestamp: '2026-03-22T17:30:00',
+        transactionCount: 1
+      }
+    ],
+    pagination: { page: 1, limit: 10, total: 13, totalPages: 2 }
+  });
+
+  getBlockByHeight.mockResolvedValue({
+    blockHeight: 0,
+    blockHash: 'genesis_hash',
+    previousHash: '000',
+    status: 'COMMITTED',
+    transactions: []
+  });
+
+  renderExplorer();
+
+  await screen.findByText('Page 1 of 2');
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+  await waitFor(() => {
+    expect(mockSetSearchParams).toHaveBeenCalled();
+    const latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
+    expect(latestParams.get('page')).toBe('2');
+  });
+
+  fireEvent.change(screen.getByLabelText('Block lookup input'), { target: { value: '0' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Find by Height' }));
+
+  await waitFor(() => {
+    const latestParams = mockSetSearchParams.mock.calls[mockSetSearchParams.mock.calls.length - 1][0];
+    expect(latestParams.get('height')).toBe('0');
+    expect(latestParams.get('page')).toBe('2');
+  });
+});
+
+test('hydrates page and hash from query params on initial load', async () => {
+  getChainStatus.mockResolvedValue({
+    latestBlockHeight: 12,
+    totalBlocks: 13,
+    pendingTransactions: 4,
+    latestBlockHash: '1234567890abcdef1234567890abcdef'
+  });
+
+  getBlocks.mockResolvedValue({
+    data: [],
+    pagination: { page: 2, limit: 10, total: 13, totalPages: 2 }
+  });
+
+  getBlockByHash.mockResolvedValue({
+    blockHeight: 2,
+    blockHash: 'hash_two',
+    previousHash: 'hash_one',
+    status: 'COMMITTED',
+    transactions: []
+  });
+
+  renderExplorer('/blockchain?page=2&hash=hash_two');
+
+  await waitFor(() => {
+    expect(getBlocks).toHaveBeenCalledWith(expect.objectContaining({ page: 2, limit: 10 }));
+  });
+  expect(await screen.findByText('hash_two')).toBeInTheDocument();
+  expect(getBlockByHash).toHaveBeenCalledWith(expect.objectContaining({ hash: 'hash_two' }));
 });

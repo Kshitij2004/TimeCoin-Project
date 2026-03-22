@@ -10,11 +10,9 @@ export const registerUser = (userData) => {
     }).then(async (response) => {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw {
-                response: {
-                    data: payload
-                }
-            };
+            const error = new Error(payload?.message || payload?.error || 'Registration failed');
+            error.response = { data: payload };
+            throw error;
         }
         return payload;
     });

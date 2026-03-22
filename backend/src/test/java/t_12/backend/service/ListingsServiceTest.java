@@ -1,5 +1,5 @@
 package t_12.backend.service;
- 
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,27 +9,30 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
- 
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
- 
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
- 
+
 import t_12.backend.api.listings.CreateListingRequest;
 import t_12.backend.entity.Listing;
 import t_12.backend.entity.Transaction;
 import t_12.backend.entity.Wallet;
+import t_12.backend.exception.InsufficientFundsException;
 import t_12.backend.repository.ListingRepository;
 import t_12.backend.repository.TransactionRepository;
 import t_12.backend.repository.WalletRepository;
+
 /**
  * Unit tests for ListingService class. Tests listing CRUD operations and
  * authorization checks.
@@ -45,27 +48,28 @@ public class ListingsServiceTest {
 
     @Mock
     private WalletRepository walletRepository;
- 
+
     @Mock
     private TransactionRepository transactionRepository;
- 
+
     @Mock
     private TransactionService transactionService;
 
+    @Mock
+    private TransactionValidationService transactionValidationService;
 
     // Information for purchasing tests
- 
     private Listing activeListing;
     private Wallet buyerWallet;
     private Wallet sellerWallet;
- 
+
     private static final Integer LISTING_ID = 1;
     private static final Integer BUYER_ID = 10;
     private static final Integer SELLER_ID = 20;
     private static final BigDecimal PRICE = new BigDecimal("50.00000000");
     private static final BigDecimal SUFFICIENT_BALANCE = new BigDecimal("100.00000000");
     private static final BigDecimal INSUFFICIENT_BALANCE = new BigDecimal("10.00000000");
- 
+
     @BeforeEach
     void setUp() {
         activeListing = new Listing();
@@ -74,13 +78,13 @@ public class ListingsServiceTest {
         activeListing.setTitle("Test Listing");
         activeListing.setPrice(PRICE);
         activeListing.setStatus(Listing.Status.ACTIVE);
- 
+
         buyerWallet = new Wallet();
         buyerWallet.setId(1);
         buyerWallet.setUserId(BUYER_ID);
         buyerWallet.setWalletAddress("buyer-wallet-address");
         buyerWallet.setCoinBalance(SUFFICIENT_BALANCE);
- 
+
         sellerWallet = new Wallet();
         sellerWallet.setId(2);
         sellerWallet.setUserId(SELLER_ID);
@@ -287,7 +291,8 @@ public class ListingsServiceTest {
     }
 
     /**
-     * A buyer with sufficient balance should be able to purchase an active listing.
+     * A buyer with sufficient balance should be able to purchase an active
+     * listing.
      */
     @Test
     void purchaseListing_success() {
@@ -296,9 +301,9 @@ public class ListingsServiceTest {
         when(walletRepository.findByUserId(SELLER_ID)).thenReturn(Optional.of(sellerWallet));
         when(transactionService.generateTransactionHash(any(), any(), any(), any(), anyInt(), any(LocalDateTime.class)))
                 .thenReturn("mock-tx-hash");
- 
+
         String txHash = listingService.purchaseListing(LISTING_ID, BUYER_ID);
- 
+
         assertNotNull(txHash);
         assertEquals("mock-tx-hash", txHash);
         assertEquals(SUFFICIENT_BALANCE.subtract(PRICE), buyerWallet.getCoinBalance());
@@ -309,21 +314,21 @@ public class ListingsServiceTest {
         verify(walletRepository, times(1)).save(sellerWallet);
         verify(listingRepository, times(1)).save(activeListing);
     }
- 
+
     /**
      * Should throw ResourceNotFoundException when the listing does not exist.
      */
     @Test
     void purchaseListing_listingNotFound_throwsResourceNotFoundException() {
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.empty());
- 
+
         assertThrows(t_12.backend.exception.ResourceNotFoundException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
- 
+
         verify(walletRepository, never()).findByUserId(any());
         verify(transactionRepository, never()).save(any());
     }
- 
+
     /**
      * Should throw IllegalStateException when the listing is already SOLD.
      */
@@ -331,14 +336,14 @@ public class ListingsServiceTest {
     void purchaseListing_listingAlreadySold_throwsIllegalStateException() {
         activeListing.setStatus(Listing.Status.SOLD);
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
- 
+
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
- 
+
         assertEquals("Listing is no longer available (status: SOLD)", ex.getMessage());
         verify(transactionRepository, never()).save(any());
     }
- 
+
     /**
      * Should throw IllegalStateException when the buyer is also the seller.
      */
@@ -346,31 +351,35 @@ public class ListingsServiceTest {
     void purchaseListing_buyerIsSeller_throwsIllegalStateException() {
         activeListing.setSellerId(BUYER_ID);
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
- 
+
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
- 
+
         assertEquals("You cannot purchase your own listing", ex.getMessage());
         verify(transactionRepository, never()).save(any());
     }
- 
+
     /**
-     * Should throw IllegalStateException when the buyer does not have enough TimeCoin.
+     * Should throw InsufficientFundsException when the buyer does not have
+     * enough TimeCoin.
      */
     @Test
-    void purchaseListing_insufficientBalance_throwsIllegalStateException() {
+    void purchaseListing_insufficientBalance_throwsInsufficientFundsException() {
         buyerWallet.setCoinBalance(INSUFFICIENT_BALANCE);
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
         when(walletRepository.findByUserId(BUYER_ID)).thenReturn(Optional.of(buyerWallet));
- 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        doThrow(new InsufficientFundsException(
+                "Insufficient funds: available balance is " + INSUFFICIENT_BALANCE
+                + " but " + PRICE + " is required (amount + fee)."))
+                .when(transactionValidationService)
+                .validateBalance(buyerWallet.getWalletAddress(), PRICE, BigDecimal.ZERO);
+
+        assertThrows(InsufficientFundsException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
- 
-        assertEquals("Insufficient balance. Required: " + PRICE
-                + ", Available: " + INSUFFICIENT_BALANCE, ex.getMessage());
+
         verify(transactionRepository, never()).save(any());
     }
- 
+
     /**
      * Should throw ResourceNotFoundException when the buyer has no wallet.
      */
@@ -378,13 +387,13 @@ public class ListingsServiceTest {
     void purchaseListing_buyerWalletNotFound_throwsResourceNotFoundException() {
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
         when(walletRepository.findByUserId(BUYER_ID)).thenReturn(Optional.empty());
- 
+
         assertThrows(t_12.backend.exception.ResourceNotFoundException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
- 
+
         verify(transactionRepository, never()).save(any());
     }
- 
+
     /**
      * Should throw ResourceNotFoundException when the seller has no wallet.
      */
@@ -393,13 +402,13 @@ public class ListingsServiceTest {
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
         when(walletRepository.findByUserId(BUYER_ID)).thenReturn(Optional.of(buyerWallet));
         when(walletRepository.findByUserId(SELLER_ID)).thenReturn(Optional.empty());
- 
+
         assertThrows(t_12.backend.exception.ResourceNotFoundException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
- 
+
         verify(transactionRepository, never()).save(any());
     }
- 
+
     /**
      * Edge case — balance exactly equal to price should succeed.
      */
@@ -411,9 +420,9 @@ public class ListingsServiceTest {
         when(walletRepository.findByUserId(SELLER_ID)).thenReturn(Optional.of(sellerWallet));
         when(transactionService.generateTransactionHash(any(), any(), any(), any(), anyInt(), any(LocalDateTime.class)))
                 .thenReturn("mock-tx-hash");
- 
+
         String txHash = listingService.purchaseListing(LISTING_ID, BUYER_ID);
- 
+
         assertNotNull(txHash);
         assertEquals(0, buyerWallet.getCoinBalance().compareTo(BigDecimal.ZERO));
         assertEquals(0, sellerWallet.getCoinBalance().compareTo(PRICE));

@@ -25,6 +25,16 @@ build-backend:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
   script:
     - echo "Building backend..."
     - cd backend
@@ -36,17 +46,45 @@ test-backend:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
   script:
     - echo "Testing backend..."
     - cd backend
     - chmod +x gradlew
     - ./gradlew testUnit
+  artifacts:
+    when: always
+    paths:
+      - backend/build/reports/tests/testUnit/
+      - backend/build/test-results/testUnit/
+    reports:
+      junit:
+        - backend/build/test-results/testUnit/*.xml
 
 test-backend-schema:
   stage: test
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
   script:
     - echo "Running backend schema/integration tests..."
     - cd backend
@@ -55,18 +93,30 @@ test-backend-schema:
   artifacts:
     when: always
     paths:
-      - backend/build/reports/tests/test/
-      - backend/build/test-results/test/
+      - backend/build/reports/tests/testIntegration/
+      - backend/build/test-results/testIntegration/
+    reports:
+      junit:
+        - backend/build/test-results/testIntegration/*.xml
 
 lint-frontend:
   stage: lint 
   image: node:20-alpine
   tags:
     - cs506
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
+      - frontend/node_modules/
   script:
     - echo "Linting frontend..."
     - cd frontend
-    - npm install
+    - npm ci
     - npm run lint
 
 test-frontend:
@@ -74,8 +124,17 @@ test-frontend:
   image: node:20-alpine
   tags:
     - cs506
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
+      - frontend/node_modules/
   script:
     - echo "Testing frontend..."
     - cd frontend
-    - npm install
+    - npm ci
     - npm test -- --watchAll=false --passWithNoTests

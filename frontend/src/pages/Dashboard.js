@@ -9,6 +9,7 @@ function Dashboard() {
                 <div className="logo">CrypMart</div>
                 <nav className="nav-links">
                     <Link to="/dashboard" className="nav-link active">Dashboard</Link>
+                    <Link to="/blockchain" className="nav-link">Blockchain Explorer</Link>
                     <Link to="/marketplace" className="nav-link">Marketplace</Link>
                     <Link to="/history" className="nav-link">Detailed Wallet</Link>
                     <Link to="/login" className="nav-link logout-btn">Log Out</Link>

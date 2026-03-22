@@ -1,0 +1,124 @@
+.explorer-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #101624 0%, #0e1320 100%);
+  color: #f0f4ff;
+  padding: 32px 20px;
+}
+
+.explorer-card {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #1a2132;
+  border: 1px solid #2f3b56;
+  border-radius: 14px;
+  box-shadow: 0 18px 34px rgba(4, 8, 18, 0.45);
+  padding: 24px;
+}
+
+.explorer-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.explorer-header p {
+  margin: 8px 0 0;
+  color: #aeb8cf;
+}
+
+.explorer-status-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.explorer-stat {
+  border: 1px solid #34415f;
+  border-radius: 10px;
+  padding: 12px;
+  background: #131b2c;
+}
+
+.explorer-stat-label {
+  display: block;
+  color: #9ba7c2;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.explorer-loading,
+.explorer-error,
+.explorer-empty {
+  margin-top: 20px;
+}
+
+.explorer-error {
+  color: #ff9b9b;
+}
+
+.explorer-table {
+  margin-top: 20px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.explorer-table th,
+.explorer-table td {
+  border-bottom: 1px solid #2f3b56;
+  padding: 10px 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.explorer-table th {
+  color: #8ea0c2;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.explorer-hash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.explorer-pagination {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.explorer-pagination button {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.explorer-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .explorer-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .explorer-card {
+    padding: 16px;
+  }
+
+  .explorer-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .explorer-pagination {
+    justify-content: space-between;
+  }
+}

@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/marketplace/Marketplace';
 import History from './pages/History';
+import BlockchainExplorer from './pages/BlockchainExplorer';
 
 function App() {
   // Mock authentication state for Sprint 1
@@ -32,6 +33,9 @@ function App() {
         } />
         <Route path="/history" element={
           <ProtectedRoute isAuth={isAuthenticated}><History /></ProtectedRoute>
+        } />
+        <Route path="/blockchain" element={
+          <ProtectedRoute isAuth={isAuthenticated}><BlockchainExplorer /></ProtectedRoute>
         } />
       </Routes>
     </Router>

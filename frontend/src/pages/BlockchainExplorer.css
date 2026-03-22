@@ -97,6 +97,10 @@
 }
 
 .explorer-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
   border: 1px solid #4b5f8a;
   background: #1f2a43;
   color: #e6ecff;

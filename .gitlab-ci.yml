@@ -9,6 +9,8 @@ check-required-files:
   image: alpine:latest
   tags:
     - cs506
+  rules:
+    - when: always
   script:
     - echo "Checking Sprint 0 deliverables..."
     - test -f README.md

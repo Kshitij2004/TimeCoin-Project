@@ -1,4 +1,4 @@
-// Change the import to use the CommonJS version for Jest compatibility
+// Centralized Axios client for CrypMart
 import axios from 'axios';
 
 // 1. Centralized Base URL configuration
@@ -11,10 +11,7 @@ const api = axios.create({
     },
 });
 
-// ... the rest of your interceptor code stays exactly the same
-
 // 2. REQUEST INTERCEPTOR: Attach JWT to every request
-// Requirement: "Attach JWT token from localStorage/context to Authorization header"
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -26,33 +23,44 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// 3. RESPONSE INTERCEPTOR: Global 401 handling
-// Requirement: "Handle 401 responses globally (redirect to login)"
+// 3. RESPONSE INTERCEPTOR: Global Auth Handling
+// This catches expired tokens or server restarts (like your Docker issue)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
-            // Expired or missing tokens redirect to login page
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+        // Handle 401 (Unauthorized) and 403 (Forbidden)
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            
+            // Only redirect if we aren't already on the login page 
+            // to avoid infinite refresh loops
+            if (!window.location.pathname.includes('/login')) {
+                console.warn("Session expired or invalid. Redirecting to login...");
+                
+                // Clear the invalid token
+                localStorage.removeItem('token');
+                
+                // Force a hard redirect to ensure the app state is wiped clean
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
 );
 
-// 4. API Methods (Refactored to use the centralized 'api' instance)
+// 4. API Helper Methods
 
 export const registerUser = async (userData) => {
-    // Post to /auth/register relative to the baseURL defined above
     const response = await api.post('/auth/register', userData);
     return response.data;
 };
 
-// Added Login helper to ensure the token is handled properly
 export const loginUser = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
+    // Standardizing token storage here
     if (response.data.token) {
         localStorage.setItem('token', response.data.token);
+    } else if (typeof response.data === 'string') {
+        localStorage.setItem('token', response.data);
     }
     return response.data;
 };

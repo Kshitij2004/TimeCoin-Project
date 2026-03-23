@@ -12,10 +12,10 @@ import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/BlockchainExplorer.js';
 
-function App() {
-  // 1. Removed the mock isAuthenticated variable. 
-  // The ProtectedRoute component now handles this by checking localStorage.
+// Import the new CreateListing page
+import CreateListing from './pages/marketplace/CreateListing.js';
 
+function App() {
   return (
     <Router>
       <Routes>
@@ -25,13 +25,19 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}
-        {/* 2. Removed the isAuth prop from ProtectedRoute calls */}
         <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
+        
+        {/* Marketplace Routes */}
         <Route path="/marketplace" element={
           <ProtectedRoute><Marketplace /></ProtectedRoute>
         } />
+        {/* New Route for Issue 81: Create Listing */}
+        <Route path="/marketplace/new" element={
+          <ProtectedRoute><CreateListing /></ProtectedRoute>
+        } />
+
         <Route path="/send" element={
           <ProtectedRoute><Send /></ProtectedRoute>
         } />

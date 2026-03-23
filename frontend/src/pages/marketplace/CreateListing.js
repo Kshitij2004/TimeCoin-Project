@@ -1,0 +1,185 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api.js';
+import './Marketplace.css';
+
+export default function CreateListing() {
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        title: '',
+        description: '',
+        price: '',
+        category: 'Goods'
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Auth Gate: Check if token exists
+    const isAuthenticated = !!localStorage.getItem('token');
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            // Redirect to login if user manually types the URL without a session
+            navigate("/login", { replace: true });
+        }
+    }, [isAuthenticated, navigate]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear error when user starts typing again
+        if (error) setError(''); 
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // 1. Client-side validation (Sanitization)
+        const trimmedTitle = formData.title.trim();
+        const trimmedDesc = formData.description.trim();
+        const priceNum = parseFloat(formData.price);
+
+        if (!trimmedTitle || !trimmedDesc || isNaN(priceNum)) {
+            setError("All fields are required. Please enter a valid price.");
+            return;
+        }
+
+        if (priceNum <= 0) {
+            setError("Price must be greater than 0 TimeCoin.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // 2. Submit to POST /api/listings
+            // Our api.js interceptor automatically attaches the Authorization header
+            const response = await api.post('/listings', {
+                title: trimmedTitle,
+                description: trimmedDesc,
+                price: priceNum,
+                category: formData.category
+            });
+
+            // 3. Success Redirect
+            // If the backend returns the new listing object with an ID, go to its detail page.
+            // Otherwise, fall back to the main marketplace view.
+            const newListingId = response.data?.id;
+            if (newListingId) {
+                navigate(`/marketplace/${newListingId}`);
+            } else {
+                navigate('/marketplace');
+            }
+        } catch (err) {
+            // 4. Backend Validation Error Display
+            // This catches 400 Bad Request errors from the Java server (e.g., Title too short)
+            const backendMessage = err.response?.data?.message || "Failed to create listing. Please try again.";
+            setError(backendMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Prevent rendering if not authenticated to avoid UI flicker
+    if (!isAuthenticated) return null;
+
+    return (
+        <div className="marketplace-page">
+            <div className="marketplace-card">
+                <header className="marketplace-header">
+                    <h1>Create a New Listing</h1>
+                    <p>Enter details to sell your goods or services for TimeCoin.</p>
+                </header>
+
+                {error && (
+                    <div className="status-message status-error" role="alert" style={{ marginBottom: '20px' }}>
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="buy-form" noValidate>
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label className="form-label" htmlFor="title">Title</label>
+                        <input
+                            id="title"
+                            name="title"
+                            type="text"
+                            className="amount-input"
+                            value={formData.title}
+                            onChange={handleChange}
+                            placeholder="e.g., Web Development Consultation"
+                            required
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label className="form-label" htmlFor="description">Description</label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            className="amount-input"
+                            style={{ height: '100px', paddingTop: '10px', resize: 'vertical' }}
+                            value={formData.description}
+                            onChange={handleChange}
+                            placeholder="Provide details about your offering..."
+                            required
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label className="form-label" htmlFor="price">Price (TimeCoin)</label>
+                        <input
+                            id="price"
+                            name="price"
+                            type="number"
+                            step="0.01"
+                            className="amount-input"
+                            value={formData.price}
+                            onChange={handleChange}
+                            placeholder="0.00"
+                            required
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '30px' }}>
+                        <label className="form-label" htmlFor="category">Category</label>
+                        <select 
+                            id="category"
+                            name="category" 
+                            className="amount-input" 
+                            value={formData.category} 
+                            onChange={handleChange}
+                            style={{ cursor: 'pointer' }}
+                            disabled={loading}
+                        >
+                            <option value="Goods">Goods</option>
+                            <option value="Services">Services</option>
+                        </select>
+                    </div>
+
+                    <div className="form-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <button 
+                            type="submit" 
+                            className="buy-button" 
+                            disabled={loading}
+                        >
+                            {loading ? "PUBLISHING..." : "CREATE LISTING"}
+                        </button>
+                        
+                        <button 
+                            type="button" 
+                            className="buy-button" 
+                            style={{ backgroundColor: '#4a4a4a' }}
+                            onClick={() => navigate('/marketplace')}
+                            disabled={loading}
+                        >
+                            CANCEL
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}

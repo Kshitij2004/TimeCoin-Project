@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Added for navigation
 import api from "../../services/api.js"; // Using our new centralized client
 import "./Marketplace.css";
 
@@ -8,6 +9,7 @@ export default function Marketplace() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [coinLoading, setCoinLoading] = useState(true);
+  const navigate = useNavigate(); // Hook for the button redirect
 
   // ── Fetch coin data on mount ──────────────────────────────────────────────
   useEffect(() => {
@@ -42,7 +44,6 @@ export default function Marketplace() {
     setLoading(true);
     try {
       // Acceptance Criteria: Uses shared utility for POST request
-      // Variable 'res' removed to satisfy ESLint 'no-unused-vars'
       await api.post("/coin/buy", {
         symbol: "TC", // TimeCoin
         amount: parsedAmount,
@@ -78,8 +79,18 @@ export default function Marketplace() {
     <div className="marketplace-page">
       <div className="marketplace-card">
         <header className="marketplace-header">
-          <h1>Marketplace</h1>
-          <p>Buy coins at the current market rate</p>
+          <div className="header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h1>Marketplace</h1>
+            {/* New Button for Issue: Create Listing */}
+            <button 
+              className="buy-button" 
+              style={{ width: 'auto', padding: '10px 20px', fontSize: '14px' }}
+              onClick={() => navigate('/marketplace/new')}
+            >
+              + NEW LISTING
+            </button>
+          </div>
+          <p>Buy coins at the current market rate or list your own goods.</p>
         </header>
 
         {/* ── Market stats ── */}

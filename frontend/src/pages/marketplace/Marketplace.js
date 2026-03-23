@@ -75,8 +75,6 @@ export default function Marketplace() {
     return matchesSearch && matchesCategory;
   });
 
-  const totalCost = amount && coin ? (parseFloat(amount) * coin.currentPrice).toFixed(2) : null;
-
   return (
     <div className="marketplace-page">
       <div className="marketplace-card">

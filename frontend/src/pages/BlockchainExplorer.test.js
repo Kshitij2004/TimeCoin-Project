@@ -1,8 +1,8 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import BlockchainExplorer from './BlockchainExplorer';
-import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi';
+import BlockchainExplorer from './BlockchainExplorer.js';
+import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi.js';
 
 const mockSetSearchParams = jest.fn();
 let mockInitialSearch = '';
@@ -28,7 +28,7 @@ jest.mock('react-router-dom', () => {
   };
 }, { virtual: true });
 
-jest.mock('../services/blockchainExplorerApi', () => ({
+jest.mock('../services/blockchainExplorerApi.js', () => ({
   getChainStatus: jest.fn(),
   getBlocks: jest.fn(),
   getBlockByHeight: jest.fn(),

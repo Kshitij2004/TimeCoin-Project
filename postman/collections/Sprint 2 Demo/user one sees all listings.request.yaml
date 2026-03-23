@@ -1,0 +1,15 @@
+$kind: http-request
+name: user one sees all listings
+url: http://localhost:8080/api/listings
+method: GET
+headers:
+  Authorization: Bearer
+    eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwiaWF0IjoxNzc0MjEyMDA3LCJleHAiOjE3NzQyOTg0MDd9.osefzMBO48aKVGY6eWPjphn__JljNECRBIFxQZKStKc
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_one}}"
+order: 6000

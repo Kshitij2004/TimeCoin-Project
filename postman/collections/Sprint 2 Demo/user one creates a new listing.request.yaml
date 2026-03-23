@@ -1,0 +1,29 @@
+$kind: http-request
+name: user one creates a new listing
+url: http://localhost:8080/api/listings
+method: POST
+headers:
+  Authorization: Bearer
+    eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwiaWF0IjoxNzc0MjEyMDA3LCJleHAiOjE3NzQyOTg0MDd9.osefzMBO48aKVGY6eWPjphn__JljNECRBIFxQZKStKc
+body:
+  type: json
+  content: "{\r
+
+    \    \"title\": \"test item\",\r
+
+    \    \"description\": \"A simple test item\",\r
+
+    \    \"price\": 1.00000000,\r
+
+    \    \"category\": \"Testing\",\r
+
+    \    \"imageUrl\": null,\r
+
+    \    \"status\": \"ACTIVE\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_one}}"
+order: 5000

@@ -25,6 +25,7 @@ export default function Marketplace() {
       setCoinLoading(true);
       setListingsLoading(true);
       try {
+        // Fetch coin data and all marketplace listings simultaneously
         const [coinRes, listingsRes] = await Promise.all([
           api.get("/coin"),
           api.get("/listings")
@@ -99,6 +100,7 @@ export default function Marketplace() {
           <div className="stat-card">
             <span className="stat-label">Current Price</span>
             <span className="stat-value" data-testid="coin-price">
+              {/* Ensure the $ sign is included as the test expects it */}
               {coinLoading ? "—" : coin ? `$${Number(coin.currentPrice).toFixed(2)}` : "—"}
             </span>
           </div>

@@ -1,5 +1,5 @@
 // Change the import to use the CommonJS version for Jest compatibility
-import axios from 'axios/dist/node/axios.cjs';
+import axios from 'axios';
 
 // 1. Centralized Base URL configuration
 export const API_BASE_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:8080';

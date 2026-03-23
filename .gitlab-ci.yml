@@ -27,22 +27,39 @@ build-backend:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
   script:
     - echo "Building backend..."
     - cd backend
     - chmod +x gradlew
     - ./gradlew build -x test
-    - ./gradlew compileTestJava
 
 build-frontend:
   stage: build
   image: node:20-alpine
   tags:
     - cs506
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
   script:
     - echo "Building frontend..."
     - cd frontend
-    - npm install
+    - npm ci
     - npm run build
 
 test-backend:
@@ -50,35 +67,110 @@ test-backend:
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
+  needs:
+    - job: build-backend
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
   script:
-    - echo "Testing backend..."
+    - echo "Running backend unit tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew test --info
+    - ./gradlew testUnit
   artifacts:
-    when: on_failure
+    when: always
     paths:
-      - backend/build/reports/tests/test/
-    expire_in: 1 week
+      - backend/build/reports/tests/testUnit/
+      - backend/build/test-results/testUnit/
+    reports:
+      junit:
+        - backend/build/test-results/testUnit/*.xml
+
+test-schema:
+  stage: test
+  image: eclipse-temurin:21-jdk
+  tags:
+    - cs506
+  needs:
+    - job: build-backend
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key:
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
+  script:
+    - echo "Running backend schema/integration tests..."
+    - cd backend
+    - chmod +x gradlew
+    - ./gradlew testIntegration
+  artifacts:
+    when: always
+    paths:
+      - backend/build/reports/tests/testIntegration/
+      - backend/build/test-results/testIntegration/
+    reports:
+      junit:
+        - backend/build/test-results/testIntegration/*.xml
 
 test-frontend:
   stage: test
   image: node:20-alpine
   tags:
     - cs506
+  needs:
+    - job: build-frontend
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+    JEST_JUNIT_OUTPUT_DIR: "$CI_PROJECT_DIR/frontend"
+    JEST_JUNIT_OUTPUT_NAME: "junit.xml"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
   script:
-    - echo "Testing frontend..."
+    - echo "Running frontend tests..."
     - cd frontend
-    - npm install
-    - npm test -- --watchAll=false --passWithNoTests --verbose
+    - npm ci
+    - npm test -- --watchAll=false --passWithNoTests --reporters=default --reporters=jest-junit
+  artifacts:
+    when: always
+    paths:
+      - frontend/junit.xml
+    reports:
+      junit:
+        - frontend/junit.xml
 
 lint-frontend:
   stage: lint
   image: node:20-alpine
   tags:
     - cs506
+  needs:
+    - job: build-frontend
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
   script:
     - echo "Linting frontend..."
     - cd frontend
-    - npm install
+    - npm ci
     - npm run lint

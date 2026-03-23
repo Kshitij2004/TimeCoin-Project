@@ -6,6 +6,8 @@ build/
 #Node/React
 node_modules/
 frontend/build/
+frontend/junit.xml
+.gitlab-ci-local/
 
 #Environment
 .env

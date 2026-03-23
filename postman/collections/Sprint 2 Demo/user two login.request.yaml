@@ -1,0 +1,18 @@
+$kind: http-request
+name: user two login
+url: http://localhost:8080/api/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"username\":\"user_two\",\r
+
+    \    \"password\":\"password1234\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: pm.collectionVariables.set("token_two", pm.response.text());
+    language: text/javascript
+order: 3000

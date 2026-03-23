@@ -1,0 +1,5 @@
+$kind: collection
+name: Sprint 2 Demo
+variables:
+  token_one: ""
+  token_two: ""

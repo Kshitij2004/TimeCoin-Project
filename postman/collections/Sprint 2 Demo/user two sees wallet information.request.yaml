@@ -1,0 +1,15 @@
+$kind: http-request
+name: user two sees wallet information
+url: http://localhost:8080/api/wallet
+method: GET
+headers:
+  Authorization: Bearer
+    eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI4IiwiaWF0IjoxNzc0MjE0MTk2LCJleHAiOjE3NzQzMDA1OTZ9.ZqLaXffa__zyl2D-kLLRDdmbjI51a_Yr0ZOL592V2Qk
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_two}}"
+order: 12000

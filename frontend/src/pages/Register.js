@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { registerUser } from '../services/api.js';
+import '../Login.css'; // Importing your existing Login CSS for consistent styling
 
 const Register = () => {
     const navigate = useNavigate();
@@ -18,13 +19,9 @@ const Register = () => {
     };
 
     const validateForm = () => {
-        // Required Fields & Email Format
         if (!formData.username || !formData.email || !formData.password) return "All fields are required.";
         if (!/\S+@\S+\.\S+/.test(formData.email)) return "Invalid email format.";
-        
-        // Matching Passwords
         if (formData.password !== formData.confirmPassword) return "Passwords do not match.";
-        
         return null;
     };
 
@@ -40,18 +37,17 @@ const Register = () => {
 
         setLoading(true);
         try {
-            // Calls registration API
+            // Acceptance Criteria: Uses shared api utility via registerUser
             await registerUser({
                 username: formData.username,
                 email: formData.email,
                 password: formData.password
             });
             
-            // Redirects to login on success
             alert("Account created! Redirecting to login...");
             navigate('/login');
         } catch (err) {
-            // Shows error message from Java backend
+            // Captures global error handling from axios interceptor
             setError(err.response?.data?.message || "Registration failed. Try again.");
         } finally {
             setLoading(false);
@@ -59,24 +55,70 @@ const Register = () => {
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: 'auto', padding: '20px' }}>
-            <h2>Create an Account</h2>
-            <form onSubmit={handleSubmit}>
-                <input name="username" placeholder="Username" onChange={handleChange} style={inputStyle} />
-                <input name="email" type="email" placeholder="Email" onChange={handleChange} style={inputStyle} />
-                <input name="password" type="password" placeholder="Password" onChange={handleChange} style={inputStyle} />
-                <input name="confirmPassword" type="password" placeholder="Confirm Password" onChange={handleChange} style={inputStyle} />
-                
-                <button type="submit" disabled={loading} style={buttonStyle}>
-                    {loading ? "Registering..." : "Register"}
-                </button>
-            </form>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+        <div className="login-container-wrapper">
+            <div className="login-container">
+                <form onSubmit={handleSubmit}>
+                    <h2>Create an Account</h2>
+                    
+                    {error && (
+                        <div style={{ color: 'red', marginBottom: '10px', textAlign: 'center' }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="input-group">
+                        <input 
+                            name="username" 
+                            placeholder="Username" 
+                            onChange={handleChange} 
+                            required 
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input 
+                            name="email" 
+                            type="email" 
+                            placeholder="Email" 
+                            onChange={handleChange} 
+                            required 
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input 
+                            name="password" 
+                            type="password" 
+                            placeholder="Password" 
+                            onChange={handleChange} 
+                            required 
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input 
+                            name="confirmPassword" 
+                            type="password" 
+                            placeholder="Confirm Password" 
+                            onChange={handleChange} 
+                            required 
+                        />
+                    </div>
+                    
+                    <button type="submit" className="login-btn" disabled={loading}>
+                        {loading ? "REGISTERING..." : "REGISTER"}
+                    </button>
+
+                    <div className="links">
+                        <div className="register-text">
+                            Already have an account? 
+                            <Link to="/login" className="register-link"> Login here</Link>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };
-
-const inputStyle = { display: 'block', width: '100%', marginBottom: '10px', padding: '8px' };
-const buttonStyle = { width: '100%', padding: '10px', cursor: 'pointer' };
 
 export default Register;

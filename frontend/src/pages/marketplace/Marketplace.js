@@ -1,47 +1,31 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import api from "../../services/api.js"; // Using our new centralized client
 import "./Marketplace.css";
-import { API_BASE_URL } from "../../services/api";
-
-// ── Auth stub ─────────────────────────────────────────────────────────────────
-// TODO: replace with real auth context when built
-// import { useAuth } from "../../context/AuthContext";
-const user = { id: 1, username: "testuser1" };
-const token = "fake-token";
-
-const API_BASE = API_BASE_URL;
 
 export default function Marketplace() {
-  const navigate = useNavigate();
-
-  const [coin, setCoin] = useState(null);       // { current_price, circulating_supply, total_supply }
+  const [coin, setCoin] = useState(null);
   const [amount, setAmount] = useState("");
-  const [status, setStatus] = useState(null);   // { type: "success"|"error", message }
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [coinLoading, setCoinLoading] = useState(true);
 
-  // ── Auth gate ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user) navigate("/login", { replace: true });
-  }, [navigate]);
-
   // ── Fetch coin data on mount ──────────────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
-    setCoinLoading(true);
-    fetch(`${API_BASE}/api/coin`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error("Could not reach the server — coin data unavailable.");
-        return r.json();
-      })
-      .then((data) => setCoin(data))
-      .catch(() => {
-        // Backend not running yet — silently fail so the form stays usable
+    const fetchCoinData = async () => {
+      setCoinLoading(true);
+      try {
+        // Interceptor automatically attaches the JWT from localStorage
+        const response = await api.get("/coin");
+        setCoin(response.data);
+      } catch (err) {
+        // If 401, interceptor redirects to /login automatically
         setCoin(null);
-      })
-      .finally(() => setCoinLoading(false));
+      } finally {
+        setCoinLoading(false);
+      }
+    };
+
+    fetchCoinData();
   }, []);
 
   // ── Buy handler ───────────────────────────────────────────────────────────
@@ -57,43 +41,30 @@ export default function Marketplace() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/coin/buy`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          symbol: "TC",
-          amount: parsedAmount,
-        }),
+      // Acceptance Criteria: Uses shared utility for POST request
+      // Variable 'res' removed to satisfy ESLint 'no-unused-vars'
+      await api.post("/coin/buy", {
+        symbol: "TC", // TimeCoin
+        amount: parsedAmount,
       });
-
-      // Guard against non-JSON response (e.g. backend not running)
-      const contentType = res.headers.get("content-type") ?? "";
-      if (!contentType.includes("application/json")) {
-        throw new Error("Backend server is not running. Start the server to enable purchases.");
-      }
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Purchase failed");
 
       setStatus({
         type: "success",
         message: `Successfully purchased ${parsedAmount} coins for $${(
-          parsedAmount * coin.currentPrice
+          parsedAmount * (coin?.currentPrice || 0)
         ).toFixed(2)}!`,
       });
       setAmount("");
 
-      // Refresh coin supply after purchase
-      const updated = await fetch(`${API_BASE}/api/coin`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (updated.ok) setCoin(await updated.json());
+      // Refresh coin supply after purchase using centralized client
+      const updated = await api.get("/coin");
+      setCoin(updated.data);
     } catch (err) {
-      setStatus({ type: "error", message: err.message });
+      // Capture error message from backend
+      setStatus({ 
+        type: "error", 
+        message: err.response?.data?.message || err.message 
+      });
     } finally {
       setLoading(false);
     }
@@ -102,8 +73,6 @@ export default function Marketplace() {
   // ── Derived ───────────────────────────────────────────────────────────────
   const totalCost =
     amount && coin ? (parseFloat(amount) * coin.currentPrice).toFixed(2) : null;
-
-  if (!user) return null;
 
   return (
     <div className="marketplace-page">

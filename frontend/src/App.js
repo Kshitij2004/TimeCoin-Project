@@ -1,21 +1,19 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/ProtectedRoute.js';
 
 // Import your pages from the /pages folder
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/dashboard/Dashboard';
-import Marketplace from './pages/marketplace/Marketplace';
-import History from './pages/History';
-import BlockchainExplorer from './pages/BlockchainExplorer';
-import Send from './pages/send/Send';
+import Landing from './pages/Landing.js';
+import Login from './pages/Login.js';
+import Register from './pages/Register.js';
+import Dashboard from './pages/dashboard/Dashboard.js';
+import Marketplace from './pages/marketplace/Marketplace.js';
+import History from './pages/History.js';
+import Send from './pages/send/Send.js';
 
 function App() {
-  // Mock authentication state for Sprint 1
-  const isAuthenticated = true; // Change to false to test unauthenticated flow
-
+  // 1. Removed the mock isAuthenticated variable. 
+  // The ProtectedRoute component now handles this by checking localStorage.
 
   return (
     <Router>
@@ -26,20 +24,18 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}
+        {/* 2. Removed the isAuth prop from ProtectedRoute calls */}
         <Route path="/dashboard" element={
-          <ProtectedRoute isAuth={isAuthenticated}><Dashboard /></ProtectedRoute>
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
         <Route path="/marketplace" element={
-          <ProtectedRoute isAuth={isAuthenticated}><Marketplace /></ProtectedRoute>
+          <ProtectedRoute><Marketplace /></ProtectedRoute>
         } />
         <Route path="/send" element={
-          <ProtectedRoute isAuth={isAuthenticated}><Send /></ProtectedRoute>
+          <ProtectedRoute><Send /></ProtectedRoute>
         } />
         <Route path="/history" element={
-          <ProtectedRoute isAuth={isAuthenticated}><History /></ProtectedRoute>
-        } />
-        <Route path="/blockchain" element={
-          <ProtectedRoute isAuth={isAuthenticated}><BlockchainExplorer /></ProtectedRoute>
+          <ProtectedRoute><History /></ProtectedRoute>
         } />
       </Routes>
     </Router>

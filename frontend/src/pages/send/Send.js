@@ -1,43 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { API_BASE_URL } from "../../services/api";
+import api from "../../services/api.js"; // Using our centralized client
 import "./Send.css";
 
-// — Auth stub ————————————————————————————————————————
-// TODO: replace with real auth context when built
-const SEED_USER_ID = 1;
-const API_BASE = API_BASE_URL;
-
-async function getAuthToken() {
-    const ts = Date.now();
-    const tempUser = {
-        username: "sendtest_" + ts,
-        email: "sendtest_" + ts + "@wisc.edu",
-        password: "Temp1234!",
-    };
-
-    await fetch(`${API_BASE}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tempUser),
-    });
-
-    const loginRes = await fetch(`${API_BASE}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            username: tempUser.username,
-            password: tempUser.password,
-        }),
-    });
-
-    if (!loginRes.ok) throw new Error("Login failed (" + loginRes.status + ")");
-    const token = await loginRes.text();
-    return token.replace(/"/g, "");
-}
-
 function Send() {
-    const [token, setToken] = useState(null);
     const [wallet, setWallet] = useState(null);
     const [recipientAddress, setRecipientAddress] = useState("");
     const [amount, setAmount] = useState("");
@@ -47,34 +13,23 @@ function Send() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
-    // — Get JWT on mount ————————————————————————————
+    // — Fetch wallet for balance display on mount ————————————
     useEffect(() => {
-        getAuthToken()
-            .then((t) => setToken(t))
-            .catch((err) => {
-                setError("Auth failed: " + err.message);
+        const fetchWallet = async () => {
+            setWalletLoading(true);
+            try {
+                // Token is automatically attached by api.js
+                const response = await api.get("/wallet");
+                setWallet(response.data);
+            } catch (err) {
+                setError(err.response?.data?.message || "Failed to load wallet data.");
+            } finally {
                 setWalletLoading(false);
-            });
-    }, []);
+            }
+        };
 
-    // — Fetch wallet for balance display ————————————
-    useEffect(() => {
-        if (!token) return;
-        setWalletLoading(true);
-        fetch(`${API_BASE}/api/wallet`, {
-            headers: {
-                Authorization: "Bearer " + token,
-                "x-user-id": String(SEED_USER_ID),
-            },
-        })
-            .then((r) => {
-                if (!r.ok) throw new Error("Failed to load wallet (" + r.status + ")");
-                return r.json();
-            })
-            .then((data) => setWallet(data))
-            .catch((err) => setError(err.message))
-            .finally(() => setWalletLoading(false));
-    }, [token]);
+        fetchWallet();
+    }, []);
 
     // — Client-side validation ——————————————————————
     const validate = () => {
@@ -102,7 +57,7 @@ function Send() {
     };
 
     // — Submit transfer —————————————————————————————
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setSuccess(null);
@@ -113,8 +68,8 @@ function Send() {
             return;
         }
 
-        if (!token || !wallet) {
-            setError("Wallet not loaded yet. Please wait.");
+        if (!wallet) {
+            setError("Wallet data not available.");
             return;
         }
 
@@ -126,47 +81,35 @@ function Send() {
             amount: parseFloat(amount),
             fee: 0.01,
             nonce: 0,
+            memo: memo.trim() // Included the memo in the request
         };
 
-        fetch(`${API_BASE}/api/transactions/transfer`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + token,
-                "x-user-id": String(SEED_USER_ID),
-            },
-            body: JSON.stringify(requestBody),
-        })
-            .then((r) => {
-                if (!r.ok) {
-                    return r.json().then((body) => {
-                        throw new Error(body.message || "Transfer failed (" + r.status + ")");
-                    });
-                }
-                return r.json();
-            })
-            .then((tx) => {
-                setSuccess({
-                    hash: tx.transactionHash,
-                    amount: tx.amount,
-                    receiver: tx.receiverAddress,
-                    status: tx.status,
-                });
-                setRecipientAddress("");
-                setAmount("");
-                setMemo("");
-                // Refresh wallet balance
-                return fetch(`${API_BASE}/api/wallet`, {
-                    headers: {
-                        Authorization: "Bearer " + token,
-                        "x-user-id": String(SEED_USER_ID),
-                    },
-                });
-            })
-            .then((r) => r && r.ok ? r.json() : null)
-            .then((data) => { if (data) setWallet(data); })
-            .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
+        try {
+            // Using the centralized api client for the POST request
+            const response = await api.post("/transactions/transfer", requestBody);
+            const tx = response.data;
+
+            setSuccess({
+                hash: tx.transactionHash,
+                amount: tx.amount,
+                receiver: tx.receiverAddress,
+                status: tx.status,
+            });
+
+            // Reset form
+            setRecipientAddress("");
+            setAmount("");
+            setMemo("");
+
+            // Refresh wallet balance after successful transfer
+            const walletUpdate = await api.get("/wallet");
+            setWallet(walletUpdate.data);
+
+        } catch (err) {
+            setError(err.response?.data?.message || "Transfer failed. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const balance = wallet ? parseFloat(wallet.coinBalance).toFixed(2) : "—";
@@ -180,7 +123,13 @@ function Send() {
                     <Link to="/marketplace" className="nav-link">Marketplace</Link>
                     <Link to="/send" className="nav-link active">Send</Link>
                     <Link to="/history" className="nav-link">Detailed Wallet</Link>
-                    <Link to="/login" className="nav-link logout-btn">Log Out</Link>
+                    <button 
+                        onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }} 
+                        className="nav-link logout-btn"
+                        style={{background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer'}}
+                    >
+                        Log Out
+                    </button>
                 </nav>
             </aside>
 
@@ -222,7 +171,7 @@ function Send() {
                     )}
 
                     {!success && (
-                        <div className="send-form-wrapper">
+                        <form className="send-form-wrapper" onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label htmlFor="recipient">Recipient Wallet Address</label>
                                 <input
@@ -267,13 +216,13 @@ function Send() {
                             </div>
 
                             <button
+                                type="submit"
                                 className="send-btn"
-                                onClick={handleSubmit}
                                 disabled={loading || walletLoading}
                             >
                                 {loading ? "Sending..." : "Send TimeCoin"}
                             </button>
-                        </div>
+                        </form>
                     )}
                 </div>
             </main>

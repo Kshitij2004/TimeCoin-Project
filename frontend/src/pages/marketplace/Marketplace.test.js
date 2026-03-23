@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrowserRouter } from "react-router-dom"; // Added for navigation context
+import { BrowserRouter } from "react-router-dom";
 import Marketplace from "./Marketplace.js";
 import api from "../../services/api.js";
 
@@ -13,7 +13,7 @@ jest.mock("../../services/api.js", () => ({
   },
 }));
 
-// 2. Mock navigation (Properly mocked for React Router v6)
+// 2. Mock navigation
 const mockedUsedNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
@@ -22,9 +22,9 @@ jest.mock("react-router-dom", () => ({
 
 // ── Mock data ────────────────────────────────────────────────────────────
 const mockCoin = {
-  currentPrice: "10.00",
-  circulatingSupply: "500000.00",
-  totalSupply: "1000000.00",
+  currentPrice: 10.00,
+  circulatingSupply: 500000.00,
+  totalSupply: 1000000.00,
 };
 
 const mockListings = [
@@ -40,7 +40,7 @@ const renderWithRouter = (ui) => {
 describe("Marketplace — page renders", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Support both API calls used in Promise.all
+    // Support both API calls used in Promise.all to prevent loading hang
     api.get.mockImplementation((url) => {
       if (url === "/coin") return Promise.resolve({ data: mockCoin });
       if (url === "/listings") return Promise.resolve({ data: mockListings });
@@ -55,7 +55,7 @@ describe("Marketplace — page renders", () => {
 
   it("shows the buy form", async () => {
     renderWithRouter(<Marketplace />);
-    // Wait for data to load so loading states disappear
+    // Wait for async data to load so loading states (dash) disappear
     expect(await screen.findByTestId("amount-input")).toBeInTheDocument();
     expect(screen.getByTestId("buy-button")).toBeInTheDocument();
   });
@@ -79,12 +79,13 @@ describe("Marketplace — coin data display", () => {
 
   it("shows current price after loading", async () => {
     renderWithRouter(<Marketplace />);
+    // findByTestId waits for the component to re-render after the API call resolves
     expect(await screen.findByTestId("coin-price")).toHaveTextContent("$10.00");
   });
 
   it("shows balance/circulating supply", async () => {
     renderWithRouter(<Marketplace />);
-    // Updated to match your new "Your Balance" label in UI
+    // Verify the formatted number appears in the UI
     expect(await screen.findByText(/500,000/)).toBeInTheDocument();
   });
 });
@@ -97,6 +98,15 @@ describe("Marketplace — buy form interactions", () => {
       if (url === "/listings") return Promise.resolve({ data: [] });
       return Promise.reject(new Error("not found"));
     });
+  });
+
+  it("shows estimated cost preview as user types", async () => {
+    renderWithRouter(<Marketplace />);
+    const input = await screen.findByTestId("amount-input");
+
+    await userEvent.type(input, "5");
+    // amount (5) * currentPrice (10) = 50.00
+    expect(await screen.findByTestId("cost-preview")).toHaveTextContent("$50.00");
   });
 
   it("shows validation error if amount is invalid", async () => {
@@ -128,6 +138,7 @@ describe("Marketplace — successful purchase", () => {
 
     expect(await screen.findByTestId("status-message")).toHaveTextContent("Successfully purchased");
     
+    // Checks if the state was reset
     await waitFor(() => {
       expect(screen.getByTestId("amount-input")).toHaveValue(null);
     });

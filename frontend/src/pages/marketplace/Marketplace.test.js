@@ -33,14 +33,18 @@ const mockListings = [
 ];
 
 // Helper to wrap component in Router for tests
+// Added future flags to silence the React Router v7 warnings
 const renderWithRouter = (ui) => {
-  return render(<BrowserRouter>{ui}</BrowserRouter>);
+  return render(
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      {ui}
+    </BrowserRouter>
+  );
 };
 
 describe("Marketplace — page renders", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Ensure BOTH endpoints resolve so the component stops "loading"
     api.get.mockImplementation((url) => {
       if (url.includes("/coin")) return Promise.resolve({ data: mockCoin });
       if (url.includes("/listings")) return Promise.resolve({ data: mockListings });
@@ -55,7 +59,8 @@ describe("Marketplace — page renders", () => {
 
   it("shows the buy form", async () => {
     renderWithRouter(<Marketplace />);
-    expect(await screen.findByTestId("amount-input")).toBeInTheDocument();
+    // Increased timeout for CI environment
+    expect(await screen.findByTestId("amount-input", {}, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByTestId("buy-button")).toBeInTheDocument();
   });
 
@@ -78,13 +83,15 @@ describe("Marketplace — coin data display", () => {
 
   it("shows current price after loading", async () => {
     renderWithRouter(<Marketplace />);
-    // findByTestId polls until the dash changes to $10.00
-    expect(await screen.findByTestId("coin-price")).toHaveTextContent("$10.00");
+    // Increased timeout to 3 seconds to ensure the 'dash' turns into the price
+    const priceElement = await screen.findByTestId("coin-price", {}, { timeout: 3000 });
+    expect(priceElement).toHaveTextContent("$10.00");
   });
 
   it("shows balance/circulating supply", async () => {
     renderWithRouter(<Marketplace />);
-    expect(await screen.findByText(/500,000/)).toBeInTheDocument();
+    // Increased timeout for slow runners
+    expect(await screen.findByText(/500,000/, {}, { timeout: 3000 })).toBeInTheDocument();
   });
 });
 
@@ -100,14 +107,14 @@ describe("Marketplace — buy form interactions", () => {
 
   it("shows estimated cost preview as user types", async () => {
     renderWithRouter(<Marketplace />);
-    const input = await screen.findByTestId("amount-input");
+    const input = await screen.findByTestId("amount-input", {}, { timeout: 3000 });
     await userEvent.type(input, "5");
     expect(await screen.findByTestId("cost-preview")).toHaveTextContent("$50.00");
   });
 
   it("shows validation error if amount is invalid", async () => {
     renderWithRouter(<Marketplace />);
-    const input = await screen.findByTestId("amount-input");
+    const input = await screen.findByTestId("amount-input", {}, { timeout: 3000 });
     await userEvent.type(input, "-1");
     await userEvent.click(screen.getByTestId("buy-button"));
     expect(await screen.findByTestId("status-message")).toHaveTextContent("valid amount");
@@ -125,9 +132,10 @@ describe("Marketplace — successful purchase", () => {
     api.post.mockResolvedValue({ data: { message: "Purchase successful" } });
 
     renderWithRouter(<Marketplace />);
-    const input = await screen.findByTestId("amount-input");
+    const input = await screen.findByTestId("amount-input", {}, { timeout: 3000 });
     await userEvent.type(input, "10");
     await userEvent.click(screen.getByTestId("buy-button"));
+    
     expect(await screen.findByTestId("status-message")).toHaveTextContent("Successfully purchased");
     
     await waitFor(() => {

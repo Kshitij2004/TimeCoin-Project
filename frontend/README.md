@@ -2,6 +2,31 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Blockchain Explorer Page
+
+The blockchain explorer UI is available at:
+
+- `http://localhost:3000/blockchain`
+
+It consumes these backend endpoints:
+
+- `GET /api/chain/status`
+- `GET /api/chain/blocks?page=&limit=`
+- `GET /api/chain/blocks/{height}`
+- `GET /api/chain/blocks/hash/{hash}`
+
+Before opening the page, start backend and frontend:
+
+```bash
+# terminal 1
+cd backend
+./gradlew bootRun
+
+# terminal 2
+cd frontend
+npm start
+```
+
 ## Available Scripts
 
 In the project directory, you can run:

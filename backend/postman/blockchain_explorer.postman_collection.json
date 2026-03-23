@@ -1,0 +1,117 @@
+{
+  "info": {
+    "name": "TimeCoin Blockchain Explorer",
+    "_postman_id": "a4d1f708-a931-4d50-83f5-f89a7d8e1cf1",
+    "description": "Public read-only API requests for inspecting chain status and blocks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Chain Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/chain/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chain",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Blocks List (Paginated)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/chain/blocks?page={{page}}&limit={{limit}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chain",
+            "blocks"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "{{page}}"
+            },
+            {
+              "key": "limit",
+              "value": "{{limit}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Block Detail by Height",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/chain/blocks/{{blockHeight}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chain",
+            "blocks",
+            "{{blockHeight}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Block Detail by Hash",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/chain/blocks/hash/{{blockHash}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chain",
+            "blocks",
+            "hash",
+            "{{blockHash}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "page",
+      "value": "1"
+    },
+    {
+      "key": "limit",
+      "value": "10"
+    },
+    {
+      "key": "blockHeight",
+      "value": "0"
+    },
+    {
+      "key": "blockHash",
+      "value": "replace_with_real_block_hash"
+    }
+  ]
+}

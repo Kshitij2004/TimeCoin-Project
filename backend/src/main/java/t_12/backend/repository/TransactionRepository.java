@@ -8,10 +8,9 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import java.math.BigDecimal;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import t_12.backend.entity.Transaction;
 
@@ -37,9 +36,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     List<Transaction> findBySenderAddressOrReceiverAddress(String senderAddress, String receiverAddress);
     boolean existsByTransactionHash(String transactionHash);
 
-
-
-
     /** Sum of amounts received by this address in confirmed transactions */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.receiverAddress = :address AND t.status = :status")
@@ -59,9 +55,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
                                         @Param("status") Transaction.Status status);
 
     boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
-        String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce, Transaction.Status status);
+            String receiverAddress,
+            BigDecimal amount,
+            BigDecimal fee,
+            Integer nonce,
+            Transaction.Status status
+    );
 
-boolean existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
-        String senderAddress, String receiverAddress, BigDecimal amount, BigDecimal fee, Integer nonce, Transaction.Status status);
+    boolean existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+            String senderAddress,
+            String receiverAddress,
+            BigDecimal amount,
+            BigDecimal fee,
+            Integer nonce,
+            Transaction.Status status
+    );
+
+    long countByStatus(Transaction.Status status);
 }
-

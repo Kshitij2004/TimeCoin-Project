@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Marketplace from "./Marketplace";
+import Marketplace from "./Marketplace.js";
 import api from "../../services/api.js";
 
 // 1. Mock the centralized API service

@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import History from './History';
+import History from './History.js';
 import api from '../services/api.js';
 
 // 1. Mock the centralized API service

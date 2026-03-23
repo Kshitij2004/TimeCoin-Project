@@ -1,47 +1,94 @@
 .history-page {
-  padding: 24px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #101624 0%, #0e1320 100%);
+  color: #f0f4ff;
+  padding: 32px 20px;
   display: flex;
   justify-content: center;
-  background: radial-gradient(circle at 20% 20%, #000c1f 0%, #00060f 55%, #000208 100%);
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .history-card {
-  width: min(1000px, 100%);
-  background: rgba(19, 31, 60, 0.78);
-  border: 1px solid #2ea9df;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(5, 12, 30, 0.45);
+  width: min(1100px, 100%);
+  background: #1a2132;
+  border: 1px solid #2f3b56;
+  border-radius: 14px;
+  box-shadow: 0 18px 34px rgba(4, 8, 18, 0.45);
+  padding: 24px;
+}
+
+.history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .history-header h1 {
   margin: 0;
   font-size: 28px;
-  color: #4bb9e9;
 }
 
 .history-header p {
-  margin: 6px 0 20px;
-  color: #9ab6d6;
+  margin: 8px 0 0;
+  color: #aeb8cf;
+}
+
+.history-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.history-refresh-btn {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.history-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.history-status-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.history-stat {
+  border: 1px solid #34415f;
+  border-radius: 10px;
+  padding: 12px;
+  background: #131b2c;
+}
+
+.history-stat-label {
+  display: block;
+  color: #9ba7c2;
+  font-size: 12px;
+  margin-bottom: 6px;
 }
 
 .history-loading,
 .history-empty {
-  color: #c2d6ef;
-  font-size: 15px;
+  color: #cfd8ee;
+  margin-top: 20px;
+  font-size: 14px;
 }
 
 .history-error {
-  color: #fecaca;
-  background: rgba(127, 29, 29, 0.35);
-  border: 1px solid #ef4444;
-  padding: 10px;
-  border-radius: 8px;
+  margin-top: 20px;
+  color: #ff9b9b;
 }
 
 .history-table {
+  margin-top: 20px;
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
@@ -49,64 +96,85 @@
 
 .history-table th,
 .history-table td {
-  border-bottom: 1px solid rgba(108, 149, 201, 0.25);
-  padding: 12px;
+  border-bottom: 1px solid #2f3b56;
+  padding: 10px 8px;
   text-align: left;
 }
 
 .history-table th {
-  background: rgba(14, 27, 52, 0.75);
-  color: #80cff2;
+  color: #8ea0c2;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .history-table td {
-  color: #d7e6f8;
+  color: #e2e9fb;
 }
 
 .history-pagination {
   margin-top: 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .history-pagination button {
-  border: 1px solid #49b8e8;
-  background: rgba(23, 47, 84, 0.8);
-  color: #cdeeff;
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   cursor: pointer;
 }
 
-.history-pagination button:hover:not(:disabled) {
-  background: #4bb9e9;
-  color: #0a1128;
-}
-
 .history-pagination button:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .history-pagination span {
-  color: #9ab6d6;
+  color: #b7c5e2;
+  font-size: 14px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .history-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
   .history-page {
-    padding: 12px;
+    padding: 20px 12px;
   }
 
   .history-card {
-    padding: 14px;
+    padding: 16px;
+  }
+
+  .history-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .history-header-actions {
+    justify-content: flex-end;
+  }
+
+  .history-status-grid {
+    grid-template-columns: 1fr;
   }
 
   .history-table th,
   .history-table td {
     padding: 10px;
     font-size: 13px;
+  }
+
+  .history-pagination {
+    justify-content: space-between;
   }
 }

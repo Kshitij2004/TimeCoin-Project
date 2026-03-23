@@ -1,0 +1,309 @@
+.explorer-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #101624 0%, #0e1320 100%);
+  color: #f0f4ff;
+  padding: 32px 20px;
+}
+
+.explorer-card {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #1a2132;
+  border: 1px solid #2f3b56;
+  border-radius: 14px;
+  box-shadow: 0 18px 34px rgba(4, 8, 18, 0.45);
+  padding: 24px;
+}
+
+.explorer-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.explorer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.explorer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.explorer-header p {
+  margin: 8px 0 0;
+  color: #aeb8cf;
+}
+
+.explorer-auto-btn,
+.explorer-refresh-btn {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.explorer-auto-btn-on {
+  border-color: #57d07f;
+  color: #57d07f;
+}
+
+.explorer-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.explorer-status-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.explorer-stat {
+  border: 1px solid #34415f;
+  border-radius: 10px;
+  padding: 12px;
+  background: #131b2c;
+}
+
+.explorer-stat-hash {
+  position: relative;
+  padding-right: 80px;
+}
+
+.explorer-stat-label {
+  display: block;
+  color: #9ba7c2;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.explorer-loading,
+.explorer-error,
+.explorer-empty {
+  margin-top: 20px;
+}
+
+.explorer-error {
+  color: #ff9b9b;
+}
+
+.explorer-table {
+  margin-top: 20px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.explorer-table th,
+.explorer-table td {
+  border-bottom: 1px solid #2f3b56;
+  padding: 10px 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.explorer-table th {
+  color: #8ea0c2;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.explorer-row-selected {
+  background: rgba(95, 176, 255, 0.08);
+}
+
+.explorer-hash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.explorer-hash-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.explorer-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.explorer-copy-btn-top {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.explorer-copy-btn-copied {
+  color: #57d07f;
+  border-color: #57d07f;
+}
+
+.explorer-view-btn {
+  margin-left: 10px;
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.explorer-view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(20, 34, 64, 0.45);
+  border-color: #78a1ff;
+}
+
+.explorer-view-btn:active {
+  transform: translateY(0);
+}
+
+.explorer-view-btn-loading {
+  color: #a9c2ff;
+  border-color: #78a1ff;
+  cursor: wait;
+}
+
+.explorer-view-btn-selected {
+  color: #57d07f;
+  border-color: #57d07f;
+}
+
+.explorer-pagination {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.explorer-pagination button {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.explorer-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.explorer-detail-panel {
+  margin-top: 22px;
+  border-top: 1px solid #2f3b56;
+  padding-top: 18px;
+}
+
+.explorer-detail-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.explorer-lookup {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.explorer-lookup input {
+  min-width: 260px;
+  flex: 1;
+  border: 1px solid #4b5f8a;
+  border-radius: 8px;
+  background: #11192b;
+  color: #e6ecff;
+  padding: 8px 10px;
+}
+
+.explorer-lookup button {
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.explorer-clear-btn {
+  border-color: #6d7b9f;
+  background: #162035;
+  color: #d9e4ff;
+}
+
+.explorer-detail-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.explorer-detail-grid > div {
+  border: 1px solid #34415f;
+  border-radius: 8px;
+  padding: 10px;
+  background: #131b2c;
+}
+
+.explorer-detail-empty {
+  margin-top: 12px;
+  color: #b8c5dd;
+}
+
+@media (max-width: 900px) {
+  .explorer-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .explorer-card {
+    padding: 16px;
+  }
+
+  .explorer-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .explorer-header-actions {
+    justify-content: space-between;
+  }
+
+  .explorer-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .explorer-pagination {
+    justify-content: space-between;
+  }
+
+  .explorer-lookup input {
+    min-width: 100%;
+  }
+
+  .explorer-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

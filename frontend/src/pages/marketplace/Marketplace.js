@@ -100,7 +100,6 @@ export default function Marketplace() {
           <div className="stat-card">
             <span className="stat-label">Current Price</span>
             <span className="stat-value" data-testid="coin-price">
-              {/* Ensure the $ sign is included as the test expects it */}
               {coinLoading ? "—" : coin ? `$${Number(coin.currentPrice).toFixed(2)}` : "—"}
             </span>
           </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.js';
 
-// Import your pages from the /pages folder
+// Import pages from the /pages folder
 import Landing from './pages/Landing.js';
 import Login from './pages/Login.js';
 import Register from './pages/Register.js';
@@ -12,8 +12,9 @@ import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/BlockchainExplorer.js';
 
-// Import the new CreateListing page
+// Marketplace specific pages
 import CreateListing from './pages/marketplace/CreateListing.js';
+import ListingDetail from './pages/marketplace/ListingDetail.js';
 
 function App() {
   return (
@@ -33,9 +34,15 @@ function App() {
         <Route path="/marketplace" element={
           <ProtectedRoute><Marketplace /></ProtectedRoute>
         } />
-        {/* New Route for Issue 81: Create Listing */}
+        
+        {/* Route for creating a new listing */}
         <Route path="/marketplace/new" element={
           <ProtectedRoute><CreateListing /></ProtectedRoute>
+        } />
+
+        {/* Dynamic Route for viewing/buying a specific listing (Issue Requirement) */}
+        <Route path="/marketplace/:id" element={
+          <ProtectedRoute><ListingDetail /></ProtectedRoute>
         } />
 
         <Route path="/send" element={

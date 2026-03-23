@@ -1,10 +1,8 @@
 package t_12.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,13 +29,15 @@ public class ListingService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
+    private final TransactionValidationService transactionValidationService;
 
     public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService) {
+            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService) {
         this.listingRepository = listingRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
+        this.transactionValidationService = transactionValidationService;
     }
 
     /**
@@ -151,15 +151,16 @@ public class ListingService {
      * Executes the purchase of a marketplace listing.
      *
      * All database operations occur within a single transaction. Any failure
-     * after wallet debiting (e.g. saving the transaction record) will trigger
-     * a full rollback, preventing partial state.
+     * after wallet debiting (e.g. saving the transaction record) will trigger a
+     * full rollback, preventing partial state.
      *
-     * @param listingId   the ID of the listing to purchase
+     * @param listingId the ID of the listing to purchase
      * @param buyerUserId the ID of the user making the purchase
      * @return the SHA-256 transaction hash for tracking on the chain
-     * @throws ResourceNotFoundException if the listing, buyer wallet, or seller wallet is not found
-     * @throws IllegalStateException     if the listing is not ACTIVE, the buyer is the seller,
-     *                                   or the buyer has insufficient balance
+     * @throws ResourceNotFoundException if the listing, buyer wallet, or seller
+     * wallet is not found
+     * @throws IllegalStateException if the listing is not ACTIVE, the buyer is
+     * the seller, or the buyer has insufficient balance
      */
     @Transactional
     public String purchaseListing(Integer listingId, Integer buyerUserId) {
@@ -167,7 +168,7 @@ public class ListingService {
         // 1. Load the listing — throws 404 if not found
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Listing not found: " + listingId));
+                "Listing not found: " + listingId));
 
         // 2. Reject if the listing is no longer available (already SOLD or REMOVED)
         if (listing.getStatus() != Listing.Status.ACTIVE) {
@@ -183,22 +184,18 @@ public class ListingService {
         // 4. Load the buyer's wallet — throws 404 if not found
         Wallet buyerWallet = walletRepository.findByUserId(buyerUserId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Buyer wallet not found for userId: " + buyerUserId));
+                "Buyer wallet not found for userId: " + buyerUserId));
 
         // 5. Validate the buyer has enough TimeCoin to cover the listing price
         BigDecimal price = listing.getPrice();
-        if (buyerWallet.getCoinBalance().compareTo(price) < 0) {
-            throw new IllegalStateException(
-                    "Insufficient balance. Required: " + price
-                            + ", Available: " + buyerWallet.getCoinBalance());
-        }
+        transactionValidationService.validateBalance(buyerWallet.getWalletAddress(), price, BigDecimal.ZERO);
 
         // 6. Load the seller's wallet — throws 404 if not found
         Wallet sellerWallet = walletRepository.findByUserId(listing.getSellerId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Seller wallet not found for sellerId: " + listing.getSellerId()));
+                "Seller wallet not found for sellerId: " + listing.getSellerId()));
 
-        // 7. Transfer funds: debit buyer, credit seller
+        // 7. Debit the buyer's wallet and credit the seller's wallet.
         buyerWallet.setCoinBalance(buyerWallet.getCoinBalance().subtract(price));
         sellerWallet.setCoinBalance(sellerWallet.getCoinBalance().add(price));
         walletRepository.save(buyerWallet);
@@ -211,12 +208,24 @@ public class ListingService {
         tx.setSenderAddress(buyerWallet.getWalletAddress());
         tx.setReceiverAddress(sellerWallet.getWalletAddress());
         tx.setAmount(price);
-        tx.setFee(BigDecimal.ZERO);
+        tx.setFee(BigDecimal.ZERO.setScale(8)); // previously a scaling issue based on columns (18, 8) and (18, 0)
+        // now both are (18, 8) to ensure fee can be zero with correct scale.
         tx.setNonce(0); // TODO: implement per-sender nonce tracking in validation service
+        // TODO: see TransactionValidationService.validateNonce() for details on nonce implementation.
         tx.setTimestamp(now);
         tx.setStatus(Transaction.Status.PENDING);
         tx.setTransactionHash(transactionService.generateTransactionHash(buyerWallet.getWalletAddress(),
-                sellerWallet.getWalletAddress(), price, BigDecimal.ZERO, 0, now));
+                sellerWallet.getWalletAddress(), price, BigDecimal.ZERO.setScale(8), 0, now));
+
+        // Marketplace fields — needed for purchase history and transaction ledger.
+        tx.setUserId(buyerUserId);
+        tx.setSymbol("TC");
+        tx.setTransactionType(Transaction.TransactionType.BUY);
+        tx.setPriceAtTime(listing.getPrice());
+        // TODO: calculate totalUsd using current coin price once CoinRepository
+        // TODO: is injected into ListingService. Left null for now as a known limitation.
+        tx.setTotalUsd(null); // USD price not available in this context — no coin price reference here
+
         transactionRepository.save(tx);
 
         // 9. Mark the listing as SOLD so it can no longer be purchased

@@ -166,8 +166,8 @@ public class WalletService {
     }
 
     /**
-     * Generates an Ed25519 keypair and derives the wallet address from the public
-     * key.
+     * Generates an Ed25519 keypair and derives the wallet address from the
+     * public key.
      *
      * @return generated wallet identity data
      */
@@ -201,5 +201,7 @@ public class WalletService {
      * @param privateKey base64-encoded private key
      * @param walletAddress hash-derived public address
      */
-    private record WalletIdentity(String publicKey, String privateKey, String walletAddress) { }
+    private record WalletIdentity(String publicKey, String privateKey, String walletAddress) {
+
+    }
 }

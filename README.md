@@ -95,13 +95,12 @@ title: TimeCoin Database Overview
 erDiagram
     users ||--|| wallets : owns
     users ||--o{ listings : creates
-    users ||--o{ transactions : "purchase history"
-    wallets ||--o{ transactions : "sends/receives"
-    wallets ||--o{ validators : "stakes as"
-    wallets ||--o{ staking_events : "logs"
+    wallets ||--o| validators : "can register as"
+    wallets ||--o{ staking_events : logs
+    blocks ||--o{ transactions : confirms
+
     blocks ||--o{ block_transactions : contains
-    transactions ||--o{ block_transactions : "included in"
-    transactions }o--|| blocks : "confirmed in"
+    transactions ||--o{ block_transactions : maps
 
     users {
         int id PK
@@ -145,7 +144,7 @@ erDiagram
         string sender_address
         string receiver_address
         decimal amount
-        int user_id FK
+        int user_id
         string symbol
         enum transaction_type
         decimal price_at_time

@@ -435,22 +435,23 @@ If login returns `500`:
 ## Error Responses
 
 All errors return the same JSON shape:
-
 ```json
 {
-    "timestamp": "2026-02-22T05:00:00",
+    "timestamp": "2026-03-22T17:00:00",
     "status": 404,
     "error": "Not Found",
     "message": "Wallet not found for userId: 99"
 }
 ```
 
-| Status | Cause |
-|---|---|
-| 401 | Missing or invalid `Authorization` header |
-| 404 | Wallet, coin, or user record not found in database |
-| 409 | Duplicate resource (e.g. registering a username that already exists) |
-| 500 | Unexpected server error |
+| Status | Error | Cause |
+|---|---|---|
+| 400 | Bad Request | Insufficient funds, invalid input, or empty mempool on block assembly |
+| 401 | Unauthorized | Missing or invalid `Authorization` header |
+| 403 | Forbidden | Authenticated user attempted to modify a resource they do not own |
+| 404 | Not Found | Wallet, coin, user, listing, block, or transaction not found |
+| 409 | Conflict | Duplicate resource — username/email already taken, or duplicate pending transaction |
+| 500 | Internal Server Error | Unexpected server error — details are intentionally hidden from the client |
 
 ---
 

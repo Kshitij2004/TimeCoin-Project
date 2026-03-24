@@ -55,10 +55,16 @@ By using time as the main unit of value in our system, we are effectively buying
 
 #### Technology Stack
 
-Frontend: React.js or Node.js
-Backend: Java (potentially with SpringBoot)
-Database: MySQL
-Security/Authentication: TBD
+| Layer | Technology |
+|---|---|
+| Frontend | React.js |
+| Backend | Java 21 with Spring Boot 4.0.2 |
+| Database | MySQL 8.0 (Dockerized) |
+| Authentication | JWT via `jjwt` 0.13.0, BCrypt password hashing |
+| Security | Spring Security |
+| ORM | Hibernate / Spring Data JPA |
+| Build Tool | Gradle |
+| Testing | JUnit 5 + Mockito |
 
 ```mermaid
 flowchart RL
@@ -87,46 +93,103 @@ B <--> C
 title: TimeCoin Database Overview
 ---
 erDiagram
-   
-    Customer ||--|| Wallet : owns
-    Customer ||--o{ Service : creates
-    Customer ||--o{ Transaction : buyer
-    Customer ||--o{ Transaction : seller
-    Service ||--o{ Transaction : purchased_in
+    users ||--|| wallets : owns
+    users ||--o{ listings : creates
+    users ||--o{ transactions : "purchase history"
+    wallets ||--o{ transactions : "sends/receives"
+    wallets ||--o{ validators : "stakes as"
+    wallets ||--o{ staking_events : "logs"
+    blocks ||--o{ block_transactions : contains
+    transactions ||--o{ block_transactions : "included in"
+    transactions }o--|| blocks : "confirmed in"
 
-    Customer {
-        int customer_id PK
-        string name
+    users {
+        int id PK
+        string username
         string email
-        string phone
-        string user
-        string password
-
+        string password_hash
+        timestamp created_at
     }
 
-    Wallet {
-        int wallet_id PK
-        int customer_id FK
-        string balance
+    wallets {
+        int id PK
+        int user_id FK
+        string wallet_address
+        string public_key
+        decimal coin_balance
+        timestamp created_at
     }
 
-    Service {
-        int product_id PK
+    coins {
+        int id PK
+        decimal total_supply
+        decimal circulating_supply
+        decimal current_price
+        timestamp updated_at
+    }
+
+    listings {
+        int id PK
         int seller_id FK
         string title
-        string description
+        text description
         decimal price
         string category
-        bool is_active
+        enum status
+        string image_url
+        timestamp created_at
     }
 
-    Transaction {
-        int transaction_id PK
-        int buyer_id FK
-        int seller_id FK
-        int amount
-        int time
-        string status
+    transactions {
+        int id PK
+        string sender_address
+        string receiver_address
+        decimal amount
+        int user_id FK
+        string symbol
+        enum transaction_type
+        decimal price_at_time
+        decimal total_usd
+        decimal fee
+        int nonce
+        timestamp timestamp
+        string transaction_hash
+        enum status
+        int block_id FK
+    }
+
+    blocks {
+        int id PK
+        int block_height
+        string previous_hash
+        string block_hash
+        string validator_address
+        timestamp timestamp
+        int transaction_count
+        enum status
+    }
+
+    block_transactions {
+        int id PK
+        int block_id FK
+        int transaction_id FK
+    }
+
+    validators {
+        int id PK
+        string wallet_address FK
+        decimal staked_amount
+        enum status
+        timestamp joined_at
+        timestamp last_selected_at
+    }
+
+    staking_events {
+        int id PK
+        string wallet_address FK
+        enum event_type
+        decimal amount
+        timestamp created_at
     }
 ```
 

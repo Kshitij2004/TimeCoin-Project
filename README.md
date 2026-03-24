@@ -196,30 +196,237 @@ erDiagram
 
 ```mermaid
 ---
-title: Class diagram for TimeCoin
+title: Class Diagram for TimeCoin
 ---
 classDiagram
-    class user {
-        + register()
-        + login()
-        + makeService()
-        + purchaseService()
+    %% Controllers
+    class AuthController {
+        +register()
+        +login()
     }
-    class wallet {
-        + getBalance()
+    class WalletController {
+        +getWallet()
+        +getWalletTransactions()
     }
-    class service {
-        + updateService()
-        + removeService()
+    class CoinController {
+        +getCoin()
+        +buyCoin()
     }
-    class transaction {
-        + process()
-        + ensureBalance()
-        + complete()
+    class ListingController {
+        +createListing()
+        +getListings()
+        +getListingById()
+        +updateListing()
+        +deleteListing()
     }
-    user <|-- wallet
-    user <|-- service
-    user <|-- transaction
+    class MarketplaceController {
+        +purchaseListing()
+    }
+    class TransactionsController {
+        +getTransactions()
+        +buyCoinViaTransactionsRoute()
+        +submitTransfer()
+        +getByHash()
+    }
+    class BalanceController {
+        +getBalance()
+    }
+    class BlockController {
+        +assembleBlock()
+    }
+    class BlockchainExplorerController {
+        +getStatus()
+        +getBlocks()
+        +getBlockByHeight()
+        +getBlockByHash()
+        +minePending()
+    }
+
+    %% Services
+    class UserService {
+        +register()
+        +registerWithWallet()
+        +login()
+    }
+    class WalletService {
+        +getWalletByUserId()
+        +getWalletByAddress()
+        +createWalletForUser()
+        +ensureWalletIdentity()
+    }
+    class CoinService {
+        +getCurrentCoin()
+    }
+    class ListingService {
+        +createListing()
+        +getListings()
+        +getListingById()
+        +updateListing()
+        +deleteListing()
+        +purchaseListing()
+    }
+    class PurchaseService {
+        +purchaseCoin()
+    }
+    class TransactionService {
+        +createTransaction()
+        +createMarketplaceTransaction()
+        +findByHash()
+        +findById()
+        +findByWalletAddress()
+        +updateStatus()
+        +linkToBlock()
+        +generateTransactionHash()
+    }
+    class TransactionValidationService {
+        +validateBalance()
+        +validateNonce()
+    }
+    class TransactionHistoryService {
+        +getUserTransactions()
+    }
+    class BalanceService {
+        +getBalance()
+    }
+    class MempoolService {
+        +enqueueValidatedTransaction()
+        +getPendingTransactions()
+        +confirmTransactions()
+    }
+    class BlockService {
+        +createGenesisBlock()
+        +createBlock()
+        +generateBlockHash()
+        +getLatestBlock()
+    }
+    class BlockAssemblerService {
+        +assembleAndCommit()
+    }
+    class BlockchainExplorerService {
+        +getChainStatus()
+        +getRecentBlocks()
+        +getBlockByHeight()
+        +getBlockByHash()
+        +minePendingTransactions()
+    }
+    class GenesisBlockInitializer {
+        +ensureGenesisBlock()
+    }
+
+    %% Entities
+    class User {
+        +Integer id
+        +String username
+        +String email
+        +String passwordHash
+        +LocalDateTime createdAt
+    }
+    class Wallet {
+        +Integer id
+        +Integer userId
+        +String walletAddress
+        +String publicKey
+        +BigDecimal coinBalance
+        +LocalDateTime createdAt
+    }
+    class Coin {
+        +Long id
+        +BigDecimal totalSupply
+        +BigDecimal circulatingSupply
+        +BigDecimal currentPrice
+        +LocalDateTime updatedAt
+    }
+    class Listing {
+        +Integer id
+        +Integer sellerId
+        +String title
+        +String description
+        +BigDecimal price
+        +String category
+        +Status status
+        +LocalDateTime createdAt
+    }
+    class Transaction {
+        +Integer id
+        +String senderAddress
+        +String receiverAddress
+        +BigDecimal amount
+        +BigDecimal fee
+        +Integer nonce
+        +String transactionHash
+        +Status status
+        +Integer blockId
+    }
+    class Block {
+        +Integer id
+        +Integer blockHeight
+        +String previousHash
+        +String blockHash
+        +Integer transactionCount
+        +Status status
+    }
+    class BlockTransaction {
+        +Integer id
+        +Integer blockId
+        +Integer transactionId
+    }
+    class Validator {
+        +Integer id
+        +String walletAddress
+        +BigDecimal stakedAmount
+        +Status status
+    }
+    class StakingEvent {
+        +Integer id
+        +String walletAddress
+        +EventType eventType
+        +BigDecimal amount
+    }
+
+    %% Controller -> Service
+    AuthController --> UserService
+    WalletController --> WalletService
+    WalletController --> TransactionHistoryService
+    CoinController --> CoinService
+    CoinController --> PurchaseService
+    ListingController --> ListingService
+    MarketplaceController --> ListingService
+    TransactionsController --> TransactionService
+    TransactionsController --> TransactionHistoryService
+    TransactionsController --> PurchaseService
+    TransactionsController --> TransactionValidationService
+    BalanceController --> BalanceService
+    BlockController --> BlockAssemblerService
+    BlockchainExplorerController --> BlockchainExplorerService
+
+    %% Service -> Service
+    UserService --> WalletService
+    ListingService --> TransactionService
+    ListingService --> TransactionValidationService
+    PurchaseService --> WalletService
+    TransactionService --> MempoolService
+    MempoolService --> TransactionValidationService
+    TransactionValidationService --> BalanceService
+    BlockAssemblerService --> MempoolService
+    BlockAssemblerService --> BlockService
+    BlockchainExplorerService --> BlockService
+    BlockchainExplorerService --> MempoolService
+    GenesisBlockInitializer --> BlockService
+
+    %% Service -> Entity
+    UserService --> User
+    WalletService --> Wallet
+    CoinService --> Coin
+    ListingService --> Listing
+    TransactionService --> Transaction
+    BlockService --> Block
+    BlockService --> BlockTransaction
+    BalanceService --> Transaction
+    BalanceService --> StakingEvent
+    MempoolService --> Transaction
+    PurchaseService --> Transaction
+    PurchaseService --> Wallet
+    PurchaseService --> Coin
 ```
 
 #### Flowchart

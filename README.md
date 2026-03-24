@@ -418,32 +418,15 @@ graph TD;
 ---
 title: State Diagram - TimeCoin
 ---
-stateDiagram-v2
+stateDiagram
     [*] --> Ready
-
-    state "Transaction Lifecycle" as TL {
-        [*] --> PENDING : submitted to mempool
-        PENDING --> CONFIRMED : included in committed block
-        PENDING --> REJECTED : failed validation at block assembly
-        CONFIRMED --> [*]
-        REJECTED --> [*]
-    }
-
-    state "Listing Lifecycle" as LL {
-        [*] --> ACTIVE : listing created
-        ACTIVE --> SOLD : purchase completed
-        ACTIVE --> REMOVED : seller deletes listing
-        SOLD --> [*]
-        REMOVED --> [*]
-    }
-
-    state "Block Lifecycle" as BL {
-        [*] --> PENDING : block proposed
-        PENDING --> COMMITTED : transactions confirmed, hash linked
-        PENDING --> INVALID : failed validation
-        COMMITTED --> [*]
-        INVALID --> [*]
-    }
+    Ready --> Pending : purchase initiated
+    Pending --> Failed : insufficient funds
+    Pending --> Processing : balance validated
+    Processing --> Completed : wallets updated
+    Processing --> Failed : system error
+    Failed --> Ready : retry
+    Completed --> Ready : new transaction
 ```
 
 #### Sequence Diagram

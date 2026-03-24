@@ -194,7 +194,7 @@ erDiagram
 
 #### Class Diagram
 
-```
+```mermaid
 ---
 title: Class Diagram - TimeCoin
 ---

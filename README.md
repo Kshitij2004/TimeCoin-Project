@@ -416,29 +416,50 @@ sequenceDiagram
     participant U as User (Buyer)
     participant F as Frontend
     participant B as Backend API
-    participant T as Transaction Service
+    participant A as AuthFilter
+    participant LS as ListingService
+    participant TVS as TransactionValidationService
     participant W as Wallet
     participant DB as Database
 
     U->>F: Click "Purchase"
-    F->>B: POST /purchase(serviceId)
-
-    B->>DB: Get buyer balance
-    DB-->>B: Return balance
-
-    alt Insufficient Funds
-        B-->>F: Return error message
-        F-->>U: Show "Insufficient Funds"
-    else Sufficient Funds
-        B->>T: Create transaction (pending)
-        T->>W: Debit buyer
-        T->>W: Credit seller
-        W->>DB: Update balances
-        DB-->>W: Success
-        T->>DB: Save transaction
-        DB-->>T: Success
-        B-->>F: Return success
-        F-->>U: Show confirmation
+    F->>B: POST /api/listings/{id}/purchase
+    B->>A: Validate JWT
+    
+    alt Invalid or missing JWT
+        A-->>F: 401 Unauthorized
+        F-->>U: Show "Unauthorized"
+    else Valid JWT
+        A-->>B: Extract userId from token
+        B->>LS: purchaseListing(listingId, buyerUserId)
+        LS->>DB: Load listing
+        
+        alt Listing not ACTIVE
+            LS-->>B: IllegalStateException
+            B-->>F: 400 Bad Request
+            F-->>U: Show error
+        else Listing ACTIVE
+            LS->>DB: Load buyer wallet
+            LS->>TVS: validateBalance(address, price, fee)
+            TVS->>DB: Sum confirmed transactions
+            
+            alt Insufficient funds
+                TVS-->>LS: InsufficientFundsException
+                LS-->>B: 400 Bad Request
+                B-->>F: 400 Bad Request
+                F-->>U: Show "Insufficient Funds"
+            else Sufficient funds
+                LS->>DB: Load seller wallet
+                LS->>W: Debit buyer wallet
+                LS->>W: Credit seller wallet
+                W->>DB: Save both wallets
+                LS->>DB: Save PENDING transaction
+                LS->>DB: Mark listing as SOLD
+                LS-->>B: Return transaction hash
+                B-->>F: 200 OK with tx hash
+                F-->>U: Show confirmation
+            end
+        end
     end
 ```
 ### Standards & Conventions

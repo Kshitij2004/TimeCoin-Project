@@ -194,126 +194,11 @@ erDiagram
 
 #### Class Diagram
 
-```mermaid
+```
 ---
-title: Class Diagram for TimeCoin
+title: Class Diagram - TimeCoin
 ---
 classDiagram
-    %% Controllers
-    class AuthController {
-        +register()
-        +login()
-    }
-    class WalletController {
-        +getWallet()
-        +getWalletTransactions()
-    }
-    class CoinController {
-        +getCoin()
-        +buyCoin()
-    }
-    class ListingController {
-        +createListing()
-        +getListings()
-        +getListingById()
-        +updateListing()
-        +deleteListing()
-    }
-    class MarketplaceController {
-        +purchaseListing()
-    }
-    class TransactionsController {
-        +getTransactions()
-        +buyCoinViaTransactionsRoute()
-        +submitTransfer()
-        +getByHash()
-    }
-    class BalanceController {
-        +getBalance()
-    }
-    class BlockController {
-        +assembleBlock()
-    }
-    class BlockchainExplorerController {
-        +getStatus()
-        +getBlocks()
-        +getBlockByHeight()
-        +getBlockByHash()
-        +minePending()
-    }
-
-    %% Services
-    class UserService {
-        +register()
-        +registerWithWallet()
-        +login()
-    }
-    class WalletService {
-        +getWalletByUserId()
-        +getWalletByAddress()
-        +createWalletForUser()
-        +ensureWalletIdentity()
-    }
-    class CoinService {
-        +getCurrentCoin()
-    }
-    class ListingService {
-        +createListing()
-        +getListings()
-        +getListingById()
-        +updateListing()
-        +deleteListing()
-        +purchaseListing()
-    }
-    class PurchaseService {
-        +purchaseCoin()
-    }
-    class TransactionService {
-        +createTransaction()
-        +createMarketplaceTransaction()
-        +findByHash()
-        +findById()
-        +findByWalletAddress()
-        +updateStatus()
-        +linkToBlock()
-        +generateTransactionHash()
-    }
-    class TransactionValidationService {
-        +validateBalance()
-        +validateNonce()
-    }
-    class TransactionHistoryService {
-        +getUserTransactions()
-    }
-    class BalanceService {
-        +getBalance()
-    }
-    class MempoolService {
-        +enqueueValidatedTransaction()
-        +getPendingTransactions()
-        +confirmTransactions()
-    }
-    class BlockService {
-        +createGenesisBlock()
-        +createBlock()
-        +generateBlockHash()
-        +getLatestBlock()
-    }
-    class BlockAssemblerService {
-        +assembleAndCommit()
-    }
-    class BlockchainExplorerService {
-        +getChainStatus()
-        +getRecentBlocks()
-        +getBlockByHeight()
-        +getBlockByHash()
-        +minePendingTransactions()
-    }
-    class GenesisBlockInitializer {
-        +ensureGenesisBlock()
-    }
-
-    %% Entities
     class User {
         +Integer id
         +String username
@@ -321,6 +206,7 @@ classDiagram
         +String passwordHash
         +LocalDateTime createdAt
     }
+
     class Wallet {
         +Integer id
         +Integer userId
@@ -329,6 +215,7 @@ classDiagram
         +BigDecimal coinBalance
         +LocalDateTime createdAt
     }
+
     class Coin {
         +Long id
         +BigDecimal totalSupply
@@ -336,6 +223,7 @@ classDiagram
         +BigDecimal currentPrice
         +LocalDateTime updatedAt
     }
+
     class Listing {
         +Integer id
         +Integer sellerId
@@ -344,8 +232,10 @@ classDiagram
         +BigDecimal price
         +String category
         +Status status
+        +String imageUrl
         +LocalDateTime createdAt
     }
+
     class Transaction {
         +Integer id
         +String senderAddress
@@ -356,77 +246,128 @@ classDiagram
         +String transactionHash
         +Status status
         +Integer blockId
+        +TransactionType transactionType
     }
+
     class Block {
         +Integer id
         +Integer blockHeight
         +String previousHash
         +String blockHash
+        +String validatorAddress
         +Integer transactionCount
         +Status status
     }
+
     class BlockTransaction {
         +Integer id
         +Integer blockId
         +Integer transactionId
     }
+
     class Validator {
         +Integer id
         +String walletAddress
         +BigDecimal stakedAmount
         +Status status
+        +LocalDateTime joinedAt
+        +LocalDateTime lastSelectedAt
     }
+
     class StakingEvent {
         +Integer id
         +String walletAddress
         +EventType eventType
         +BigDecimal amount
+        +LocalDateTime createdAt
     }
 
-    %% Controller -> Service
-    AuthController --> UserService
-    WalletController --> WalletService
-    WalletController --> TransactionHistoryService
-    CoinController --> CoinService
-    CoinController --> PurchaseService
-    ListingController --> ListingService
-    MarketplaceController --> ListingService
-    TransactionsController --> TransactionService
-    TransactionsController --> TransactionHistoryService
-    TransactionsController --> PurchaseService
-    TransactionsController --> TransactionValidationService
-    BalanceController --> BalanceService
-    BlockController --> BlockAssemblerService
-    BlockchainExplorerController --> BlockchainExplorerService
+    class UserService {
+        +register()
+        +registerWithWallet()
+        +login()
+    }
 
-    %% Service -> Service
-    UserService --> WalletService
-    ListingService --> TransactionService
-    ListingService --> TransactionValidationService
-    PurchaseService --> WalletService
-    TransactionService --> MempoolService
-    MempoolService --> TransactionValidationService
-    TransactionValidationService --> BalanceService
-    BlockAssemblerService --> MempoolService
-    BlockAssemblerService --> BlockService
-    BlockchainExplorerService --> BlockService
-    BlockchainExplorerService --> MempoolService
-    GenesisBlockInitializer --> BlockService
+    class WalletService {
+        +getWalletByUserId()
+        +getWalletByAddress()
+        +createWalletForUser()
+        +ensureWalletIdentity()
+    }
 
-    %% Service -> Entity
-    UserService --> User
-    WalletService --> Wallet
-    CoinService --> Coin
-    ListingService --> Listing
-    TransactionService --> Transaction
-    BlockService --> Block
-    BlockService --> BlockTransaction
-    BalanceService --> Transaction
-    BalanceService --> StakingEvent
-    MempoolService --> Transaction
-    PurchaseService --> Transaction
-    PurchaseService --> Wallet
-    PurchaseService --> Coin
+    class ListingService {
+        +createListing()
+        +getListings()
+        +getListingById()
+        +updateListing()
+        +deleteListing()
+        +purchaseListing()
+    }
+
+    class TransactionService {
+        +createTransaction()
+        +createMarketplaceTransaction()
+        +findByHash()
+        +updateStatus()
+        +linkToBlock()
+        +generateTransactionHash()
+    }
+
+    class TransactionValidationService {
+        +validateBalance()
+    }
+
+    class BalanceService {
+        +getBalance()
+    }
+
+    class MempoolService {
+        +enqueueValidatedTransaction()
+        +getPendingTransactions()
+        +confirmTransactions()
+    }
+
+    class BlockService {
+        +createGenesisBlock()
+        +createBlock()
+        +generateBlockHash()
+    }
+
+    class BlockAssemblerService {
+        +assembleAndCommit()
+    }
+
+    class PurchaseService {
+        +purchaseCoin()
+    }
+
+    class CoinService {
+        +getCurrentCoin()
+    }
+
+    User "1" --> "1" Wallet : owns
+    User "1" --> "0..*" Listing : creates
+    Wallet "1" --> "0..*" Transaction : sends/receives
+    Wallet "1" --> "0..*" Validator : stakes as
+    Wallet "1" --> "0..*" StakingEvent : logs
+    Block "1" --> "0..*" BlockTransaction : contains
+    Transaction "1" --> "0..*" BlockTransaction : included in
+    Transaction "0..*" --> "1" Block : confirmed in
+
+    UserService --> User : manages
+    UserService --> WalletService : delegates to
+    WalletService --> Wallet : manages
+    ListingService --> Listing : manages
+    ListingService --> TransactionValidationService : validates with
+    TransactionService --> MempoolService : delegates to
+    TransactionValidationService --> BalanceService : checks balance via
+    MempoolService --> TransactionValidationService : validates with
+    BlockAssemblerService --> MempoolService : pulls pending from
+    BlockAssemblerService --> BlockService : delegates to
+    BlockService --> Block : manages
+    PurchaseService --> Coin : reads
+    PurchaseService --> Wallet : updates
+    CoinService --> Coin : manages
 ```
 
 #### Flowchart

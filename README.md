@@ -374,22 +374,42 @@ classDiagram
 
 ```mermaid
 ---
-title: Sample Program Flowchart
+title: TimeCoin Program Flowchart
 ---
 graph TD;
-    Start([Start]) --> Register[/Register/];
-    Register --> Login[Login];
-    Login --> Purchase_or_Sell{Purchase or Sell};
-    Purchase_or_Sell -->|Purchase| Select_Listing[Select Listing];
-    Purchase_or_Sell -->|Sell| Create_Service[/Create Service/];
-    Select_Listing --> Insufficient_Funds[Insufficient Funds];
-    Select_Listing --> Sufficient_Funds[Sufficient Funds]
-    Insufficient_Funds --> Cannot_Purchase[Cannot Purchase];
-    Sufficient_Funds --> Complete_Transaction[/Transaction Completed/];
-    Complete_Transaction --> End([End]);
-    Insufficient_Funds --> End;
-    Create_Service --> Description[Enter title, description, price];
-    Description --> Display_in_Market([Display Listing]);
+    Start([Start]) --> Register[/Register Account/]
+    Register --> Login[Login]
+    Login --> JWT[Receive JWT Token]
+    JWT --> Dashboard{What would you like to do?}
+
+    Dashboard -->|Browse Marketplace| ViewListings[View Active Listings]
+    Dashboard -->|Sell a Service| CreateListing[/Create Listing/]
+    Dashboard -->|Transfer Coins| Transfer[Submit Blockchain Transfer]
+    Dashboard -->|Buy TimeCoin| BuyCoin[Purchase TC via Coin API]
+
+    ViewListings --> SelectListing[Select a Listing]
+    SelectListing --> CheckFunds{Sufficient Balance?}
+    CheckFunds -->|No| InsufficientFunds[Insufficient Funds]
+    InsufficientFunds --> Dashboard
+    CheckFunds -->|Yes| Purchase[/Purchase Listing/]
+    Purchase --> DebitBuyer[Debit Buyer Wallet]
+    DebitBuyer --> CreditSeller[Credit Seller Wallet]
+    CreditSeller --> RecordPending[Record PENDING Transaction]
+    RecordPending --> MarkSold[Mark Listing as SOLD]
+    MarkSold --> Dashboard
+
+    CreateListing --> SetDetails[/Enter Title, Description, Price/]
+    SetDetails --> ActiveListing([Listing is ACTIVE in Marketplace])
+
+    Transfer --> ValidateBalance{Sufficient Balance?}
+    ValidateBalance -->|No| RejectTransfer[400 Insufficient Funds]
+    RejectTransfer --> Dashboard
+    ValidateBalance -->|Yes| EnqueueMempool[Enqueue in Mempool as PENDING]
+    EnqueueMempool --> AssembleBlock[Block Assembler picks up PENDING]
+    AssembleBlock --> Confirmed([Transaction CONFIRMED in Block])
+
+    BuyCoin --> UpdateWallet[Update Wallet Balance]
+    UpdateWallet --> Dashboard
 ```
 
 #### Behavior

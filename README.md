@@ -12,7 +12,7 @@ Also, be sure to check out the Wiki for information on how to maintain your team
 
 <!--A one paragraph summary of what the software will do.-->
 
-*TimeCoin* is a time-based cryptocurrency platform that will be designed for studnets to trade their own services over our website. Instead of simply paying for a service such as coding help or tutoring, *TimeCoin* will allow any student to offer their assistance in exhange for a certain amount of *TimeCoin* cryptocurrency. 
+*TimeCoin* is a time-based cryptocurrency platform designed for UW-Madison students to exchange services within their campus community. Students can register for an account, receive a TimeCoin wallet, and use the service marketplace to post or purchase offerings such as tutoring, coding help, or other skills. Transactions are recorded on a lightweight blockchain ledger; each transfer is hashed, grouped into blocks, and committed to the chain. The platform handles user authentication via JWT, peer-to-peer coin transfers between wallets, and a full marketplace purchase flow backed by balance validation and atomic transactions.
 
 ## Key Features of *TimeCoin*
 

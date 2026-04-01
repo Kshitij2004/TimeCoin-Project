@@ -62,11 +62,10 @@ public class WalletService {
     }
 
     /**
-     * Retrieves a wallet by sender address.
-     *
-     * @param senderAddress sender wallet address
-     * @return matching wallet entity
+     * @deprecated No longer used — TransactionValidationService now uses
+     * BalanceService directly. Use getWalletByAddress() if needed.
      */
+    @Deprecated
     public Wallet getWalletBySenderAddress(String senderAddress) {
         return getWalletByAddress(senderAddress);
     }
@@ -105,6 +104,7 @@ public class WalletService {
         wallet.setUserId(userId);
         wallet.setWalletAddress(identity.walletAddress());
         wallet.setPublicKey(identity.publicKey());
+        // deprecated column - set to 0 for schema constraint, not used for balance checks
         wallet.setCoinBalance(BigDecimal.ZERO.setScale(8));
         wallet.setCreatedAt(LocalDateTime.now());
 

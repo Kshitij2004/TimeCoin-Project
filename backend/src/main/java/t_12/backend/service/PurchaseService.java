@@ -29,33 +29,36 @@ import t_12.backend.repository.WalletRepository;
 public class PurchaseService {
 
     private static final String DEFAULT_SYMBOL = "TC";
-
     private final UserRepository userRepository;
     private final CoinRepository coinRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final WalletService walletService;
+    private final BalanceService balanceService;
 
     /**
-     * Creates a purchase service with persistence and wallet dependencies.
+     * Creates a purchase service with persistence, wallet, and balance dependencies.
      *
      * @param userRepository repository for users
      * @param coinRepository repository for coin state
      * @param walletRepository repository for wallet state
      * @param transactionRepository repository for transaction ledger rows
      * @param walletService service for wallet identity backfill logic
+     * @param balanceService service for ledger-derived balance lookups
      */
     public PurchaseService(
             UserRepository userRepository,
             CoinRepository coinRepository,
             WalletRepository walletRepository,
             TransactionRepository transactionRepository,
-            WalletService walletService) {
+            WalletService walletService,
+            BalanceService balanceService) {
         this.userRepository = userRepository;
         this.coinRepository = coinRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.walletService = walletService;
+        this.balanceService = balanceService;
     }
 
     /**
@@ -86,8 +89,8 @@ public class PurchaseService {
         coin.setUpdatedAt(LocalDateTime.now());
         coinRepository.save(coin);
 
-        wallet.setCoinBalance(wallet.getCoinBalance().add(amount));
-        walletRepository.save(wallet);
+        // no coinBalance mutation - the CONFIRMED transaction below is the balance change,
+        // picked up automatically by BalanceService via the ledger
 
         BigDecimal totalUsd = coin.getCurrentPrice()
                 .multiply(amount)
@@ -110,10 +113,13 @@ public class PurchaseService {
         transaction.setBlockId(null);
         Transaction savedTransaction = transactionRepository.save(transaction);
 
+        // fetch ledger-derived balance after the transaction is saved
+        BigDecimal available = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
+
         return new PurchaseResponse(
                 "Coin purchase successful",
                 new PurchaseTransactionDTO(savedTransaction),
-                new PurchaseWalletDTO(wallet)
+                new PurchaseWalletDTO(wallet, available)
         );
     }
 

@@ -195,11 +195,9 @@ public class ListingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                 "Seller wallet not found for sellerId: " + listing.getSellerId()));
 
-        // 7. Debit the buyer's wallet and credit the seller's wallet.
-        buyerWallet.setCoinBalance(buyerWallet.getCoinBalance().subtract(price));
-        sellerWallet.setCoinBalance(sellerWallet.getCoinBalance().add(price));
-        walletRepository.save(buyerWallet);
-        walletRepository.save(sellerWallet);
+        // 7. No direct balance mutation. The transaction record created in step 8
+        //    IS the balance change. Once confirmed into a block, BalanceService
+        //    picks it up automatically via the ledger.
 
         // 8. Record the transaction as PENDING in the database (acts as mempool entry).
         //    The block assembler will later pick this up and include it in a block.

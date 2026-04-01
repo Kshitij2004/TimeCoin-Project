@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.api.coin.PurchaseResponse;
 import t_12.backend.entity.Coin;
 import t_12.backend.entity.Transaction;
@@ -51,6 +53,9 @@ class PurchaseServiceTest {
     @Mock
     private WalletService walletService;
 
+    @Mock
+    private BalanceService balanceService;
+
     @InjectMocks
     private PurchaseService purchaseService;
 
@@ -80,6 +85,8 @@ class PurchaseServiceTest {
             transaction.setId(42);
             return transaction;
         });
+        when(balanceService.getBalance("wlt_1")).thenReturn(
+                new BalanceResponse("wlt_1", new BigDecimal("1.25"), BigDecimal.ZERO, new BigDecimal("1.25")));
 
         PurchaseResponse response = purchaseService.purchaseCoin(1, "tc", new BigDecimal("1.25"));
 
@@ -87,6 +94,10 @@ class PurchaseServiceTest {
         assertEquals(new BigDecimal("1.25"), response.getTransaction().getAmount());
         assertEquals(new BigDecimal("1.25"), response.getWallet().getCoinBalance());
         assertEquals(new BigDecimal("98.75"), coin.getCirculatingSupply());
+
+        // coinBalance on the entity must not be modified
+        assertEquals(BigDecimal.ZERO, wallet.getCoinBalance());
+        verify(walletRepository, never()).save(wallet);
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(transactionCaptor.capture());
@@ -162,10 +173,16 @@ class PurchaseServiceTest {
             transaction.setId(99);
             return transaction;
         });
+        when(balanceService.getBalance("wlt_backfilled")).thenReturn(
+                new BalanceResponse("wlt_backfilled", new BigDecimal("1.25"), BigDecimal.ZERO, new BigDecimal("1.25")));
 
         PurchaseResponse response = purchaseService.purchaseCoin(9, "TC", new BigDecimal("1.25"));
 
         assertNotNull(response.getWallet().getWalletAddress());
+
+        // coinBalance on the entity must not be modified
+        assertEquals(BigDecimal.ZERO, wallet.getCoinBalance());
+        verify(walletRepository, never()).save(wallet);
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(transactionCaptor.capture());

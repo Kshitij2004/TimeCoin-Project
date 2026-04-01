@@ -4,6 +4,24 @@ stages:
   - test
   - lint
 
+# Shared change sets (YAML anchors)
+.backend-rules:
+  rules:
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
+
+.frontend-rules:
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
+
+# Validate (always runs)
 check-required-files:
   stage: validate
   image: alpine:latest
@@ -22,13 +40,18 @@ check-required-files:
     - test -d RESEARCH
     - echo "All required files present."
 
+# Backend
 build-backend:
   stage: build
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
   rules:
-    - when: always
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
@@ -45,34 +68,17 @@ build-backend:
     - chmod +x gradlew
     - ./gradlew build -x test
 
-build-frontend:
-  stage: build
-  image: node:20-alpine
-  tags:
-    - cs506
-  rules:
-    - when: always
-  variables:
-    npm_config_cache: "$CI_PROJECT_DIR/.npm"
-  cache:
-    key:
-      files:
-        - frontend/package-lock.json
-    paths:
-      - .npm/
-  script:
-    - echo "Building frontend..."
-    - cd frontend
-    - npm ci
-    - npm run build
-
 test-backend:
   stage: test
   image: eclipse-temurin:21-jdk
   tags:
     - cs506
   rules:
-    - when: always
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
   needs:
     - job: build-backend
   variables:
@@ -105,7 +111,11 @@ test-schema:
   tags:
     - cs506
   rules:
-    - when: always
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
   needs:
     - job: build-backend
   variables:
@@ -132,13 +142,43 @@ test-schema:
       junit:
         - backend/build/test-results/testIntegration/*.xml
 
+# Frontend
+build-frontend:
+  stage: build
+  image: node:20-alpine
+  tags:
+    - cs506
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
+  script:
+    - echo "Building frontend..."
+    - cd frontend
+    - npm ci
+    - npm run build
+
 test-frontend:
   stage: test
   image: node:20-alpine
   tags:
     - cs506
   rules:
-    - when: always
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
   needs:
     - job: build-frontend
   variables:
@@ -170,7 +210,11 @@ lint-frontend:
   tags:
     - cs506
   rules:
-    - when: always
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+        - docker-compose.yml
+    - when: never
   needs:
     - job: build-frontend
   variables:

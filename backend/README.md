@@ -13,6 +13,9 @@ Spring Boot REST API backend for the TimeCoin platform. Handles wallet balances,
 | Database | MySQL 8.0 (Dockerized) |
 | Build Tool | Gradle |
 | ORM | Hibernate / Spring Data JPA |
+| Auth | JWT via jjwt 0.12.6, BCrypt password hashing |
+| Security | Spring Security |
+| Testing | JUnit 5 + Mockito |
 | Frontend | React (runs on `localhost:3000`) |
 
 ---
@@ -45,32 +48,23 @@ HikariPool-1 - Start completed
 ```
 src/main/java/t_12/backend/
 ├── api/
-│   ├── auth/           # AuthController + RegisterRequest + UserDTO
-│   ├── coin/           # CoinController + CoinDTO
-│   └── wallet/         # WalletController + WalletDTO
-├── config/             # SecurityConfig - Spring Security setup
+│   ├── auth/           # Registration and login endpoints
+│   ├── balance/        # Ledger-dervied wallet balance queries
+│   ├── block/          # Manual block assembly trigger
+│   ├── blockchain/     # Public blockchain explorer endpoints
+│   ├── coin/           # TimeCoin price info and purchase
+│   ├── listings/       # Marketplace listing CRUD
+│   ├── marketplace/    # Listing purchase endpoint
+│   ├── transaction/    # Transfer submission and history
+│   └── wallet/         # Wallet info and transaction history
+├── config/             # Spring Security route rules nad JWT filter registration
 ├── entity/             # JPA entities - map directly to database tables
-│   ├── Coin.java
-│   ├── User.java
-│   └── Wallet.java
-├── exception/          # GlobalExceptionHandler, ResourceNotFoundException,
-│                       #   DuplicateResourceException
-├── filter/             # AuthFilter - runs before every request
+├── exception/          # Typed exceptions and global error handler
+├── filter/             # Validates JWT on every request before it hits a controller
 ├── repository/         # Spring Data JPA interfaces
-│   ├── CoinRepository.java
-│   ├── UserRepository.java
-│   └── WalletRepository.java
-├── service/            # Business logic - all logic lives here, not in controllers
-│   ├── CoinService.java
-│   ├── UserService.java
-│   └── WalletService.java
-├── BackendApplication.java
-└── HealthController.java
+└── service/            # All business logic lives here, not in controllers
 
-src/test/java/t_12/backend/service/
-├── CoinServiceTest.java
-├── UserServiceTest.java
-└── WalletServiceTest.java
+src/test/java/t_12/backend/service/ # All service tests live here
 ```
 
 ### Layered Architecture
@@ -441,22 +435,23 @@ If login returns `500`:
 ## Error Responses
 
 All errors return the same JSON shape:
-
 ```json
 {
-    "timestamp": "2026-02-22T05:00:00",
+    "timestamp": "2026-03-22T17:00:00",
     "status": 404,
     "error": "Not Found",
     "message": "Wallet not found for userId: 99"
 }
 ```
 
-| Status | Cause |
-|---|---|
-| 401 | Missing or invalid `Authorization` header |
-| 404 | Wallet, coin, or user record not found in database |
-| 409 | Duplicate resource (e.g. registering a username that already exists) |
-| 500 | Unexpected server error |
+| Status | Error | Cause |
+|---|---|---|
+| 400 | Bad Request | Insufficient funds, invalid input, or empty mempool on block assembly |
+| 401 | Unauthorized | Missing or invalid `Authorization` header |
+| 403 | Forbidden | Authenticated user attempted to modify a resource they do not own |
+| 404 | Not Found | Wallet, coin, user, listing, block, or transaction not found |
+| 409 | Conflict | Duplicate resource — username/email already taken, or duplicate pending transaction |
+| 500 | Internal Server Error | Unexpected server error — details are intentionally hidden from the client |
 
 ---
 
@@ -637,13 +632,31 @@ Run tests with:
 
 ## Database
 
+## Database
+
 Tables are defined in `db/init.sql` and seeded with test data in `db/seed.sql`.
 
 | Entity | Table | Notes |
 |---|---|---|
 | `User` | `users` | Stores credentials; used by auth |
-| `Wallet` | `wallets` | `userId` references `users.id` |
-| `Coin` | `coins` | Single global record tracking current price and supply |
+| `Wallet` | `wallets` | One per user; holds `coin_balance` and Ed25519 keypair |
+| `Coin` | `coins` | Single global row tracking current price and supply |
+| `Block` | `blocks` | Each block links to its predecessor via `previous_hash` |
+| `BlockTransaction` | `block_transactions` | Join table linking blocks to their transactions |
+| `Transaction` | `transactions` | Covers both blockchain transfers and marketplace purchases |
+| `Listing` | `listings` | Marketplace listings; soft-deleted via `REMOVED` status |
+| `StakingEvent` | `staking_events` | Immutable audit log of every stake/unstake action |
+| `Validator` | `validators` | Users who have opted into PoS consensus by staking |
+
+### Balance Calculation
+
+Wallet balances are derived from confirmed on-chain state by `BalanceService`, not read from a stored column:
+```
+available = received - sent - fees - staked
+total     = available + staked
+```
+
+The `coin_balance` column on `wallets` acts as a running cache updated on each purchase or transfer. It will be replaced by ledger-derived balance once that feature fully lands.
 
 ---
 

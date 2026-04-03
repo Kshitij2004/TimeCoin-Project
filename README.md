@@ -12,7 +12,7 @@ Also, be sure to check out the Wiki for information on how to maintain your team
 
 <!--A one paragraph summary of what the software will do.-->
 
-*TimeCoin* is a time-based cryptocurrency platform that will be designed for studnets to trade their own services over our website. Instead of simply paying for a service such as coding help or tutoring, *TimeCoin* will allow any student to offer their assistance in exhange for a certain amount of *TimeCoin* cryptocurrency. 
+*TimeCoin* is a time-based cryptocurrency platform designed for UW-Madison students to exchange services within their campus community. Students can register for an account, receive a TimeCoin wallet, and use the service marketplace to post or purchase offerings such as tutoring, coding help, or other skills. Transactions are recorded on a lightweight blockchain ledger; each transfer is hashed, grouped into blocks, and committed to the chain. The platform handles user authentication via JWT, peer-to-peer coin transfers between wallets, and a full marketplace purchase flow backed by balance validation and atomic transactions.
 
 ## Key Features of *TimeCoin*
 
@@ -55,10 +55,16 @@ By using time as the main unit of value in our system, we are effectively buying
 
 #### Technology Stack
 
-Frontend: React.js or Node.js
-Backend: Java (potentially with SpringBoot)
-Database: MySQL
-Security/Authentication: TBD
+| Layer | Technology |
+|---|---|
+| Frontend | React.js |
+| Backend | Java 21 with Spring Boot 4.0.2 |
+| Database | MySQL 8.0 (Dockerized) |
+| Authentication | JWT via `jjwt` 0.13.0, BCrypt password hashing |
+| Security | Spring Security |
+| ORM | Hibernate / Spring Data JPA |
+| Build Tool | Gradle |
+| Testing | JUnit 5 + Mockito |
 
 ```mermaid
 flowchart RL
@@ -87,46 +93,102 @@ B <--> C
 title: TimeCoin Database Overview
 ---
 erDiagram
-   
-    Customer ||--|| Wallet : owns
-    Customer ||--o{ Service : creates
-    Customer ||--o{ Transaction : buyer
-    Customer ||--o{ Transaction : seller
-    Service ||--o{ Transaction : purchased_in
+    users ||--|| wallets : owns
+    users ||--o{ listings : creates
+    wallets ||--o| validators : "can register as"
+    wallets ||--o{ staking_events : logs
+    blocks ||--o{ transactions : confirms
 
-    Customer {
-        int customer_id PK
-        string name
+    blocks ||--o{ block_transactions : contains
+    transactions ||--o{ block_transactions : maps
+
+    users {
+        int id PK
+        string username
         string email
-        string phone
-        string user
-        string password
-
+        string password_hash
+        timestamp created_at
     }
 
-    Wallet {
-        int wallet_id PK
-        int customer_id FK
-        string balance
+    wallets {
+        int id PK
+        int user_id FK
+        string wallet_address
+        string public_key
+        decimal coin_balance
+        timestamp created_at
     }
 
-    Service {
-        int product_id PK
+    coins {
+        int id PK
+        decimal total_supply
+        decimal circulating_supply
+        decimal current_price
+        timestamp updated_at
+    }
+
+    listings {
+        int id PK
         int seller_id FK
         string title
-        string description
+        text description
         decimal price
         string category
-        bool is_active
+        enum status
+        string image_url
+        timestamp created_at
     }
 
-    Transaction {
-        int transaction_id PK
-        int buyer_id FK
-        int seller_id FK
-        int amount
-        int time
-        string status
+    transactions {
+        int id PK
+        string sender_address
+        string receiver_address
+        decimal amount
+        int user_id
+        string symbol
+        enum transaction_type
+        decimal price_at_time
+        decimal total_usd
+        decimal fee
+        int nonce
+        timestamp timestamp
+        string transaction_hash
+        enum status
+        int block_id FK
+    }
+
+    blocks {
+        int id PK
+        int block_height
+        string previous_hash
+        string block_hash
+        string validator_address
+        timestamp timestamp
+        int transaction_count
+        enum status
+    }
+
+    block_transactions {
+        int id PK
+        int block_id FK
+        int transaction_id FK
+    }
+
+    validators {
+        int id PK
+        string wallet_address FK
+        decimal staked_amount
+        enum status
+        timestamp joined_at
+        timestamp last_selected_at
+    }
+
+    staking_events {
+        int id PK
+        string wallet_address FK
+        enum event_type
+        decimal amount
+        timestamp created_at
     }
 ```
 
@@ -134,52 +196,220 @@ erDiagram
 
 ```mermaid
 ---
-title: Class diagram for TimeCoin
+title: Class Diagram - TimeCoin
 ---
 classDiagram
-    class user {
-        + register()
-        + login()
-        + makeService()
-        + purchaseService()
+    class User {
+        +Integer id
+        +String username
+        +String email
+        +String passwordHash
+        +LocalDateTime createdAt
     }
-    class wallet {
-        + getBalance()
+
+    class Wallet {
+        +Integer id
+        +Integer userId
+        +String walletAddress
+        +String publicKey
+        +BigDecimal coinBalance
+        +LocalDateTime createdAt
     }
-    class service {
-        + updateService()
-        + removeService()
+
+    class Coin {
+        +Long id
+        +BigDecimal totalSupply
+        +BigDecimal circulatingSupply
+        +BigDecimal currentPrice
+        +LocalDateTime updatedAt
     }
-    class transaction {
-        + process()
-        + ensureBalance()
-        + complete()
+
+    class Listing {
+        +Integer id
+        +Integer sellerId
+        +String title
+        +String description
+        +BigDecimal price
+        +String category
+        +Status status
+        +String imageUrl
+        +LocalDateTime createdAt
     }
-    user <|-- wallet
-    user <|-- service
-    user <|-- transaction
+
+    class Transaction {
+        +Integer id
+        +String senderAddress
+        +String receiverAddress
+        +BigDecimal amount
+        +BigDecimal fee
+        +Integer nonce
+        +String transactionHash
+        +Status status
+        +Integer blockId
+        +TransactionType transactionType
+    }
+
+    class Block {
+        +Integer id
+        +Integer blockHeight
+        +String previousHash
+        +String blockHash
+        +String validatorAddress
+        +Integer transactionCount
+        +Status status
+    }
+
+    class BlockTransaction {
+        +Integer id
+        +Integer blockId
+        +Integer transactionId
+    }
+
+    class Validator {
+        +Integer id
+        +String walletAddress
+        +BigDecimal stakedAmount
+        +Status status
+        +LocalDateTime joinedAt
+        +LocalDateTime lastSelectedAt
+    }
+
+    class StakingEvent {
+        +Integer id
+        +String walletAddress
+        +EventType eventType
+        +BigDecimal amount
+        +LocalDateTime createdAt
+    }
+
+    class UserService {
+        +register()
+        +registerWithWallet()
+        +login()
+    }
+
+    class WalletService {
+        +getWalletByUserId()
+        +getWalletByAddress()
+        +createWalletForUser()
+        +ensureWalletIdentity()
+    }
+
+    class ListingService {
+        +createListing()
+        +getListings()
+        +getListingById()
+        +updateListing()
+        +deleteListing()
+        +purchaseListing()
+    }
+
+    class TransactionService {
+        +createTransaction()
+        +createMarketplaceTransaction()
+        +findByHash()
+        +updateStatus()
+        +linkToBlock()
+        +generateTransactionHash()
+    }
+
+    class TransactionValidationService {
+        +validateBalance()
+    }
+
+    class BalanceService {
+        +getBalance()
+    }
+
+    class MempoolService {
+        +enqueueValidatedTransaction()
+        +getPendingTransactions()
+        +confirmTransactions()
+    }
+
+    class BlockService {
+        +createGenesisBlock()
+        +createBlock()
+        +generateBlockHash()
+    }
+
+    class BlockAssemblerService {
+        +assembleAndCommit()
+    }
+
+    class PurchaseService {
+        +purchaseCoin()
+    }
+
+    class CoinService {
+        +getCurrentCoin()
+    }
+
+    User "1" --> "1" Wallet : owns
+    User "1" --> "0..*" Listing : creates
+    Wallet "1" --> "0..*" Transaction : sends/receives
+    Wallet "1" --> "0..*" Validator : stakes as
+    Wallet "1" --> "0..*" StakingEvent : logs
+    Block "1" --> "0..*" BlockTransaction : contains
+    Transaction "1" --> "0..*" BlockTransaction : included in
+    Transaction "0..*" --> "1" Block : confirmed in
+
+    UserService --> User : manages
+    UserService --> WalletService : delegates to
+    WalletService --> Wallet : manages
+    ListingService --> Listing : manages
+    ListingService --> TransactionValidationService : validates with
+    TransactionService --> MempoolService : delegates to
+    TransactionValidationService --> BalanceService : checks balance via
+    MempoolService --> TransactionValidationService : validates with
+    BlockAssemblerService --> MempoolService : pulls pending from
+    BlockAssemblerService --> BlockService : delegates to
+    BlockService --> Block : manages
+    PurchaseService --> Coin : reads
+    PurchaseService --> Wallet : updates
+    CoinService --> Coin : manages
 ```
 
 #### Flowchart
 
 ```mermaid
 ---
-title: Sample Program Flowchart
+title: TimeCoin Program Flowchart
 ---
 graph TD;
-    Start([Start]) --> Register[/Register/];
-    Register --> Login[Login];
-    Login --> Purchase_or_Sell{Purchase or Sell};
-    Purchase_or_Sell -->|Purchase| Select_Listing[Select Listing];
-    Purchase_or_Sell -->|Sell| Create_Service[/Create Service/];
-    Select_Listing --> Insufficient_Funds[Insufficient Funds];
-    Select_Listing --> Sufficient_Funds[Sufficient Funds]
-    Insufficient_Funds --> Cannot_Purchase[Cannot Purchase];
-    Sufficient_Funds --> Complete_Transaction[/Transaction Completed/];
-    Complete_Transaction --> End([End]);
-    Insufficient_Funds --> End;
-    Create_Service --> Description[Enter title, description, price];
-    Description --> Display_in_Market([Display Listing]);
+    Start([Start]) --> Register[/Register Account/]
+    Register --> Login[Login]
+    Login --> JWT[Receive JWT Token]
+    JWT --> Dashboard{What would you like to do?}
+
+    Dashboard -->|Browse Marketplace| ViewListings[View Active Listings]
+    Dashboard -->|Sell a Service| CreateListing[/Create Listing/]
+    Dashboard -->|Transfer Coins| Transfer[Submit Blockchain Transfer]
+    Dashboard -->|Buy TimeCoin| BuyCoin[Purchase TC via Coin API]
+
+    ViewListings --> SelectListing[Select a Listing]
+    SelectListing --> CheckFunds{Sufficient Balance?}
+    CheckFunds -->|No| InsufficientFunds[Insufficient Funds]
+    InsufficientFunds --> Dashboard
+    CheckFunds -->|Yes| Purchase[/Purchase Listing/]
+    Purchase --> DebitBuyer[Debit Buyer Wallet]
+    DebitBuyer --> CreditSeller[Credit Seller Wallet]
+    CreditSeller --> RecordPending[Record PENDING Transaction]
+    RecordPending --> MarkSold[Mark Listing as SOLD]
+    MarkSold --> Dashboard
+
+    CreateListing --> SetDetails[/Enter Title, Description, Price/]
+    SetDetails --> ActiveListing([Listing is ACTIVE in Marketplace])
+
+    Transfer --> ValidateBalance{Sufficient Balance?}
+    ValidateBalance -->|No| RejectTransfer[400 Insufficient Funds]
+    RejectTransfer --> Dashboard
+    ValidateBalance -->|Yes| EnqueueMempool[Enqueue in Mempool as PENDING]
+    EnqueueMempool --> AssembleBlock[Block Assembler picks up PENDING]
+    AssembleBlock --> Confirmed([Transaction CONFIRMED in Block])
+
+    BuyCoin --> UpdateWallet[Update Wallet Balance]
+    UpdateWallet --> Dashboard
 ```
 
 #### Behavior
@@ -206,29 +436,50 @@ sequenceDiagram
     participant U as User (Buyer)
     participant F as Frontend
     participant B as Backend API
-    participant T as Transaction Service
+    participant A as AuthFilter
+    participant LS as ListingService
+    participant TVS as TransactionValidationService
     participant W as Wallet
     participant DB as Database
 
     U->>F: Click "Purchase"
-    F->>B: POST /purchase(serviceId)
-
-    B->>DB: Get buyer balance
-    DB-->>B: Return balance
-
-    alt Insufficient Funds
-        B-->>F: Return error message
-        F-->>U: Show "Insufficient Funds"
-    else Sufficient Funds
-        B->>T: Create transaction (pending)
-        T->>W: Debit buyer
-        T->>W: Credit seller
-        W->>DB: Update balances
-        DB-->>W: Success
-        T->>DB: Save transaction
-        DB-->>T: Success
-        B-->>F: Return success
-        F-->>U: Show confirmation
+    F->>B: POST /api/listings/{id}/purchase
+    B->>A: Validate JWT
+    
+    alt Invalid or missing JWT
+        A-->>F: 401 Unauthorized
+        F-->>U: Show "Unauthorized"
+    else Valid JWT
+        A-->>B: Extract userId from token
+        B->>LS: purchaseListing(listingId, buyerUserId)
+        LS->>DB: Load listing
+        
+        alt Listing not ACTIVE
+            LS-->>B: IllegalStateException
+            B-->>F: 400 Bad Request
+            F-->>U: Show error
+        else Listing ACTIVE
+            LS->>DB: Load buyer wallet
+            LS->>TVS: validateBalance(address, price, fee)
+            TVS->>DB: Sum confirmed transactions
+            
+            alt Insufficient funds
+                TVS-->>LS: InsufficientFundsException
+                LS-->>B: 400 Bad Request
+                B-->>F: 400 Bad Request
+                F-->>U: Show "Insufficient Funds"
+            else Sufficient funds
+                LS->>DB: Load seller wallet
+                LS->>W: Debit buyer wallet
+                LS->>W: Credit seller wallet
+                W->>DB: Save both wallets
+                LS->>DB: Save PENDING transaction
+                LS->>DB: Mark listing as SOLD
+                LS-->>B: Return transaction hash
+                B-->>F: 200 OK with tx hash
+                F-->>U: Show confirmation
+            end
+        end
     end
 ```
 ### Standards & Conventions

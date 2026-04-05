@@ -306,12 +306,13 @@ public class ListingsServiceTest {
 
         assertNotNull(txHash);
         assertEquals("mock-tx-hash", txHash);
-        assertEquals(SUFFICIENT_BALANCE.subtract(PRICE), buyerWallet.getCoinBalance());
-        assertEquals(PRICE, sellerWallet.getCoinBalance());
+        // coinBalance must not be modified — ledger is the source of truth
+        assertEquals(SUFFICIENT_BALANCE, buyerWallet.getCoinBalance());
+        assertEquals(BigDecimal.ZERO, sellerWallet.getCoinBalance());
         assertEquals(Listing.Status.SOLD, activeListing.getStatus());
         verify(transactionRepository, times(1)).save(any(Transaction.class));
-        verify(walletRepository, times(1)).save(buyerWallet);
-        verify(walletRepository, times(1)).save(sellerWallet);
+        verify(walletRepository, never()).save(buyerWallet);
+        verify(walletRepository, never()).save(sellerWallet);
         verify(listingRepository, times(1)).save(activeListing);
     }
 
@@ -424,8 +425,11 @@ public class ListingsServiceTest {
         String txHash = listingService.purchaseListing(LISTING_ID, BUYER_ID);
 
         assertNotNull(txHash);
-        assertEquals(0, buyerWallet.getCoinBalance().compareTo(BigDecimal.ZERO));
-        assertEquals(0, sellerWallet.getCoinBalance().compareTo(PRICE));
+        // coinBalance untouched — ledger handles balance
+        assertEquals(0, buyerWallet.getCoinBalance().compareTo(PRICE));
+        assertEquals(0, sellerWallet.getCoinBalance().compareTo(BigDecimal.ZERO));
         assertEquals(Listing.Status.SOLD, activeListing.getStatus());
+        verify(walletRepository, never()).save(buyerWallet);
+        verify(walletRepository, never()).save(sellerWallet);
     }
 }

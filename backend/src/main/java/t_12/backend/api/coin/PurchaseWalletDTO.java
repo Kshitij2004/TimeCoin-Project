@@ -13,21 +13,13 @@ public class PurchaseWalletDTO {
     private final String walletAddress;
     private final BigDecimal coinBalance;
 
-    public PurchaseWalletDTO(Wallet wallet) {
+    public PurchaseWalletDTO(Wallet wallet, BigDecimal ledgerBalance) {
         this.userId = wallet.getUserId();
         this.walletAddress = wallet.getWalletAddress();
-        this.coinBalance = wallet.getCoinBalance();
+        this.coinBalance = ledgerBalance;
     }
 
-    public Integer getUserId() {
-        return userId;
-    }
-
-    public String getWalletAddress() {
-        return walletAddress;
-    }
-
-    public BigDecimal getCoinBalance() {
-        return coinBalance;
-    }
+    public Integer getUserId() { return userId; }
+    public String getWalletAddress() { return walletAddress; }
+    public BigDecimal getCoinBalance() { return coinBalance; }
 }

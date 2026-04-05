@@ -30,6 +30,12 @@ public class Wallet {
     @Column(name = "public_key", nullable = false, unique = true, length = 512)
     private String publicKey;
 
+    /**
+     * @deprecated Legacy column - not written to by any service. All balance
+     * checks use BalanceService (ledger-derived). Kept at schema default (0)
+     * for backward compatibility. Do not read or write this field.
+     */
+    @Deprecated
     @Column(name = "coin_balance", nullable = false, precision = 18, scale = 8)
     private BigDecimal coinBalance;
 

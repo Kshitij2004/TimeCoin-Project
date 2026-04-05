@@ -26,4 +26,4 @@ auth:
   type: bearer
   credentials:
     token: "{{token_one}}"
-order: 5000
+order: 6000

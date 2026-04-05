@@ -1,0 +1,4 @@
+$kind: collection
+name: New Collection
+variables:
+  token_one: ""

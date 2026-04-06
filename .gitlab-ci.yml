@@ -102,13 +102,13 @@ test-backend:
     paths:
       - backend/build/reports/tests/testUnit/
       - backend/build/test-results/testUnit/
-      - backend/build/reports/jacoco/jacocoTestReport/html/
+      - backend/build/reports/jacoco/test/html/
     reports:
       junit:
         - backend/build/test-results/testUnit/*.xml
       coverage_report:
         coverage_format: cobertura
-        path: backend/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+        path: backend/build/reports/jacoco/test/jacocoTestReport.xml
 
 test-schema:
   stage: test

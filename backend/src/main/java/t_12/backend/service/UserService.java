@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import t_12.backend.api.auth.LoginResponse;
 import t_12.backend.entity.User;
 import t_12.backend.exception.ApiException;
 import t_12.backend.exception.DuplicateResourceException;
@@ -29,6 +30,7 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final String secretKey;
     private final int expiryHours;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Creates a user service with repository and wallet service dependencies.
@@ -44,10 +46,12 @@ public class UserService {
     public UserService(
             UserRepository userRepository,
             WalletService walletService,
+            RefreshTokenService refreshTokenService,
             @Value("${jwt.secret}") String secretKey,
             @Value("${jwt.expiry-hours}") int expiryHours) {
         this.userRepository = userRepository;
         this.walletService = walletService;
+        this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = new BCryptPasswordEncoder(10);
         this.secretKey = secretKey;
         this.expiryHours = expiryHours;
@@ -105,15 +109,17 @@ public class UserService {
     }
 
     /**
-     * Authenticates a user and returns a signed JWT token.
+     * Authenticates a user and returns a signed JWT access token and refresh
+     * token.
      *
      * @param username the username to authenticate
      * @param password the raw password to verify
-     * @return a signed JWT string containing the user ID and expiry
+     * @return a LoginResponse containing both the access token and refresh
+     * token
      * @throws ApiException if the username is not found or password is
      * incorrect
      */
-    public String login(String username, String password) {
+    public LoginResponse login(String username, String password) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
@@ -121,11 +127,15 @@ public class UserService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        return Jwts.builder()
+        String accessToken = Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .issuedAt(new Date())
                 .expiration(Date.from(Instant.now().plus(expiryHours, ChronoUnit.HOURS)))
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                 .compact();
+
+        String refreshToken = refreshTokenService.generate(user.getId()).getToken();
+
+        return new LoginResponse(accessToken, refreshToken);
     }
 }

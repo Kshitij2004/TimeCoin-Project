@@ -45,6 +45,9 @@ tasks.register('testUnit', Test) {
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
 	exclude '**/integration/**'
+	jacoco {
+		enabled = true
+	}
 }
 
 tasks.register('testIntegration', Test) {
@@ -59,7 +62,7 @@ tasks.register('testIntegration', Test) {
 // Test coverage report
 tasks.named('jacocoTestReport', JacocoReport) {
 	dependsOn testUnit
-	executionData(tasks.named('testUnit'))
+	executionData(tasks.named('jacoco/testUnit.exec'))
 	sourceSets sourceSets.main
 	reports {
 		xml.required = true

@@ -63,10 +63,11 @@ build-backend:
       - .gradle/wrapper/
       - .gradle/caches/
   script:
-    - echo "Building backend..."
+    - echo "Running backend unit tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew build -x test
+    - ./gradlew testUnit jacocoTestReport
+    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { print "Total: " covered/instructions*100 "%" }'' build/reports/jacoco/test/jacocoTestReport.csv'
 
 test-backend:
   stage: test

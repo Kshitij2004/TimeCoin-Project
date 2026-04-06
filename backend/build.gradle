@@ -57,7 +57,7 @@ tasks.register('testIntegration', Test) {
 }
 
 // Test coverage report
-tasks.register('jacocoTestReport', JacocoReport) {
+tasks.named('jacocoTestReport', JacocoReport) {
 	dependsOn testUnit
 	executionData(tasks.named('testUnit'))
 	sourceSets sourceSets.main

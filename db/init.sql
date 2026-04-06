@@ -148,3 +148,17 @@ CREATE TABLE IF NOT EXISTS listings (
 CREATE INDEX idx_listings_seller ON listings(seller_id);
 CREATE INDEX idx_listings_status ON listings(status);
 CREATE INDEX idx_listings_category ON listings(category);
+
+-- 10. Refresh Tokens
+-- stores active refresh tokens issued at login. deleted on use (rotation)
+-- or on logout. expires_at is checked server-side before issuing a new access token.
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(512) NOT NULL UNIQUE,
+    user_id INT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);

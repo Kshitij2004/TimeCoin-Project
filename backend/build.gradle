@@ -62,7 +62,7 @@ tasks.register('testIntegration', Test) {
 // Test coverage report
 tasks.named('jacocoTestReport', JacocoReport) {
 	dependsOn testUnit
-	executionData(tasks.named('jacoco/testUnit.exec'))
+	executionData files("${buildDir}/jacoco/testUnit.exec")
 	sourceSets sourceSets.main
 	reports {
 		xml.required = true

@@ -1,4 +1,4 @@
 $kind: collection
-name: New Collection
+name: JWT expiry testing
 variables:
   token_one: ""

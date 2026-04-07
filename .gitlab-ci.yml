@@ -96,6 +96,7 @@ test-backend:
     - cd backend
     - chmod +x gradlew
     - ./gradlew testUnit jacocoTestReport
+    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { print "Total: " covered/instructions*100 "%" }'' build/reports/jacoco/test/jacocoTestReport.csv'
   coverage: '/Total.*?([0-9]{1,3})%/'
   artifacts:
     when: always

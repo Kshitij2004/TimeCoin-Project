@@ -43,7 +43,9 @@
       "!src/pages/send/Send.js",
       "!src/pages/Landing.js",
       "!src/pages/Login.js",
-      "!src/pages/Register.js"
+      "!src/pages/Register.js",
+      "!src/pages/marketplace/CreateListing.js",
+      "!src/pages/marketplace/ListingDetail.js"
     ]
   },
   "browserslist": {

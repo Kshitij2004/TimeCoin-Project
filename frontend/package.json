@@ -32,6 +32,20 @@
     },
     "transformIgnorePatterns": [
       "node_modules/(?!(axios)/)"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/index.js",
+      "!src/setupTests.js",
+      "!src/services/api.js",
+      "!src/**/*.css",
+      "!src/pages/dashboard/Dashboard.js",
+      "!src/pages/send/Send.js",
+      "!src/pages/Landing.js",
+      "!src/pages/Login.js",
+      "!src/pages/Register.js",
+      "!src/pages/marketplace/CreateListing.js",
+      "!src/pages/marketplace/ListingDetail.js"
     ]
   },
   "browserslist": {

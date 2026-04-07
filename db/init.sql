@@ -148,3 +148,13 @@ CREATE TABLE IF NOT EXISTS listings (
 CREATE INDEX idx_listings_seller ON listings(seller_id);
 CREATE INDEX idx_listings_status ON listings(status);
 CREATE INDEX idx_listings_category ON listings(category);
+
+-- 10. Price History
+-- tracks coin price over time for charting. one row per recalculation.
+CREATE TABLE IF NOT EXISTS price_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    price DECIMAL(15, 2) NOT NULL,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_price_history_time ON price_history(recorded_at);

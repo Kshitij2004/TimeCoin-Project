@@ -38,7 +38,12 @@
       "!src/index.js",
       "!src/setupTests.js",
       "!src/services/api.js",
-      "!src/**/*.css"
+      "!src/**/*.css",
+      "!src/pages/dashboard/Dashboard.js",
+      "!src/pages/send/Send.js",
+      "!src/pages/Landing.js",
+      "!src/pages/Login.js",
+      "!src/pages/Register.js"
     ]
   },
   "browserslist": {

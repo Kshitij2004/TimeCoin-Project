@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import t_12.backend.api.auth.LoginResponse;
+import t_12.backend.entity.RefreshToken;
 import t_12.backend.entity.User;
 import t_12.backend.exception.ApiException;
 import t_12.backend.exception.DuplicateResourceException;
@@ -137,5 +138,28 @@ public class UserService {
         String refreshToken = refreshTokenService.generate(user.getId()).getToken();
 
         return new LoginResponse(accessToken, refreshToken);
+    }
+
+    /**
+     * Issues a new access token from a valid refresh token.
+     *
+     * @param refreshToken the refresh token string sent by the client
+     * @return a LoginResponse containing a new access token and rotated refresh
+     * token
+     * @throws ApiException if the refresh token is invalid or expired
+     */
+    public LoginResponse refresh(String refreshToken) {
+        RefreshToken validated = refreshTokenService.validate(refreshToken);
+
+        String accessToken = Jwts.builder()
+                .subject(String.valueOf(validated.getUserId()))
+                .issuedAt(new Date())
+                .expiration(Date.from(Instant.now().plus(expiryHours, ChronoUnit.HOURS)))
+                .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                .compact();
+
+        String newRefreshToken = refreshTokenService.generate(validated.getUserId()).getToken();
+
+        return new LoginResponse(accessToken, newRefreshToken);
     }
 }

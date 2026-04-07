@@ -22,10 +22,12 @@ public class AuthController {
     private final boolean exposePrivateKeyOnCreate;
 
     /**
-     * Creates an auth controller with user service and registration response mode.
+     * Creates an auth controller with user service and registration response
+     * mode.
      *
      * @param userService user business service
-     * @param exposePrivateKeyOnCreate true when register response may include private key
+     * @param exposePrivateKeyOnCreate true when register response may include
+     * private key
      */
     public AuthController(
             UserService userService,
@@ -58,15 +60,27 @@ public class AuthController {
     }
 
     /**
-     * Authenticates a user and returns a JWT token if successful.
+     * Authenticates a user and returns a JWT access token and refresh token.
      *
      * @param request the login request containing username and password
-     * @return ResponseEntity containing the JWT token string
+     * @return ResponseEntity containing both the access token and refresh token
      */
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
-        String token = userService.login(request.getUsername(), request.getPassword());
-        return ResponseEntity.ok(token);
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        LoginResponse response = userService.login(request.getUsername(), request.getPassword());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Issues a new access token given a valid refresh token.
+     *
+     * @param request the refresh request containing the refresh token string
+     * @return ResponseEntity containing a new access token
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@RequestBody RefreshRequest request) {
+        LoginResponse response = userService.refresh(request.getRefreshToken());
+        return ResponseEntity.ok(response);
     }
 
 }

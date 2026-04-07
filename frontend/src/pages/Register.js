@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../services/api.js';
-import '../Login.css'; // Importing your existing Login CSS for consistent styling
+import '../Login.css'; 
 
 const Register = () => {
     const navigate = useNavigate();
@@ -19,9 +19,36 @@ const Register = () => {
     };
 
     const validateForm = () => {
-        if (!formData.username || !formData.email || !formData.password) return "All fields are required.";
-        if (!/\S+@\S+\.\S+/.test(formData.email)) return "Invalid email format.";
-        if (formData.password !== formData.confirmPassword) return "Passwords do not match.";
+        const { username, email, password, confirmPassword } = formData;
+
+        // 1. Basic Check
+        if (!username || !email || !password || !confirmPassword) {
+            return "All fields are required.";
+        }
+
+        // 2. Email Validation (Standard format)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return "Email must match standard format (e.g., name@domain.com).";
+        }
+
+        // 3. Username Validation (3-20 chars, alphanumeric only)
+        const usernameRegex = /^[a-zA-Z0-9]{3,20}$/;
+        if (!usernameRegex.test(username)) {
+            return "Username must be 3-20 characters and alphanumeric only.";
+        }
+
+        // 4. Password Validation (8+ chars, 1 upper, 1 lower, 1 number)
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, and a number.";
+        }
+
+        // 5. Match Check
+        if (password !== confirmPassword) {
+            return "Passwords do not match.";
+        }
+
         return null;
     };
 
@@ -37,7 +64,6 @@ const Register = () => {
 
         setLoading(true);
         try {
-            // Acceptance Criteria: Uses shared api utility via registerUser
             await registerUser({
                 username: formData.username,
                 email: formData.email,
@@ -47,7 +73,6 @@ const Register = () => {
             alert("Account created! Redirecting to login...");
             navigate('/login');
         } catch (err) {
-            // Captures global error handling from axios interceptor
             setError(err.response?.data?.message || "Registration failed. Try again.");
         } finally {
             setLoading(false);
@@ -61,7 +86,16 @@ const Register = () => {
                     <h2>Create an Account</h2>
                     
                     {error && (
-                        <div style={{ color: 'red', marginBottom: '10px', textAlign: 'center' }}>
+                        <div style={{ 
+                            color: '#ff4d4d', 
+                            backgroundColor: '#ffe6e6', 
+                            padding: '10px', 
+                            borderRadius: '5px', 
+                            marginBottom: '15px', 
+                            fontSize: '14px',
+                            textAlign: 'center',
+                            border: '1px solid #ffcccc'
+                        }}>
                             {error}
                         </div>
                     )}
@@ -71,6 +105,7 @@ const Register = () => {
                             name="username" 
                             placeholder="Username" 
                             onChange={handleChange} 
+                            value={formData.username}
                             required 
                         />
                     </div>
@@ -81,6 +116,7 @@ const Register = () => {
                             type="email" 
                             placeholder="Email" 
                             onChange={handleChange} 
+                            value={formData.email}
                             required 
                         />
                     </div>
@@ -91,6 +127,7 @@ const Register = () => {
                             type="password" 
                             placeholder="Password" 
                             onChange={handleChange} 
+                            value={formData.password}
                             required 
                         />
                     </div>
@@ -101,6 +138,7 @@ const Register = () => {
                             type="password" 
                             placeholder="Confirm Password" 
                             onChange={handleChange} 
+                            value={formData.confirmPassword}
                             required 
                         />
                     </div>

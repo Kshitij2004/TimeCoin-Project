@@ -32,6 +32,7 @@ import t_12.backend.repository.TransactionRepository;
 import t_12.backend.repository.UserRepository;
 import t_12.backend.repository.WalletRepository;
 
+
 /**
  * Unit tests for PurchaseService.
  */
@@ -188,5 +189,84 @@ class PurchaseServiceTest {
         verify(transactionRepository).save(transactionCaptor.capture());
         verify(walletService, atLeastOnce()).ensureWalletIdentity(wallet);
         assertNotNull(transactionCaptor.getValue().getReceiverAddress());
+    }
+
+    @Test
+    void sellCoinSucceedsAndReturnsUpdatedWallet() {
+        User user = new User();
+        user.setId(1);
+
+        Coin coin = new Coin();
+        coin.setId(1L);
+        coin.setCurrentPrice(new BigDecimal("66000.00"));
+        coin.setCirculatingSupply(new BigDecimal("100.00"));
+        coin.setTotalSupply(new BigDecimal("1000000.00"));
+
+        Wallet wallet = new Wallet();
+        wallet.setUserId(1);
+        wallet.setWalletAddress("wlt_1");
+        wallet.setPublicKey("pub_1");
+        wallet.setCoinBalance(BigDecimal.ZERO);
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
+        when(walletRepository.findByUserId(1)).thenReturn(Optional.of(wallet));
+        when(walletService.ensureWalletIdentity(wallet)).thenReturn(wallet);
+        when(balanceService.getBalance("wlt_1")).thenReturn(
+                new BalanceResponse("wlt_1", new BigDecimal("10.00"), BigDecimal.ZERO, new BigDecimal("10.00")));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+            Transaction transaction = invocation.getArgument(0);
+            transaction.setId(42);
+            return transaction;
+        });
+
+        PurchaseResponse response = purchaseService.sellCoin(1, "TC", new BigDecimal("1.25"));
+
+        assertEquals("Coin sell successful", response.getMessage());
+        assertEquals(new BigDecimal("1.25"), response.getTransaction().getAmount());
+        assertEquals(new BigDecimal("101.25"), coin.getCirculatingSupply());
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertEquals(Transaction.TransactionType.SELL, captor.getValue().getTransactionType());
+        assertEquals("wlt_1", captor.getValue().getSenderAddress());
+    }
+
+    @Test
+    void sellCoinRejectsInsufficientBalance() {
+        User user = new User();
+        user.setId(1);
+
+        Coin coin = new Coin();
+        coin.setCurrentPrice(new BigDecimal("66000.00"));
+        coin.setCirculatingSupply(new BigDecimal("100.00"));
+
+        Wallet wallet = new Wallet();
+        wallet.setUserId(1);
+        wallet.setWalletAddress("wlt_1");
+        wallet.setPublicKey("pub_1");
+        wallet.setCoinBalance(BigDecimal.ZERO);
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
+        when(walletRepository.findByUserId(1)).thenReturn(Optional.of(wallet));
+        when(walletService.ensureWalletIdentity(wallet)).thenReturn(wallet);
+        when(balanceService.getBalance("wlt_1")).thenReturn(
+                new BalanceResponse("wlt_1", new BigDecimal("0.50"), BigDecimal.ZERO, new BigDecimal("0.50")));
+
+        ApiException ex = assertThrows(ApiException.class,
+                () -> purchaseService.sellCoin(1, "TC", new BigDecimal("1.25")));
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatus());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void sellCoinRejectsUnknownSymbol() {
+        ApiException ex = assertThrows(ApiException.class,
+                () -> purchaseService.sellCoin(1, "ETH", new BigDecimal("1.00")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("symbol must be TC", ex.getMessage());
     }
 }

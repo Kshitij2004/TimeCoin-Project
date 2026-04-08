@@ -61,6 +61,29 @@ public class CoinController {
     }
 
     /**
+     * Sells TimeCoin for the authenticated user.
+     *
+     * @param request the sell request body (same shape as buy)
+     * @return the saved transaction and updated wallet state
+     */
+    @PostMapping("/sell")
+    public ResponseEntity<PurchaseResponse> sellCoin(
+            @RequestBody PurchaseRequest request) {
+        Integer authenticatedUserId = getAuthenticatedUserId();
+        if (request.getUserId() != null && !request.getUserId().equals(authenticatedUserId)) {
+            throw new ForbiddenException("Forbidden: userId does not match authenticated user");
+        }
+
+        return ResponseEntity.status(201).body(
+                purchaseService.sellCoin(
+                        authenticatedUserId,
+                        request.getSymbol(),
+                        request.getAmount()
+                )
+        );
+    }
+
+    /**
      * Reads the authenticated user ID from the SecurityContext.
      *
      * @return authenticated user ID from JWT principal

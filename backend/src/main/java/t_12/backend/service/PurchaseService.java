@@ -124,6 +124,69 @@ public class PurchaseService {
     }
 
     /**
+     * Executes a TimeCoin sell and writes all related state updates.
+     * Validates the seller has sufficient ledger-derived balance before proceeding.
+     *
+     * @param userId authenticated user identifier
+     * @param symbol requested coin symbol
+     * @param amount amount to sell
+     * @return purchase response containing transaction and wallet data
+     */
+    @Transactional
+    public PurchaseResponse sellCoin(Integer userId, String symbol, BigDecimal amount) {
+        validateInput(userId, symbol, amount);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        Coin coin = coinRepository.findFirstByOrderByIdAsc()
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Coin not found"));
+        Wallet wallet = walletRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet not found"));
+        wallet = walletService.ensureWalletIdentity(wallet);
+
+        // check ledger-derived balance
+        BigDecimal available = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
+        if (available.compareTo(amount) < 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Insufficient balance: available " + available + ", requested " + amount);
+        }
+
+        // return coins to circulating supply
+        coin.setCirculatingSupply(coin.getCirculatingSupply().add(amount));
+        coin.setUpdatedAt(LocalDateTime.now());
+        coinRepository.save(coin);
+
+        BigDecimal totalUsd = coin.getCurrentPrice()
+                .multiply(amount)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        Transaction transaction = new Transaction();
+        transaction.setUserId(user.getId());
+        transaction.setSymbol(normalizeSymbol(symbol));
+        transaction.setSenderAddress(wallet.getWalletAddress());
+        transaction.setReceiverAddress(null);
+        transaction.setAmount(amount);
+        transaction.setTransactionType(Transaction.TransactionType.SELL);
+        transaction.setPriceAtTime(coin.getCurrentPrice());
+        transaction.setTotalUsd(totalUsd);
+        transaction.setFee(BigDecimal.ZERO.setScale(8, RoundingMode.HALF_UP));
+        transaction.setNonce(0);
+        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTransactionHash("sell_" + UUID.randomUUID());
+        transaction.setStatus(Transaction.Status.CONFIRMED);
+        transaction.setBlockId(null);
+        Transaction savedTransaction = transactionRepository.save(transaction);
+
+        BigDecimal updatedBalance = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
+
+        return new PurchaseResponse(
+                "Coin sell successful",
+                new PurchaseTransactionDTO(savedTransaction),
+                new PurchaseWalletDTO(wallet, updatedBalance)
+        );
+    }
+
+    /**
      * Validates buy request payload fields.
      *
      * @param userId request user ID

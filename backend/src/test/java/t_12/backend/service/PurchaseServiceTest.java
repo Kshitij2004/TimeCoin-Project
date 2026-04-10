@@ -57,6 +57,9 @@ class PurchaseServiceTest {
     @Mock
     private BalanceService balanceService;
 
+    @Mock
+    private PriceEngineService priceEngineService;
+
     @InjectMocks
     private PurchaseService purchaseService;
 
@@ -103,6 +106,7 @@ class PurchaseServiceTest {
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(transactionCaptor.capture());
         assertEquals(Transaction.TransactionType.BUY, transactionCaptor.getValue().getTransactionType());
+        verify(priceEngineService).recordBuy(new BigDecimal("1.25"));
     }
 
     @Test
@@ -230,6 +234,8 @@ class PurchaseServiceTest {
         verify(transactionRepository).save(captor.capture());
         assertEquals(Transaction.TransactionType.SELL, captor.getValue().getTransactionType());
         assertEquals("wlt_1", captor.getValue().getSenderAddress());
+
+        verify(priceEngineService).recordSell(new BigDecimal("1.25"));
     }
 
     @Test
@@ -259,6 +265,7 @@ class PurchaseServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatus());
         verify(transactionRepository, never()).save(any());
+
     }
 
     @Test

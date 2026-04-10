@@ -35,9 +35,11 @@ public class PurchaseService {
     private final TransactionRepository transactionRepository;
     private final WalletService walletService;
     private final BalanceService balanceService;
+    private final PriceEngineService priceEngineService;
 
     /**
-     * Creates a purchase service with persistence, wallet, and balance dependencies.
+     * Creates a purchase service with persistence, wallet, balance,
+     * and price engine dependencies.
      *
      * @param userRepository repository for users
      * @param coinRepository repository for coin state
@@ -45,6 +47,7 @@ public class PurchaseService {
      * @param transactionRepository repository for transaction ledger rows
      * @param walletService service for wallet identity backfill logic
      * @param balanceService service for ledger-derived balance lookups
+     * @param priceEngineService service for dynamic price recalculation
      */
     public PurchaseService(
             UserRepository userRepository,
@@ -52,13 +55,15 @@ public class PurchaseService {
             WalletRepository walletRepository,
             TransactionRepository transactionRepository,
             WalletService walletService,
-            BalanceService balanceService) {
+            BalanceService balanceService,
+            PriceEngineService priceEngineService) {
         this.userRepository = userRepository;
         this.coinRepository = coinRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.walletService = walletService;
         this.balanceService = balanceService;
+        this.priceEngineService = priceEngineService;
     }
 
     /**
@@ -112,6 +117,9 @@ public class PurchaseService {
         transaction.setStatus(Transaction.Status.CONFIRMED);
         transaction.setBlockId(null);
         Transaction savedTransaction = transactionRepository.save(transaction);
+
+        // recalculate coin price based on buy volume
+        priceEngineService.recordBuy(amount);
 
         // fetch ledger-derived balance after the transaction is saved
         BigDecimal available = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
@@ -176,6 +184,9 @@ public class PurchaseService {
         transaction.setStatus(Transaction.Status.CONFIRMED);
         transaction.setBlockId(null);
         Transaction savedTransaction = transactionRepository.save(transaction);
+
+        // recalculate coin price based on sell volume
+        priceEngineService.recordSell(amount);
 
         BigDecimal updatedBalance = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
 

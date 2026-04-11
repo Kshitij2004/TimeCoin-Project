@@ -57,7 +57,6 @@ public class BalanceService {
 
         BigDecimal staked = computeStakedBalance(walletAddress);
 
-        // null guard — COALESCE should handle it but just in case
         received = received != null ? received : BigDecimal.ZERO;
         sent = sent != null ? sent : BigDecimal.ZERO;
         fees = fees != null ? fees : BigDecimal.ZERO;
@@ -67,6 +66,26 @@ public class BalanceService {
         BigDecimal total = available.add(staked);
 
         return new BalanceResponse(walletAddress, available, staked, total);
+    }
+
+    /**
+     * Returns the spendable balance, which accounts for pending outgoing
+     * transactions that haven't been confirmed yet. This prevents double-spending
+     * by reserving funds that are already committed in pending transactions.
+     *
+     * spendable = available - pendingOutgoing
+     *
+     * @param walletAddress the wallet address to compute spendable balance for
+     * @return the spendable balance after subtracting pending outgoing amounts
+     * @throws ResourceNotFoundException if the wallet address doesn't exist
+     */
+    public BigDecimal getSpendableBalance(String walletAddress) {
+        BalanceResponse balance = getBalance(walletAddress);
+        BigDecimal pendingOutgoing = transactionRepository
+                .sumPendingOutgoingByAddress(walletAddress);
+        pendingOutgoing = pendingOutgoing != null ? pendingOutgoing : BigDecimal.ZERO;
+
+        return balance.getAvailable().subtract(pendingOutgoing);
     }
 
     /**

@@ -54,6 +54,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     BigDecimal sumFeesBySenderAndStatus(@Param("address") String address,
                                         @Param("status") Transaction.Status status);
 
+    /** Sum of (amount + fee) for pending outgoing transactions from this address */
+    @Query("SELECT COALESCE(SUM(t.amount + t.fee), 0) FROM Transaction t " +
+           "WHERE t.senderAddress = :address AND t.status = 'PENDING'")
+    BigDecimal sumPendingOutgoingByAddress(@Param("address") String address);
+
     boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
             String receiverAddress,
             BigDecimal amount,

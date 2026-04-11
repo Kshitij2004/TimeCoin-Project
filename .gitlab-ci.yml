@@ -95,15 +95,21 @@ test-backend:
     - echo "Running backend unit tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew testUnit
+    - ./gradlew testUnit jacocoTestReport
+    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { print "Total: " covered/instructions*100 "%" }'' build/reports/jacoco/test/jacocoTestReport.csv'
+  coverage: '/Total:\s*(\d+\.\d+)%/'
   artifacts:
     when: always
     paths:
       - backend/build/reports/tests/testUnit/
       - backend/build/test-results/testUnit/
+      - backend/build/reports/jacoco/test/html/
     reports:
       junit:
         - backend/build/test-results/testUnit/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/build/reports/jacoco/test/jacocoTestReport.xml
 
 test-schema:
   stage: test
@@ -195,14 +201,19 @@ test-frontend:
     - echo "Running frontend tests..."
     - cd frontend
     - npm ci
-    - npm test -- --watchAll=false --passWithNoTests --reporters=default --reporters=jest-junit
+    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+  coverage: '/Statements\s*:\s*([0-9.]+)%/'
   artifacts:
     when: always
     paths:
       - frontend/junit.xml
+      - frontend/coverage/
     reports:
       junit:
         - frontend/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
 
 lint-frontend:
   stage: lint

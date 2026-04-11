@@ -2,6 +2,7 @@
 
 plugins {
 	id 'java'
+	id 'jacoco'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -44,6 +45,9 @@ tasks.register('testUnit', Test) {
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
 	exclude '**/integration/**'
+	jacoco {
+		enabled = true
+	}
 }
 
 tasks.register('testIntegration', Test) {
@@ -53,4 +57,32 @@ tasks.register('testIntegration', Test) {
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
 	include '**/integration/**'
+}
+
+// Test coverage report
+tasks.named('jacocoTestReport', JacocoReport) {
+	dependsOn testUnit
+	executionData files("${buildDir}/jacoco/testUnit.exec")
+	sourceSets sourceSets.main
+	reports {
+		xml.required = true
+		html.required = true
+		csv.required = true
+	}
+}
+
+afterEvaluate {
+	jacocoTestReport.classDirectories.setFrom(files(jacocoTestReport.classDirectories.files.collect {
+		fileTree(dir: it, exclude: [
+				'**/entity/**',
+				'**/config/**',
+				'**/repository/**',
+				'**/filter/**',
+				'**/exception/**',
+				'**/api/**',
+				'**/service/UserRegistrationResult*',
+				'**/service/WalletCreationResult*',
+				'**/BackendApplication*'
+		])
+	}))
 }

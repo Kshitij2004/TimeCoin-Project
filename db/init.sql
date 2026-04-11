@@ -162,3 +162,13 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+-- 10. Price History
+-- tracks coin price over time for charting. one row per recalculation.
+CREATE TABLE IF NOT EXISTS price_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    price DECIMAL(15, 2) NOT NULL,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_price_history_time ON price_history(recorded_at);

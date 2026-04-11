@@ -15,4 +15,4 @@ scripts:
   - type: afterResponse
     code: pm.collectionVariables.set("token_one", pm.response.text());
     language: text/javascript
-order: 3000
+order: 3482933169837413

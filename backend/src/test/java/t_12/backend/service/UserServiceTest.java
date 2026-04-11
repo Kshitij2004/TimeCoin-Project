@@ -6,10 +6,10 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -18,8 +18,11 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import t_12.backend.api.auth.LoginResponse;
+import t_12.backend.entity.RefreshToken;
 import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
+import t_12.backend.exception.ApiException;
 import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.repository.UserRepository;
 
@@ -36,8 +39,21 @@ class UserServiceTest {
     @Mock
     private WalletService walletService;
 
-    @InjectMocks
     private UserService userService;
+
+    @BeforeEach
+    void setUp() {
+        userService = new UserService(
+                userRepository,
+                walletService,
+                refreshTokenService,
+                "test-secret-key-that-is-long-enough-32chars",
+                1
+        );
+    }
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
 
     /**
      * Tests successful user registration with valid input. Verifies user and
@@ -141,10 +157,7 @@ class UserServiceTest {
      * JWT token string is returned.
      */
     @Test
-    void Login_ReturnsToken_WhenValidCredentialsTest() {
-        // This is a real BCrypt hash of "password123". Needed because
-        // UserService uses a real BCryptPasswordEncoder internally,
-        // so we can't mock the hashing. The hash must be genuine.
+    void Login_ReturnsTokens_WhenValidCredentialsTest() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
         String hash = encoder.encode("password123");
 
@@ -153,16 +166,21 @@ class UserServiceTest {
         user.setUsername("testuser");
         user.setPasswordHash(hash);
 
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setToken("uuid-refresh-token");
+        refreshToken.setUserId(1);
+        refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
+
         when(userRepository.findByUsername("testuser"))
                 .thenReturn(java.util.Optional.of(user));
+        when(refreshTokenService.generate(1)).thenReturn(refreshToken);
 
-        String token = userService.login("testuser", "password123");
+        LoginResponse response = userService.login("testuser", "password123");
 
-        // We verify the token is a non-null, non-empty string.
-        // We don't check the exact value since it changes with each call
-        // due to the timestamp claims inside it.
-        assertNotNull(token);
-        assert (!token.isBlank());
+        assertNotNull(response);
+        assertNotNull(response.getAccessToken());
+        assert (!response.getAccessToken().isBlank());
+        assertEquals("uuid-refresh-token", response.getRefreshToken());
     }
 
     /**
@@ -195,6 +213,47 @@ class UserServiceTest {
 
         assertThrows(RuntimeException.class, () -> {
             userService.login("testuser", "wrongpassword");
+        });
+    }
+
+    /**
+     * Tests that refresh returns new tokens when given a valid refresh token.
+     */
+    @Test
+    void Refresh_ReturnsNewTokens_WhenValidRefreshTokenTest() {
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setToken("valid-refresh-token");
+        refreshToken.setUserId(1);
+        refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
+
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setToken("new-refresh-token");
+        newRefreshToken.setUserId(1);
+        newRefreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
+
+        when(refreshTokenService.validate("valid-refresh-token")).thenReturn(refreshToken);
+        when(refreshTokenService.generate(1)).thenReturn(newRefreshToken);
+
+        LoginResponse response = userService.refresh("valid-refresh-token");
+
+        assertNotNull(response);
+        assertNotNull(response.getAccessToken());
+        assertEquals("new-refresh-token", response.getRefreshToken());
+    }
+
+    /**
+     * Tests that refresh throws ApiException when given an invalid refresh
+     * token.
+     */
+    @Test
+    void Refresh_ThrowsException_WhenInvalidRefreshTokenTest() {
+        when(refreshTokenService.validate("bad-token"))
+                .thenThrow(new ApiException(
+                        org.springframework.http.HttpStatus.UNAUTHORIZED,
+                        "Invalid refresh token"));
+
+        assertThrows(ApiException.class, () -> {
+            userService.refresh("bad-token");
         });
     }
 }

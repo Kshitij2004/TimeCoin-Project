@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import t_12.backend.api.balance.BalanceResponse;
 import t_12.backend.exception.InsufficientFundsException;
 import t_12.backend.exception.ResourceNotFoundException;
 
@@ -30,22 +29,21 @@ class TransactionValidationServiceTest {
 
     private static final String SENDER = "tc1_sender_abc123";
 
-    //null sender (coinbase)
+    // null sender (coinbase)
 
     @Test
     void validateBalance_nullSender_skipsValidation() {
         assertDoesNotThrow(() ->
                 validationService.validateBalance(null, new BigDecimal("1000"), new BigDecimal("1")));
 
-        verify(balanceService, never()).getBalance(null);
+        verify(balanceService, never()).getSpendableBalance(null);
     }
 
-    //sufficient funds
+    // sufficient funds
 
     @Test
     void validateBalance_exactBalance_passes() {
-        when(balanceService.getBalance(SENDER)).thenReturn(
-                balanceResp("100", "0", "100"));
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("100"));
 
         assertDoesNotThrow(() ->
                 validationService.validateBalance(SENDER, new BigDecimal("90"), new BigDecimal("10")));
@@ -53,19 +51,17 @@ class TransactionValidationServiceTest {
 
     @Test
     void validateBalance_moreThanEnough_passes() {
-        when(balanceService.getBalance(SENDER)).thenReturn(
-                balanceResp("500", "0", "500"));
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("500"));
 
         assertDoesNotThrow(() ->
                 validationService.validateBalance(SENDER, new BigDecimal("50"), new BigDecimal("1")));
     }
 
-    //insufficient funds
+    // insufficient funds
 
     @Test
     void validateBalance_insufficientFunds_throwsException() {
-        when(balanceService.getBalance(SENDER)).thenReturn(
-                balanceResp("10", "0", "10"));
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("10"));
 
         assertThrows(InsufficientFundsException.class, () ->
                 validationService.validateBalance(SENDER, new BigDecimal("50"), new BigDecimal("1")));
@@ -73,8 +69,7 @@ class TransactionValidationServiceTest {
 
     @Test
     void validateBalance_insufficientFunds_messageContainsAmounts() {
-        when(balanceService.getBalance(SENDER)).thenReturn(
-                balanceResp("10", "0", "10"));
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("10"));
 
         InsufficientFundsException ex = assertThrows(InsufficientFundsException.class, () ->
                 validationService.validateBalance(SENDER, new BigDecimal("50"), new BigDecimal("1")));
@@ -83,46 +78,67 @@ class TransactionValidationServiceTest {
         assertTrue(ex.getMessage().contains("51"));
     }
 
-    //staked funds don't count as available
+    // pending outgoing reduces spendable
 
     @Test
-    void validateBalance_fundsStaked_usesAvailableNotTotal() {
-        // total = 200, but available = 5, staked = 195
-        when(balanceService.getBalance(SENDER)).thenReturn(
-                balanceResp("5", "195", "200"));
+    void validateBalance_pendingOutgoingReducesSpendable() {
+        // 100 available, but 10 pending outgoing → spendable = 90
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("90"));
+
+        assertDoesNotThrow(() ->
+                validationService.validateBalance(SENDER, new BigDecimal("90"), BigDecimal.ZERO));
+    }
+
+    @Test
+    void validateBalance_pendingOutgoingCausesInsufficientFunds() {
+        // 100 available, 10 pending outgoing → spendable = 90, trying to send 95
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("90"));
+
+        assertThrows(InsufficientFundsException.class, () ->
+                validationService.validateBalance(SENDER, new BigDecimal("95"), BigDecimal.ZERO));
+    }
+
+    @Test
+    void validateBalance_multiplePendingTransactionsStack() {
+        // 100 available, 60 total pending outgoing → spendable = 40
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("40"));
+
+        assertDoesNotThrow(() ->
+                validationService.validateBalance(SENDER, new BigDecimal("40"), BigDecimal.ZERO));
+
+        assertThrows(InsufficientFundsException.class, () ->
+                validationService.validateBalance(SENDER, new BigDecimal("41"), BigDecimal.ZERO));
+    }
+
+    // staked funds don't count as spendable
+
+    @Test
+    void validateBalance_fundsStaked_usesSpendableNotTotal() {
+        // total = 200, available = 5, staked = 195, no pending → spendable = 5
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(new BigDecimal("5"));
 
         assertThrows(InsufficientFundsException.class, () ->
                 validationService.validateBalance(SENDER, new BigDecimal("50"), new BigDecimal("1")));
     }
 
-    //wallet not found
+    // wallet not found
 
     @Test
     void validateBalance_walletNotFound_propagatesException() {
-        when(balanceService.getBalance(SENDER))
+        when(balanceService.getSpendableBalance(SENDER))
                 .thenThrow(new ResourceNotFoundException("Wallet not found: " + SENDER));
 
         assertThrows(ResourceNotFoundException.class, () ->
                 validationService.validateBalance(SENDER, new BigDecimal("1"), new BigDecimal("0")));
     }
 
-    //edge cases
+    // edge cases
 
     @Test
     void validateBalance_zeroAmountAndFee_passes() {
-        when(balanceService.getBalance(SENDER)).thenReturn(
-                balanceResp("0", "0", "0"));
+        when(balanceService.getSpendableBalance(SENDER)).thenReturn(BigDecimal.ZERO);
 
         assertDoesNotThrow(() ->
                 validationService.validateBalance(SENDER, BigDecimal.ZERO, BigDecimal.ZERO));
-    }
-
-    //helper
-
-    private BalanceResponse balanceResp(String available, String staked, String total) {
-        return new BalanceResponse(SENDER,
-                new BigDecimal(available),
-                new BigDecimal(staked),
-                new BigDecimal(total));
     }
 }

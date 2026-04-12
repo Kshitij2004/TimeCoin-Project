@@ -2,6 +2,7 @@ package t_12.backend.filter;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,12 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 @Component
 public class AuthFilter extends OncePerRequestFilter {
+
+    private final String secretKey;
+
+    public AuthFilter(@Value("${jwt.secret}") String secretKey) {
+        this.secretKey = secretKey;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -55,7 +62,6 @@ public class AuthFilter extends OncePerRequestFilter {
             // This both parses AND validates the token in one call.
             // It will throw an exception if the signature is wrong,
             // the token is malformed, or the token has expired.
-            String secretKey = "your-super-secret-key-change-this-in-production";
             Claims claims = Jwts.parser()
                     .verifyWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                     .build()
@@ -75,15 +81,16 @@ public class AuthFilter extends OncePerRequestFilter {
             // Token is valid, let the request through.
             filterChain.doFilter(request, response);
 
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            sendUnauthorized(response, "Token has expired");
         } catch (Exception e) {
-            // Any exception here means the token is invalid or expired.
             sendUnauthorized(response, "Invalid or expired token");
         }
     }
 
     /**
-     * Determines whether the incoming request should bypass JWT checks.
-     * Public routes are auth endpoints, listing reads, health checks, and CORS
+     * Determines whether the incoming request should bypass JWT checks. Public
+     * routes are auth endpoints, listing reads, health checks, and CORS
      * preflight calls.
      *
      * @param request incoming HTTP request

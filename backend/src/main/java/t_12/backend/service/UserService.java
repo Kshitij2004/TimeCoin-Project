@@ -1,14 +1,21 @@
 package t_12.backend.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import t_12.backend.api.auth.LoginResponse;
+import t_12.backend.entity.RefreshToken;
 import t_12.backend.entity.User;
+import t_12.backend.exception.ApiException;
 import t_12.backend.exception.DuplicateResourceException;
 import t_12.backend.repository.UserRepository;
 
@@ -22,17 +29,33 @@ public class UserService {
     private final UserRepository userRepository;
     private final WalletService walletService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final String secretKey;
+    private final int expiryHours;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Creates a user service with repository and wallet service dependencies.
      *
      * @param userRepository repository for user persistence and lookups
      * @param walletService service that manages wallet creation and identity
+     * key generation for users
+     * @param secretKey the secret key used for signing JWT tokens (injected
+     * from properties)
+     * @param expiryHours the number of hours before a JWT token expires
+     * (injected from properties)
      */
-    public UserService(UserRepository userRepository, WalletService walletService) {
+    public UserService(
+            UserRepository userRepository,
+            WalletService walletService,
+            RefreshTokenService refreshTokenService,
+            @Value("${jwt.secret}") String secretKey,
+            @Value("${jwt.expiry-hours}") int expiryHours) {
         this.userRepository = userRepository;
         this.walletService = walletService;
+        this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = new BCryptPasswordEncoder(10);
+        this.secretKey = secretKey;
+        this.expiryHours = expiryHours;
     }
 
     /**
@@ -51,12 +74,14 @@ public class UserService {
     }
 
     /**
-     * Registers a new user and creates an associated wallet with generated keypair.
+     * Registers a new user and creates an associated wallet with generated
+     * keypair.
      *
      * @param username the desired username (must be unique)
      * @param email the user's email address (must be unique)
      * @param password the raw password (will be hashed before storage)
-     * @return a registration result containing user, wallet, and one-time private key
+     * @return a registration result containing user, wallet, and one-time
+     * private key
      * @throws DuplicateResourceException if username or email already exists
      */
     public UserRegistrationResult registerWithWallet(String username, String email, String password) {
@@ -85,29 +110,56 @@ public class UserService {
     }
 
     /**
-     * Authenticates a user and returns a signed JWT token.
+     * Authenticates a user and returns a signed JWT access token and refresh
+     * token.
      *
      * @param username the username to authenticate
      * @param password the raw password to verify
-     * @return a signed JWT string containing the user ID and expiry
-     * @throws RuntimeException if the username is not found or password is
+     * @return a LoginResponse containing both the access token and refresh
+     * token
+     * @throws ApiException if the username is not found or password is
      * incorrect
      */
-    public String login(String username, String password) {
+    public LoginResponse login(String username, String password) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        String secretKey = "your-super-secret-key-change-this-in-production";
-
-        return Jwts.builder()
+        String accessToken = Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+                .expiration(Date.from(Instant.now().plus(expiryHours, ChronoUnit.HOURS)))
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                 .compact();
+
+        String refreshToken = refreshTokenService.generate(user.getId()).getToken();
+
+        return new LoginResponse(accessToken, refreshToken);
+    }
+
+    /**
+     * Issues a new access token from a valid refresh token.
+     *
+     * @param refreshToken the refresh token string sent by the client
+     * @return a LoginResponse containing a new access token and rotated refresh
+     * token
+     * @throws ApiException if the refresh token is invalid or expired
+     */
+    public LoginResponse refresh(String refreshToken) {
+        RefreshToken validated = refreshTokenService.validate(refreshToken);
+
+        String accessToken = Jwts.builder()
+                .subject(String.valueOf(validated.getUserId()))
+                .issuedAt(new Date())
+                .expiration(Date.from(Instant.now().plus(expiryHours, ChronoUnit.HOURS)))
+                .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                .compact();
+
+        String newRefreshToken = refreshTokenService.generate(validated.getUserId()).getToken();
+
+        return new LoginResponse(accessToken, newRefreshToken);
     }
 }

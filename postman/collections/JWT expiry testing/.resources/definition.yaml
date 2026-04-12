@@ -1,0 +1,4 @@
+$kind: collection
+name: JWT expiry testing
+variables:
+  token_one: ""

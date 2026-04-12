@@ -107,22 +107,25 @@ class AuthControllerTest {
     }
 
     /**
-     * Tests that login returns an HTTP 200 response with the JWT token body.
+     * Tests that login returns an HTTP 200 response with both JWT tokens.
      */
     @Test
-    void Login_ReturnsToken_WhenCredentialsValidTest() {
+    void Login_ReturnsTokens_WhenCredentialsValidTest() {
         AuthController authController = new AuthController(userService, true);
 
         LoginRequest request = new LoginRequest();
         request.setUsername("testuser");
         request.setPassword("password123");
 
-        when(userService.login("testuser", "password123")).thenReturn("jwt-token");
+        LoginResponse loginResponse = new LoginResponse("jwt-access-token", "uuid-refresh-token");
+        when(userService.login("testuser", "password123")).thenReturn(loginResponse);
 
-        ResponseEntity<String> response = authController.login(request);
+        ResponseEntity<LoginResponse> response = authController.login(request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("jwt-token", response.getBody());
+        assertNotNull(response.getBody());
+        assertEquals("jwt-access-token", response.getBody().getAccessToken());
+        assertEquals("uuid-refresh-token", response.getBody().getRefreshToken());
         verify(userService, times(1)).login("testuser", "password123");
     }
 }

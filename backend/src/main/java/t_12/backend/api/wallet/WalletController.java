@@ -1,5 +1,7 @@
 package t_12.backend.api.wallet;
 
+import java.math.BigDecimal;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,9 +58,15 @@ public class WalletController {
     public ResponseEntity<BalanceResponse> getBalance() {
         Integer userId = getAuthenticatedUserId();
         Wallet wallet = walletService.getWalletByUserId(userId);
-        return ResponseEntity.ok(
-                balanceService.getBalance(wallet.getWalletAddress())
-        );
+        BalanceResponse fullBalance = balanceService.getBalance(wallet.getWalletAddress());
+        BigDecimal spendable = balanceService.getSpendableBalance(wallet.getWalletAddress());
+
+        return ResponseEntity.ok(new BalanceResponse(
+                wallet.getWalletAddress(),
+                spendable,
+                fullBalance.getStaked(),
+                spendable.add(fullBalance.getStaked())
+        ));
     }
 
     /**

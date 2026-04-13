@@ -34,6 +34,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Fallback for any uncaught exceptions. Returns a generic 500 response
+     * without exposing internal details to the client.
+     *
+     * @param ex the caught exception
+     * @return response with 500 status and a safe error message
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                Map.of(
+                        "timestamp", LocalDateTime.now().toString(),
+                        "status", 500,
+                        "error", "Internal Server Error",
+                        "message", "An unexpected error occurred"));
+    }
+
+    /**
      * Handles attempts to create duplicate resources (e.g. duplicate user).
      *
      * @param ex the thrown DuplicateResourceException
@@ -98,22 +115,5 @@ public class GlobalExceptionHandler {
                 "status", 400,
                 "error", "Bad Request",
                 "message", ex.getMessage()));
-    }
-
-    /**
-     * Fallback for any uncaught exceptions. Returns a generic 500 response
-     * without exposing internal details to the client.
-     *
-     * @param ex the caught exception
-     * @return response with 500 status and a safe error message
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                Map.of(
-                        "timestamp", LocalDateTime.now().toString(),
-                        "status", 500,
-                        "error", "Internal Server Error",
-                        "message", "An unexpected error occurred"));
     }
 }

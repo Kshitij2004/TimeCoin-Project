@@ -1,6 +1,4 @@
-/* Marketplace.css */
-
-/* ── Page layout ─────────────────────────────────────────────────────────── */
+/* page layout */
 .marketplace-page {
   padding: 24px;
   display: flex;
@@ -11,7 +9,7 @@
   box-sizing: border-box;
 }
 
-/* ── Card ────────────────────────────────────────────────────────────────── */
+/* card container */
 .marketplace-card {
   width: min(800px, 100%);
   background: rgba(19, 31, 60, 0.78);
@@ -24,7 +22,7 @@
   gap: 20px;
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────── */
+/* header */
 .marketplace-header h1 {
   margin: 0;
   font-size: 28px;
@@ -36,7 +34,7 @@
   color: #9ab6d6;
 }
 
-/* ── Market stats ────────────────────────────────────────────────────────── */
+/* market stats grid */
 .market-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -73,7 +71,7 @@
   font-size: 15px;
 }
 
-/* ── Buy section ─────────────────────────────────────────────────────────── */
+/* buy/sell section */
 .buy-section {
   background: rgba(14, 27, 52, 0.75);
   border: 1px solid rgba(108, 149, 201, 0.25);
@@ -93,7 +91,7 @@
   color: #80cff2;
 }
 
-/* ── Input row ───────────────────────────────────────────────────────────── */
+/* input row */
 .input-row {
   display: flex;
   gap: 12px;
@@ -126,17 +124,18 @@
   cursor: not-allowed;
 }
 
-/* Hide number input arrows */
+/* hide number input arrows */
 .amount-input::-webkit-outer-spin-button,
 .amount-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 .amount-input[type=number] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
-/* ── Buy button ──────────────────────────────────────────────────────────── */
+/* buy button */
 .buy-button {
   border: 1px solid #49b8e8;
   background: rgba(23, 47, 84, 0.8);
@@ -160,7 +159,17 @@
   cursor: not-allowed;
 }
 
-/* ── Cost preview ────────────────────────────────────────────────────────── */
+/* sell button variant */
+.sell-btn {
+  border-color: #ef4444;
+}
+
+.sell-btn:hover:not(:disabled) {
+  background: #ef4444;
+  color: #0a1128;
+}
+
+/* cost preview text */
 .cost-preview {
   font-size: 14px;
   color: #9ab6d6;
@@ -171,7 +180,7 @@
   color: #cdeeff;
 }
 
-/* ── Status messages ─────────────────────────────────────────────────────── */
+/* status messages */
 .status-message {
   margin-top: 16px;
   padding: 10px;
@@ -191,7 +200,86 @@
   border: 1px solid #ef4444;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* listing cards */
+.listing-card {
+  background: rgba(14, 27, 52, 0.75);
+  border: 1px solid rgba(108, 149, 201, 0.25);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.listing-card:hover {
+  border-color: #4bb9e9;
+  transform: translateY(-2px);
+}
+
+.listing-card-sold {
+  opacity: 0.5;
+}
+
+.listing-title {
+  margin: 8px 0;
+  font-size: 16px;
+  color: #d7e6f8;
+}
+
+.listing-price {
+  font-weight: 700;
+  color: #2ecc71;
+  margin: 4px 0;
+}
+
+.listing-category {
+  font-size: 12px;
+  color: #80cff2;
+  background: rgba(46, 169, 223, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* status badges */
+.listing-status-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.listing-status-active {
+  color: #34d399;
+  background: rgba(14, 60, 40, 0.5);
+  border: 1px solid #34d399;
+}
+
+.listing-status-sold {
+  color: #ef4444;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid #ef4444;
+}
+
+/* detail page info grid */
+.listing-detail-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+/* purchase confirmation panel */
+.purchase-confirm-panel {
+  background: rgba(14, 27, 52, 0.85);
+  border: 1px solid #4bb9e9;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* responsive */
 @media (max-width: 768px) {
   .marketplace-page {
     padding: 12px;
@@ -209,4 +297,26 @@
   .buy-button {
     width: 100%;
   }
+
+  .buy-section > div {
+    grid-template-columns: 1fr;
+  }
+
+  /* create listing form spacing */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.create-listing-textarea {
+  height: 100px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+.create-listing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
 }

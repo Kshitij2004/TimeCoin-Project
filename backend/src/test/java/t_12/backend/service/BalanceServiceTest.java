@@ -5,11 +5,13 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -251,6 +253,76 @@ class BalanceServiceTest {
 
         BigDecimal expectedTotal = r.getAvailable().add(r.getStaked());
         assertBd(expectedTotal, r.getTotal());
+    }
+
+    // spendable balance
+
+    @Test
+    void getSpendableBalance_noPending_equalsAvailable() {
+        stubTxSums(bd("100"), BigDecimal.ZERO, BigDecimal.ZERO);
+        stubStakingSums(BigDecimal.ZERO, BigDecimal.ZERO);
+        when(transactionRepository.sumPendingOutgoingByAddress(WALLET)).thenReturn(BigDecimal.ZERO);
+
+        BigDecimal spendable = balanceService.getSpendableBalance(WALLET);
+
+        assertBd(bd("100"), spendable);
+    }
+
+    @Test
+    void getSpendableBalance_withPending_subtractsPendingFromAvailable() {
+        stubTxSums(bd("100"), BigDecimal.ZERO, BigDecimal.ZERO);
+        stubStakingSums(BigDecimal.ZERO, BigDecimal.ZERO);
+        when(transactionRepository.sumPendingOutgoingByAddress(WALLET)).thenReturn(bd("10"));
+
+        BigDecimal spendable = balanceService.getSpendableBalance(WALLET);
+
+        assertBd(bd("90"), spendable);
+    }
+
+    @Test
+    void getSpendableBalance_multiplePendingStack() {
+        stubTxSums(bd("100"), BigDecimal.ZERO, BigDecimal.ZERO);
+        stubStakingSums(BigDecimal.ZERO, BigDecimal.ZERO);
+        when(transactionRepository.sumPendingOutgoingByAddress(WALLET)).thenReturn(bd("60"));
+
+        BigDecimal spendable = balanceService.getSpendableBalance(WALLET);
+
+        assertBd(bd("40"), spendable);
+    }
+
+    @Test
+    void getSpendableBalance_pendingExceedsAvailable_goesNegative() {
+        stubTxSums(bd("10"), BigDecimal.ZERO, BigDecimal.ZERO);
+        stubStakingSums(BigDecimal.ZERO, BigDecimal.ZERO);
+        when(transactionRepository.sumPendingOutgoingByAddress(WALLET)).thenReturn(bd("15"));
+
+        BigDecimal spendable = balanceService.getSpendableBalance(WALLET);
+
+        assertTrue(spendable.compareTo(BigDecimal.ZERO) < 0);
+    }
+
+    @Test
+    void getSpendableBalance_nullPending_treatedAsZero() {
+        stubTxSums(bd("100"), BigDecimal.ZERO, BigDecimal.ZERO);
+        stubStakingSums(BigDecimal.ZERO, BigDecimal.ZERO);
+        when(transactionRepository.sumPendingOutgoingByAddress(WALLET)).thenReturn(null);
+
+        BigDecimal spendable = balanceService.getSpendableBalance(WALLET);
+
+        assertBd(bd("100"), spendable);
+    }
+
+    @Test
+    void getSpendableBalance_withStakingAndPending_allDeducted() {
+        stubTxSums(bd("200"), bd("50"), bd("5"));
+        stubStakingSums(bd("30"), BigDecimal.ZERO);
+        when(transactionRepository.sumPendingOutgoingByAddress(WALLET)).thenReturn(bd("20"));
+
+        // available = 200 - 50 - 5 - 30 = 115
+        // spendable = 115 - 20 = 95
+        BigDecimal spendable = balanceService.getSpendableBalance(WALLET);
+
+        assertBd(bd("95"), spendable);
     }
 
     //helpers

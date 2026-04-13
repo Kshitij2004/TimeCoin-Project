@@ -22,18 +22,23 @@ import t_12.backend.api.blockchain.dto.BlockDetailDTO;
 import t_12.backend.api.blockchain.dto.BlockListItemDTO;
 import t_12.backend.api.blockchain.dto.BlockListPaginationDTO;
 import t_12.backend.api.blockchain.dto.BlockListResponseDTO;
+import t_12.backend.api.blockchain.dto.ChainValidationReportDTO;
 import t_12.backend.api.blockchain.dto.ChainStatusDTO;
 import t_12.backend.api.blockchain.dto.ExplorerTransactionDTO;
 import t_12.backend.entity.Block;
 import t_12.backend.entity.Transaction;
 import t_12.backend.exception.ApiException;
 import t_12.backend.service.BlockchainExplorerService;
+import t_12.backend.service.ChainValidationService;
 
 @ExtendWith(MockitoExtension.class)
 class BlockchainExplorerControllerTest {
 
     @Mock
     private BlockchainExplorerService blockchainExplorerService;
+
+    @Mock
+    private ChainValidationService chainValidationService;
 
     @InjectMocks
     private BlockchainExplorerController blockchainExplorerController;
@@ -184,5 +189,20 @@ class BlockchainExplorerControllerTest {
         assertEquals("mined_hash", response.getBody().getBlockHash());
         assertEquals(1, response.getBody().getTransactions().size());
         verify(blockchainExplorerService).minePendingTransactions(10, "validator_addr");
+    }
+
+    @Test
+    void validateChain_returnsValidationReport() {
+        when(chainValidationService.validateFullChain())
+                .thenReturn(ChainValidationReportDTO.passed(4, 10));
+
+        ResponseEntity<ChainValidationReportDTO> response = blockchainExplorerController.validateChain();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(4, response.getBody().getCheckedBlocks());
+        assertEquals(10, response.getBody().getCheckedTransactions());
+        assertEquals(true, response.getBody().isValid());
+        verify(chainValidationService).validateFullChain();
     }
 }

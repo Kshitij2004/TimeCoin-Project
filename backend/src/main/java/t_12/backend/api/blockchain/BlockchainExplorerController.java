@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import t_12.backend.api.blockchain.dto.BlockDetailDTO;
 import t_12.backend.api.blockchain.dto.BlockListResponseDTO;
+import t_12.backend.api.blockchain.dto.ChainValidationReportDTO;
 import t_12.backend.api.blockchain.dto.ChainStatusDTO;
 import t_12.backend.service.BlockchainExplorerService;
+import t_12.backend.service.ChainValidationService;
 
 /**
  * Explorer endpoints for block inspection and chain status queries.
@@ -22,9 +24,13 @@ import t_12.backend.service.BlockchainExplorerService;
 public class BlockchainExplorerController {
 
     private final BlockchainExplorerService blockchainExplorerService;
+    private final ChainValidationService chainValidationService;
 
-    public BlockchainExplorerController(BlockchainExplorerService blockchainExplorerService) {
+    public BlockchainExplorerController(
+            BlockchainExplorerService blockchainExplorerService,
+            ChainValidationService chainValidationService) {
         this.blockchainExplorerService = blockchainExplorerService;
+        this.chainValidationService = chainValidationService;
     }
 
     @GetMapping("/status")
@@ -55,5 +61,10 @@ public class BlockchainExplorerController {
             @RequestParam(value = "validatorAddress", required = false) String validatorAddress) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(blockchainExplorerService.minePendingTransactions(limit, validatorAddress));
+    }
+
+    @PostMapping("/validate")
+    public ResponseEntity<ChainValidationReportDTO> validateChain() {
+        return ResponseEntity.ok(chainValidationService.validateFullChain());
     }
 }

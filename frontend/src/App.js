@@ -25,22 +25,18 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* Dashboard handles its own auth internally */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
         {/* Protected Routes */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute><Dashboard /></ProtectedRoute>
-        } />
-        
-        {/* Marketplace Routes */}
         <Route path="/marketplace" element={
           <ProtectedRoute><Marketplace /></ProtectedRoute>
         } />
-        
-        {/* Route for creating a new listing */}
+
         <Route path="/marketplace/new" element={
           <ProtectedRoute><CreateListing /></ProtectedRoute>
         } />
 
-        {/* Dynamic Route for viewing/buying a specific listing (Issue Requirement) */}
         <Route path="/marketplace/:id" element={
           <ProtectedRoute><ListingDetail /></ProtectedRoute>
         } />

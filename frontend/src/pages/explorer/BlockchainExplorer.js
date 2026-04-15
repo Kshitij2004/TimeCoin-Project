@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi.js';
+import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../../services/blockchainExplorerApi.js';
 import BlockChainDiagram from './BlockChainDiagram.js';
 import './BlockchainExplorer.css';
 

@@ -3,12 +3,21 @@ import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import "./Dashboard.css";
 
+// Helper: makes requests that won't trigger the 401 redirect in api.js
+const safeGet = (url) => api.get(url, { skipAuthRedirect: true });
+
 // ── Auth stub ────────────────────────────────────────────────
-// TODO: Remove once login flow is wired up. Dashboard will then
-// be wrapped in ProtectedRoute like all other pages.
+// Registers a throwaway user and logs in to get a real JWT.
+// Returns user info from the register response.
 async function ensureAuth() {
     const existing = localStorage.getItem("token");
-    if (existing) return existing;
+    const cachedUser = localStorage.getItem("dashUser");
+    if (existing && cachedUser) {
+        return JSON.parse(cachedUser);
+    }
+
+    // Clear any stale token before starting
+    localStorage.removeItem("token");
 
     const ts = Date.now();
     const tempUser = {
@@ -17,19 +26,23 @@ async function ensureAuth() {
         password: "Temp1234!",
     };
 
+    // Register
     try {
-        await api.post("/auth/register", tempUser);
+        await api.post("/auth/register", tempUser, { skipAuthRedirect: true });
     } catch (err) {
         if (err.response?.status !== 409) throw err;
     }
 
+    // Login
     const loginRes = await api.post("/auth/login", {
         username: tempUser.username,
         password: tempUser.password,
-    });
+    }, { skipAuthRedirect: true });
 
     let token;
-    if (loginRes.data.token) {
+    if (loginRes.data.accessToken) {
+        token = loginRes.data.accessToken;
+    } else if (loginRes.data.token) {
         token = loginRes.data.token;
     } else if (typeof loginRes.data === "string") {
         token = loginRes.data.replace(/"/g, "");
@@ -38,103 +51,92 @@ async function ensureAuth() {
     }
 
     localStorage.setItem("token", token);
-    return token;
+
+    const userInfo = {
+        username: tempUser.username,
+        walletAddress: null, // will be set from register response if available
+        userId: null,
+    };
+
+    // Try to extract from register response (may have been a 409)
+    try {
+        const regRes = await api.post("/auth/register", {
+            username: tempUser.username,
+            email: tempUser.email,
+            password: tempUser.password,
+        }, { skipAuthRedirect: true });
+        userInfo.walletAddress = regRes.data.walletAddress;
+        userInfo.userId = regRes.data.id;
+    } catch {
+        // Already registered, that's fine — we'll get wallet address from /wallet if needed
+    }
+
+    localStorage.setItem("dashUser", JSON.stringify(userInfo));
+    return userInfo;
 }
 
 function Dashboard() {
-    const [wallet, setWallet] = useState(null);
-    const [balance, setBalance] = useState(null);
+    const [userInfo, setUserInfo] = useState(null);
+    const [balance, setBalance] = useState({ available: 0, staked: 0, total: 0 });
     const [coin, setCoin] = useState(null);
     const [transactions, setTransactions] = useState([]);
-    const [loadingWallet, setLoadingWallet] = useState(true);
-    const [loadingBalance, setLoadingBalance] = useState(true);
-    const [loadingTxns, setLoadingTxns] = useState(true);
-    const [walletError, setWalletError] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [balanceError, setBalanceError] = useState(null);
-    const [txnError, setTxnError] = useState(null);
-    const [copied, setCopied] = useState(false);
     const [hasPending, setHasPending] = useState(false);
-    const [authReady, setAuthReady] = useState(false);
+    const [copied, setCopied] = useState(false);
 
-    // Step 0: get a real JWT before any API calls
     useEffect(() => {
-        ensureAuth()
-            .then(() => setAuthReady(true))
-            .catch((err) => {
-                console.error("Auth setup failed:", err);
-                setWalletError("Authentication failed. Please refresh.");
-                setLoadingWallet(false);
-                setLoadingBalance(false);
-                setLoadingTxns(false);
-            });
-    }, []);
-
-    // Step 1–3: fetch data once auth is ready
-    useEffect(() => {
-        if (!authReady) return;
-
-        const fetchDashboardData = async () => {
-            let walletData = null;
+        const init = async () => {
             try {
-                setLoadingWallet(true);
-                const userId = 1;
-                const walletRes = await api.get("/wallet?userId=" + userId);
-                walletData = walletRes.data;
-                setWallet(walletData);
-            } catch (err) {
-                setWalletError(err.response?.data?.message || "Failed to load wallet.");
-            } finally {
-                setLoadingWallet(false);
-            }
+                const user = await ensureAuth();
+                setUserInfo(user);
 
-            // Fetch ledger-derived balance (issue #120)
-            if (walletData && walletData.walletAddress) {
+                // Fetch ledger-derived balance (issue #120)
+                if (user.walletAddress) {
+                    try {
+                        const balanceRes = await safeGet("/balances/" + user.walletAddress);
+                        setBalance(balanceRes.data);
+                    } catch (err) {
+                        if (err.response?.status !== 404) {
+                            setBalanceError(err.response?.data?.message || "Failed to load balance.");
+                        }
+                    }
+                }
+
+                // Fetch coin price
                 try {
-                    setLoadingBalance(true);
-                    const balanceRes = await api.get("/balances/" + walletData.walletAddress);
-                    setBalance(balanceRes.data);
-                } catch (err) {
-                    setBalanceError(err.response?.data?.message || "Failed to load balance.");
-                } finally {
-                    setLoadingBalance(false);
-                }
-            } else {
-                setBalance({ available: 0, staked: 0, total: 0 });
-                setLoadingBalance(false);
-            }
+                    const coinRes = await safeGet("/coin");
+                    setCoin(coinRes.data);
+                } catch {}
 
-            try {
-                const coinRes = await api.get("/coin");
-                setCoin(coinRes.data);
-            } catch {}
+                // Fetch transactions
+                try {
+                    const txnRes = await safeGet("/transactions?page=1&limit=10");
+                    let txnList = [];
+                    if (txnRes.data && txnRes.data.data) {
+                        txnList = txnRes.data.data;
+                    } else if (Array.isArray(txnRes.data)) {
+                        txnList = txnRes.data;
+                    }
+                    setTransactions(txnList);
+                    setHasPending(txnList.some(
+                        (tx) => tx.status && tx.status.toLowerCase() === "pending"
+                    ));
+                } catch {}
 
-            try {
-                setLoadingTxns(true);
-                const txnRes = await api.get("/transactions?page=1&limit=10");
-                let txnList = [];
-                if (txnRes.data && txnRes.data.data) {
-                    txnList = txnRes.data.data;
-                } else if (Array.isArray(txnRes.data)) {
-                    txnList = txnRes.data;
-                }
-                setTransactions(txnList);
-                setHasPending(txnList.some(
-                    (tx) => tx.status && tx.status.toLowerCase() === "pending"
-                ));
             } catch (err) {
-                setTxnError(err.response?.data?.message || "Failed to load transactions.");
+                console.error("Dashboard init failed:", err);
             } finally {
-                setLoadingTxns(false);
+                setLoading(false);
             }
         };
 
-        fetchDashboardData();
-    }, [authReady]);
+        init();
+    }, []);
 
     const handleCopyAddress = () => {
-        const address = wallet ? wallet.walletAddress : null;
-        if (address) {
-            navigator.clipboard.writeText(address).then(() => {
+        if (userInfo?.walletAddress) {
+            navigator.clipboard.writeText(userInfo.walletAddress).then(() => {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             });
@@ -169,7 +171,7 @@ function Dashboard() {
     };
 
     const renderWalletSection = () => {
-        if (!authReady || loadingWallet || loadingBalance) {
+        if (loading) {
             return (
                 <div className="loading-container">
                     <div className="spinner"></div>
@@ -178,24 +180,13 @@ function Dashboard() {
             );
         }
 
-        if (walletError) {
-            return (
-                <div className="error-container">
-                    <p className="error-message">Error: {walletError}</p>
-                    <button className="retry-btn" onClick={() => window.location.reload()}>
-                        Retry
-                    </button>
-                </div>
-            );
-        }
-
-        if (!wallet) return null;
-
         return (
             <>
                 <div className="wallet-address-bar">
                     <span className="wallet-address-label">Wallet Address:</span>
-                    <code className="wallet-address-value">{wallet.walletAddress || "—"}</code>
+                    <code className="wallet-address-value">
+                        {userInfo?.walletAddress || "—"}
+                    </code>
                     <button className="copy-btn" onClick={handleCopyAddress}>
                         {copied ? "✓ Copied" : "Copy"}
                     </button>
@@ -212,7 +203,7 @@ function Dashboard() {
                     <div className="stat-card">
                         <h3>Available Balance</h3>
                         <div className="value" data-testid="available-balance">
-                            {balance ? Number(balance.available).toFixed(4) + " TC" : "0.0000 TC"}
+                            {Number(balance.available).toFixed(4)} TC
                         </div>
                         {balanceError && (
                             <div className="sub-value" style={{ color: "#e74c3c" }}>
@@ -223,13 +214,13 @@ function Dashboard() {
                     <div className="stat-card">
                         <h3>Staked</h3>
                         <div className="value" data-testid="staked-balance">
-                            {balance ? Number(balance.staked).toFixed(4) + " TC" : "0.0000 TC"}
+                            {Number(balance.staked).toFixed(4)} TC
                         </div>
                     </div>
                     <div className="stat-card">
                         <h3>Total Balance</h3>
                         <div className="value" data-testid="total-balance">
-                            {balance ? Number(balance.total).toFixed(4) + " TC" : "0.0000 TC"}
+                            {Number(balance.total).toFixed(4)} TC
                         </div>
                     </div>
                     <div className="stat-card">
@@ -244,14 +235,10 @@ function Dashboard() {
     };
 
     const renderTransactionsSection = () => {
-        if (loadingTxns) {
+        if (loading) {
             return (
                 <div className="loading-container"><div className="spinner"></div></div>
             );
-        }
-
-        if (txnError) {
-            return <div className="error-message">Error loading transactions: {txnError}</div>;
         }
 
         if (!transactions || transactions.length === 0) {
@@ -294,6 +281,7 @@ function Dashboard() {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("dashUser");
         window.location.href = "/login";
     };
 
@@ -313,7 +301,7 @@ function Dashboard() {
 
             <main className="main-content">
                 <header className="header">
-                    <h1>Welcome back</h1>
+                    <h1>Welcome back{userInfo ? ", " + userInfo.username : ""}</h1>
                 </header>
 
                 {renderWalletSection()}

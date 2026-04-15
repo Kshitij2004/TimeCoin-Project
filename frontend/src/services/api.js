@@ -36,22 +36,24 @@ api.interceptors.request.use(
  * 3. RESPONSE INTERCEPTOR: Incoming Global Error Handling
  * This monitors every response coming back from the server.
  * It is specifically designed to handle "Auth Failures" (401/403 errors).
+ *
+ * Redirect is skipped when:
+ *  - The request URL is an auth endpoint (/auth/)
+ *  - The user is already on the login page
+ *  - The request was marked with skipAuthRedirect: true
  */
 api.interceptors.response.use(
-    (response) => response, // If the request is successful (200 OK), just pass the data through.
+    (response) => response,
     (error) => {
-        // We look for 401 (Unauthorized) or 403 (Forbidden) status codes.
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            
-            // UX CHECK: We don't want to redirect if the user is ALREADY trying to log in.
-            if (!window.location.pathname.includes('/login')) {
+
+            const requestUrl = error.config?.url || '';
+            const isAuthRequest = requestUrl.includes('/auth/');
+            const skipRedirect = error.config?.skipAuthRedirect === true;
+
+            if (!isAuthRequest && !skipRedirect && !window.location.pathname.includes('/login')) {
                 console.warn("Session expired or invalid. Redirecting to login...");
-                
-                // Security Step: Wipe the corrupted or expired token so it's not used again.
                 localStorage.removeItem('token');
-                
-                // Hard Redirect: Using window.location.href instead of 'navigate' 
-                // forces a full page reload, clearing any sensitive data in React state.
                 window.location.href = '/login';
             }
         }
@@ -61,26 +63,19 @@ api.interceptors.response.use(
 
 /**
  * 4. API Helper Methods
- * These are abstraction layers so our components (Register.js / Login.js) 
- * don't have to worry about URL paths or axios syntax directly.
  */
 
-// Handles the POST request to create a new user account.
 export const registerUser = async (userData) => {
     const response = await api.post('/auth/register', userData);
     return response.data;
 };
 
-// Handles the POST request to authenticate a user.
 export const loginUser = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
-    
-    /**
-     * Token Normalization:
-     * Some backends return { "token": "..." } and others return a raw string.
-     * This logic ensures the token is saved correctly regardless of the backend format.
-     */
-    if (response.data.token) {
+
+    if (response.data.accessToken) {
+        localStorage.setItem('token', response.data.accessToken);
+    } else if (response.data.token) {
         localStorage.setItem('token', response.data.token);
     } else if (typeof response.data === 'string') {
         localStorage.setItem('token', response.data);

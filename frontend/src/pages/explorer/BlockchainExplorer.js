@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi.js';
+import BlockChainDiagram from './BlockChainDiagram.js';
 import './BlockchainExplorer.css';
 
 function formatDate(value) {
@@ -60,6 +61,10 @@ export default function BlockchainExplorer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Track the most recently appeared block height for entrance animation
+  const [newBlockHeight, setNewBlockHeight] = useState(null);
+  const prevMaxHeightRef = useRef(null);
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -73,8 +78,19 @@ export default function BlockchainExplorer() {
         ]);
 
         setStatus(statusPayload);
-        setBlocks(Array.isArray(blocksPayload?.data) ? blocksPayload.data : []);
+
+        const incoming = Array.isArray(blocksPayload?.data) ? blocksPayload.data : [];
+        setBlocks(incoming);
         setPagination(blocksPayload?.pagination || { page, limit, total: 0, totalPages: 0 });
+
+        // Detect newly arrived blocks for animation
+        if (incoming.length > 0) {
+          const maxHeight = Math.max(...incoming.map((b) => b.blockHeight));
+          if (prevMaxHeightRef.current !== null && maxHeight > prevMaxHeightRef.current) {
+            setNewBlockHeight(maxHeight);
+          }
+          prevMaxHeightRef.current = maxHeight;
+        }
       } catch (err) {
         if (err.name !== 'AbortError') {
           setError(err.message || 'Failed to fetch blockchain explorer data');
@@ -400,6 +416,19 @@ export default function BlockchainExplorer() {
               <strong className="explorer-hash">{shortHash(status.latestBlockHash)}</strong>
               {renderCopyButton(status.latestBlockHash, 'Copy latest block hash', 'latest-hash', true)}
             </div>
+          </section>
+        )}
+
+        {/* ── Visual Chain Diagram ── */}
+        {!loading && !error && blocks.length > 0 && (
+          <section aria-label="Chain diagram">
+            <BlockChainDiagram
+              blocks={blocks}
+              selectedHeight={selectedHeight}
+              inspectingHeight={inspectingHeight}
+              onSelectBlock={handleSelectBlock}
+              newBlockHeight={newBlockHeight}
+            />
           </section>
         )}
 

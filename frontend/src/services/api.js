@@ -63,16 +63,25 @@ api.interceptors.response.use(
 
 /**
  * 4. API Helper Methods
+ * These are abstraction layers so our components (Register.js / Login.js)
+ * don't have to worry about URL paths or axios syntax directly.
  */
 
+// Handles the POST request to create a new user account.
 export const registerUser = async (userData) => {
     const response = await api.post('/auth/register', userData);
     return response.data;
 };
 
+// Handles the POST request to authenticate a user.
 export const loginUser = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
 
+    /**
+     * Token Normalization:
+     * The backend returns { accessToken, refreshToken }.
+     * We save the accessToken as our JWT for subsequent requests.
+     */
     if (response.data.accessToken) {
         localStorage.setItem('token', response.data.accessToken);
     } else if (response.data.token) {

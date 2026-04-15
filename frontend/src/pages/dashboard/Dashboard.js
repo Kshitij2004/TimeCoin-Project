@@ -3,140 +3,59 @@ import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import "./Dashboard.css";
 
-// Helper: makes requests that won't trigger the 401 redirect in api.js
-const safeGet = (url) => api.get(url, { skipAuthRedirect: true });
-
-// ── Auth stub ────────────────────────────────────────────────
-// Registers a throwaway user and logs in to get a real JWT.
-// Returns user info from the register response.
-async function ensureAuth() {
-    const existing = localStorage.getItem("token");
-    const cachedUser = localStorage.getItem("dashUser");
-    if (existing && cachedUser) {
-        return JSON.parse(cachedUser);
-    }
-
-    // Clear any stale token before starting
-    localStorage.removeItem("token");
-
-    const ts = Date.now();
-    const tempUser = {
-        username: "dash_" + ts,
-        email: "dash_" + ts + "@wisc.edu",
-        password: "Temp1234!",
-    };
-
-    // Register
-    try {
-        await api.post("/auth/register", tempUser, { skipAuthRedirect: true });
-    } catch (err) {
-        if (err.response?.status !== 409) throw err;
-    }
-
-    // Login
-    const loginRes = await api.post("/auth/login", {
-        username: tempUser.username,
-        password: tempUser.password,
-    }, { skipAuthRedirect: true });
-
-    let token;
-    if (loginRes.data.accessToken) {
-        token = loginRes.data.accessToken;
-    } else if (loginRes.data.token) {
-        token = loginRes.data.token;
-    } else if (typeof loginRes.data === "string") {
-        token = loginRes.data.replace(/"/g, "");
-    } else {
-        throw new Error("Unexpected login response");
-    }
-
-    localStorage.setItem("token", token);
-
-    const userInfo = {
-        username: tempUser.username,
-        walletAddress: null, // will be set from register response if available
-        userId: null,
-    };
-
-    // Try to extract from register response (may have been a 409)
-    try {
-        const regRes = await api.post("/auth/register", {
-            username: tempUser.username,
-            email: tempUser.email,
-            password: tempUser.password,
-        }, { skipAuthRedirect: true });
-        userInfo.walletAddress = regRes.data.walletAddress;
-        userInfo.userId = regRes.data.id;
-    } catch {
-        // Already registered, that's fine — we'll get wallet address from /wallet if needed
-    }
-
-    localStorage.setItem("dashUser", JSON.stringify(userInfo));
-    return userInfo;
-}
-
 function Dashboard() {
-    const [userInfo, setUserInfo] = useState(null);
-    const [balance, setBalance] = useState({ available: 0, staked: 0, total: 0 });
+    const [balance, setBalance] = useState(null);
     const [coin, setCoin] = useState(null);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [balanceError, setBalanceError] = useState(null);
+    const [txnError, setTxnError] = useState(null);
     const [hasPending, setHasPending] = useState(false);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        const init = async () => {
+        const fetchDashboardData = async () => {
+            // Fetch ledger-derived balance (issue #120)
+            // Uses JWT to identify user — no wallet address needed
             try {
-                const user = await ensureAuth();
-                setUserInfo(user);
-
-                // Fetch ledger-derived balance (issue #120)
-                if (user.walletAddress) {
-                    try {
-                        const balanceRes = await safeGet("/balances/" + user.walletAddress);
-                        setBalance(balanceRes.data);
-                    } catch (err) {
-                        if (err.response?.status !== 404) {
-                            setBalanceError(err.response?.data?.message || "Failed to load balance.");
-                        }
-                    }
-                }
-
-                // Fetch coin price
-                try {
-                    const coinRes = await safeGet("/coin");
-                    setCoin(coinRes.data);
-                } catch {}
-
-                // Fetch transactions
-                try {
-                    const txnRes = await safeGet("/transactions?page=1&limit=10");
-                    let txnList = [];
-                    if (txnRes.data && txnRes.data.data) {
-                        txnList = txnRes.data.data;
-                    } else if (Array.isArray(txnRes.data)) {
-                        txnList = txnRes.data;
-                    }
-                    setTransactions(txnList);
-                    setHasPending(txnList.some(
-                        (tx) => tx.status && tx.status.toLowerCase() === "pending"
-                    ));
-                } catch {}
-
+                const balanceRes = await api.get("/wallet/balance");
+                setBalance(balanceRes.data);
             } catch (err) {
-                console.error("Dashboard init failed:", err);
-            } finally {
-                setLoading(false);
+                setBalanceError(err.response?.data?.message || "Failed to load balance.");
             }
+
+            // Fetch coin price
+            try {
+                const coinRes = await api.get("/coin");
+                setCoin(coinRes.data);
+            } catch {}
+
+            // Fetch transactions
+            try {
+                const txnRes = await api.get("/wallet/transactions?page=1&limit=10");
+                let txnList = [];
+                if (txnRes.data && txnRes.data.data) {
+                    txnList = txnRes.data.data;
+                } else if (Array.isArray(txnRes.data)) {
+                    txnList = txnRes.data;
+                }
+                setTransactions(txnList);
+                setHasPending(txnList.some(
+                    (tx) => tx.status && tx.status.toLowerCase() === "pending"
+                ));
+            } catch (err) {
+                setTxnError(err.response?.data?.message || "Failed to load transactions.");
+            }
+
+            setLoading(false);
         };
 
-        init();
+        fetchDashboardData();
     }, []);
 
     const handleCopyAddress = () => {
-        if (userInfo?.walletAddress) {
-            navigator.clipboard.writeText(userInfo.walletAddress).then(() => {
+        if (balance?.walletAddress) {
+            navigator.clipboard.writeText(balance.walletAddress).then(() => {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             });
@@ -180,18 +99,30 @@ function Dashboard() {
             );
         }
 
-        return (
-            <>
-                <div className="wallet-address-bar">
-                    <span className="wallet-address-label">Wallet Address:</span>
-                    <code className="wallet-address-value">
-                        {userInfo?.walletAddress || "—"}
-                    </code>
-                    <button className="copy-btn" onClick={handleCopyAddress}>
-                        {copied ? "✓ Copied" : "Copy"}
+        if (balanceError && !balance) {
+            return (
+                <div className="error-container">
+                    <p className="error-message">Error: {balanceError}</p>
+                    <button className="retry-btn" onClick={() => window.location.reload()}>
+                        Retry
                     </button>
                 </div>
+            );
+        }
 
+        return (
+            <>
+                {balance?.walletAddress && (
+                    <div className="wallet-address-bar">
+                        <span className="wallet-address-label">Wallet Address:</span>
+                        <code className="wallet-address-value">{balance.walletAddress}</code>
+                        <button className="copy-btn" onClick={handleCopyAddress}>
+                            {copied ? "✓ Copied" : "Copy"}
+                        </button>
+                    </div>
+                )}
+
+                {/* Pending transactions indicator (issue #120) */}
                 {hasPending && (
                     <div className="pending-banner" role="alert">
                         <span className="pending-icon">⏳</span>
@@ -199,28 +130,24 @@ function Dashboard() {
                     </div>
                 )}
 
+                {/* Ledger-derived balance display (issue #120) */}
                 <div className="stats-grid">
                     <div className="stat-card">
                         <h3>Available Balance</h3>
                         <div className="value" data-testid="available-balance">
-                            {Number(balance.available).toFixed(4)} TC
+                            {balance ? Number(balance.available).toFixed(4) + " TC" : "0.0000 TC"}
                         </div>
-                        {balanceError && (
-                            <div className="sub-value" style={{ color: "#e74c3c" }}>
-                                {balanceError}
-                            </div>
-                        )}
                     </div>
                     <div className="stat-card">
                         <h3>Staked</h3>
                         <div className="value" data-testid="staked-balance">
-                            {Number(balance.staked).toFixed(4)} TC
+                            {balance ? Number(balance.staked).toFixed(4) + " TC" : "0.0000 TC"}
                         </div>
                     </div>
                     <div className="stat-card">
                         <h3>Total Balance</h3>
                         <div className="value" data-testid="total-balance">
-                            {Number(balance.total).toFixed(4)} TC
+                            {balance ? Number(balance.total).toFixed(4) + " TC" : "0.0000 TC"}
                         </div>
                     </div>
                     <div className="stat-card">
@@ -239,6 +166,10 @@ function Dashboard() {
             return (
                 <div className="loading-container"><div className="spinner"></div></div>
             );
+        }
+
+        if (txnError) {
+            return <div className="error-message">Error loading transactions: {txnError}</div>;
         }
 
         if (!transactions || transactions.length === 0) {
@@ -281,7 +212,6 @@ function Dashboard() {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        localStorage.removeItem("dashUser");
         window.location.href = "/login";
     };
 
@@ -301,7 +231,7 @@ function Dashboard() {
 
             <main className="main-content">
                 <header className="header">
-                    <h1>Welcome back{userInfo ? ", " + userInfo.username : ""}</h1>
+                    <h1>Welcome back</h1>
                 </header>
 
                 {renderWalletSection()}

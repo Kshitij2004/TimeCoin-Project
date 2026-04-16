@@ -2,7 +2,8 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import BlockchainExplorer from './BlockchainExplorer.js';
-import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../services/blockchainExplorerApi.js';
+import BlockChainDiagram from './BlockChainDiagram.js';
+import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../../services/blockchainExplorerApi.js';
 
 const mockSetSearchParams = jest.fn();
 let mockInitialSearch = '';
@@ -28,7 +29,7 @@ jest.mock('react-router-dom', () => {
   };
 }, { virtual: true });
 
-jest.mock('../services/blockchainExplorerApi.js', () => ({
+jest.mock('../../services/blockchainExplorerApi.js', () => ({
   getChainStatus: jest.fn(),
   getBlocks: jest.fn(),
   getBlockByHeight: jest.fn(),
@@ -237,7 +238,10 @@ test('loads block detail and linked transactions on inspect', async () => {
   renderExplorer();
 
   await screen.findByText('Page 1 of 2');
-  fireEvent.click(screen.getByRole('button', { name: 'Inspect' }));
+  // Both the diagram node and the table row render an "Inspect" button; click the table row one
+  const inspectButtons = screen.getAllByRole('button', { name: 'Inspect' });
+  const tableInspect = inspectButtons.find((btn) => !btn.closest('.chain-node'));
+  fireEvent.click(tableInspect);
 
   expect(await screen.findByLabelText(/Linked transactions table/i)).toBeInTheDocument();
   expect(screen.getByText('sender_wallet')).toBeInTheDocument();
@@ -269,8 +273,12 @@ test('shows inspect button loading interaction while detail is fetching', async 
   renderExplorer();
 
   await screen.findByText('Page 1 of 2');
-  fireEvent.click(screen.getByRole('button', { name: 'Inspect' }));
+  // Both the diagram node and table row render "Inspect"; target the table row button
+  const inspectButtons = screen.getAllByRole('button', { name: 'Inspect' });
+  const tableInspect = inspectButtons.find((btn) => !btn.closest('.chain-node'));
+  fireEvent.click(tableInspect);
 
+  // Table row button switches to Inspecting... while the diagram node still shows Inspecting…
   const loadingButton = screen.getByRole('button', { name: 'Inspecting...' });
   expect(loadingButton).toBeDisabled();
   expect(loadingButton).toHaveClass('explorer-view-btn-loading');

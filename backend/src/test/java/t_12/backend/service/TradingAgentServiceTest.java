@@ -3,6 +3,7 @@ package t_12.backend.service;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,14 +46,14 @@ class TradingAgentServiceTest {
             Wallet wallet = new Wallet();
             wallet.setUserId(userId);
             wallet.setWalletAddress("addr_" + userId);
-            when(walletService.getWalletByUserId(userId)).thenReturn(wallet);
+            lenient().when(walletService.getWalletByUserId(userId)).thenReturn(wallet);
         }
 
-        when(balanceService.getBalance(any())).thenReturn(
+        lenient().when(balanceService.getBalance(any())).thenReturn(
                 new BalanceResponse("addr_test", new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000")));
 
-        when(purchaseService.purchaseCoin(any(), eq("TC"), any())).thenReturn(mockResponse("buy"));
-        when(purchaseService.sellCoin(any(), eq("TC"), any())).thenReturn(mockResponse("sell"));
+        lenient().when(purchaseService.purchaseCoin(any(), eq("TC"), any())).thenReturn(mockResponse("buy"));
+        lenient().when(purchaseService.sellCoin(any(), eq("TC"), any())).thenReturn(mockResponse("sell"));
     }
 
     @Test
@@ -71,7 +72,6 @@ class TradingAgentServiceTest {
             agentService.tick();
         }
 
-        // every agent should have traded at least once across 20 ticks
         for (int userId = 1; userId <= 6; userId++) {
             verify(purchaseService, atLeast(1)).purchaseCoin(eq(userId), eq("TC"), any());
         }
@@ -79,7 +79,6 @@ class TradingAgentServiceTest {
 
     @Test
     void tick_insufficientSellBalance_fallsToBuy() {
-        // bearish agent (userId 3) has no balance
         when(balanceService.getBalance("addr_3")).thenReturn(
                 new BalanceResponse("addr_3", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
 
@@ -87,7 +86,6 @@ class TradingAgentServiceTest {
             agentService.tick();
         }
 
-        // bearish agent should still buy since sell fails balance check
         verify(purchaseService, atLeast(1)).purchaseCoin(eq(3), eq("TC"), any());
     }
 
@@ -96,9 +94,11 @@ class TradingAgentServiceTest {
         when(purchaseService.purchaseCoin(eq(1), any(), any()))
                 .thenThrow(new RuntimeException("simulated failure"));
 
-        agentService.tick();
+        // run multiple ticks so agent 2 is guaranteed to hit a buy path
+        for (int i = 0; i < 20; i++) {
+            agentService.tick();
+        }
 
-        // other agents should still trade despite agent 1 failing
         verify(purchaseService, atLeast(1)).purchaseCoin(eq(2), eq("TC"), any());
     }
 

@@ -172,3 +172,13 @@ CREATE TABLE IF NOT EXISTS price_history (
 );
 
 CREATE INDEX idx_price_history_time ON price_history(recorded_at);
+
+-- 11. Mining Accumulator
+-- tracks click-based mining progress for each wallet. window_start and last_mined_at
+-- allow enforcing cooldowns and time-based limits on mining rewards.
+CREATE TABLE IF NOT EXISTS mining_accumulator (
+    wallet_address  VARCHAR(128)    NOT NULL PRIMARY KEY,
+    click_count     INT             NOT NULL DEFAULT 0,
+    window_start    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_mined_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

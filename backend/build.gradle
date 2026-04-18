@@ -71,18 +71,38 @@ tasks.named('jacocoTestReport', JacocoReport) {
 	}
 }
 
+// Coverage enforcement - fails build if below 80%
+tasks.named('jacocoTestCoverageVerification') {
+	dependsOn jacocoTestReport
+	executionData files("${buildDir}/jacoco/testUnit.exec")
+	violationRules {
+		rule {
+			limit {
+				minimum = 0.80
+			}
+		}
+	}
+}
+
 afterEvaluate {
+	// shared exclusion list for both report and verification
+	def excludedClasses = [
+			'**/entity/**',
+			'**/config/**',
+			'**/repository/**',
+			'**/filter/**',
+			'**/exception/**',
+			'**/api/**',
+			'**/service/UserRegistrationResult*',
+			'**/service/WalletCreationResult*',
+			'**/BackendApplication*'
+	]
+
 	jacocoTestReport.classDirectories.setFrom(files(jacocoTestReport.classDirectories.files.collect {
-		fileTree(dir: it, exclude: [
-				'**/entity/**',
-				'**/config/**',
-				'**/repository/**',
-				'**/filter/**',
-				'**/exception/**',
-				'**/api/**',
-				'**/service/UserRegistrationResult*',
-				'**/service/WalletCreationResult*',
-				'**/BackendApplication*'
-		])
+		fileTree(dir: it, exclude: excludedClasses)
 	}))
+
+	jacocoTestCoverageVerification.classDirectories.setFrom(
+		jacocoTestReport.classDirectories
+	)
 }

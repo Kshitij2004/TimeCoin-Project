@@ -35,7 +35,8 @@ import t_12.backend.repository.WalletRepository;
         "spring.datasource.driverClassName=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "agents.enabled=false"
 })
 class SchemaIntegrationTest {
 

@@ -2,9 +2,13 @@ package t_12.backend.service;
 
 import java.math.BigDecimal;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import t_12.backend.entity.Transaction;
+import t_12.backend.exception.ApiException;
 import t_12.backend.exception.InsufficientFundsException;
+import t_12.backend.repository.TransactionRepository;
 
 /**
  * Validates transactions before creation. Uses spendable balance
@@ -14,9 +18,13 @@ import t_12.backend.exception.InsufficientFundsException;
 public class TransactionValidationService {
 
     private final BalanceService balanceService;
+    private final TransactionRepository transactionRepository;
 
-    public TransactionValidationService(BalanceService balanceService) {
+    public TransactionValidationService(
+            BalanceService balanceService,
+            TransactionRepository transactionRepository) {
         this.balanceService = balanceService;
+        this.transactionRepository = transactionRepository;
     }
 
     /**
@@ -51,6 +59,21 @@ public class TransactionValidationService {
      * @param nonce the nonce provided in the transaction
      */
     public void validateNonce(String senderAddress, Integer nonce) {
-        // TODO(team): implement per-sender nonce tracking.
+        if (senderAddress == null) {
+            return;
+        }
+
+        long confirmedSentCount = transactionRepository.countBySenderAddressAndStatus(
+                senderAddress,
+                Transaction.Status.CONFIRMED
+        );
+        long expectedNonce = confirmedSentCount + 1;
+
+        if (nonce == null || nonce.longValue() != expectedNonce) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid nonce: expected " + expectedNonce + " but received " + nonce + "."
+            );
+        }
     }
 }

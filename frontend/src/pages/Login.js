@@ -38,7 +38,7 @@ function Login() {
              * 1. Check for response.data.token (Standard JSON object)
              * 2. Check for response.data (If backend returns plain string JWT)
              */
-            const token = response.data?.token || (typeof response.data === 'string' ? response.data : null);
+            const token = response.data?.accessToken || response.data?.token || (typeof response.data === 'string' ? response.data : null);
 
             if (token) {
                 // Store the real JWT in localStorage for the Interceptor to use

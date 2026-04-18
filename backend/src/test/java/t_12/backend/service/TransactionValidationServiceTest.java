@@ -150,16 +150,18 @@ class TransactionValidationServiceTest {
 
     @Test
     void validateNonce_validNonce_passes() {
-        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
-                .thenReturn(3L);
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                SENDER, java.util.List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)))
+                .thenReturn(3);
 
         assertDoesNotThrow(() -> validationService.validateNonce(SENDER, 4));
     }
 
     @Test
     void validateNonce_duplicateNonce_rejectedWithExpectedAndProvided() {
-        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
-                .thenReturn(3L);
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                SENDER, java.util.List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)))
+                .thenReturn(3);
 
         InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, 3));
 
@@ -169,8 +171,9 @@ class TransactionValidationServiceTest {
 
     @Test
     void validateNonce_skippedNonce_rejectedWithExpectedAndProvided() {
-        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
-                .thenReturn(3L);
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                SENDER, java.util.List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)))
+                .thenReturn(3);
 
         InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, 5));
 
@@ -180,8 +183,9 @@ class TransactionValidationServiceTest {
 
     @Test
     void validateNonce_negativeNonce_rejectedWithExpectedAndProvided() {
-        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
-                .thenReturn(0L);
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                SENDER, java.util.List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)))
+                .thenReturn(0);
 
         InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, -1));
 
@@ -191,12 +195,25 @@ class TransactionValidationServiceTest {
 
     @Test
     void validateNonce_nullNonce_rejectedWithExpectedAndProvided() {
-        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
-                .thenReturn(0L);
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                SENDER, java.util.List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)))
+                .thenReturn(0);
 
         InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, null));
 
         assertTrue(ex.getMessage().contains("expected 1"));
         assertTrue(ex.getMessage().contains("received null"));
+    }
+
+    @Test
+    void validateNonce_usesPendingTransactionsToComputeExpectedNonce() {
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                SENDER, java.util.List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)))
+                .thenReturn(8);
+
+        InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, 7));
+
+        assertTrue(ex.getMessage().contains("expected 9"));
+        assertTrue(ex.getMessage().contains("received 7"));
     }
 }

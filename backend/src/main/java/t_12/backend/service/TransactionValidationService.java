@@ -1,6 +1,7 @@
 package t_12.backend.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -62,11 +63,11 @@ public class TransactionValidationService {
             return;
         }
 
-        long confirmedSentCount = transactionRepository.countBySenderAddressAndStatus(
+        Integer latestNonce = transactionRepository.findMaxNonceBySenderAddressAndStatuses(
                 senderAddress,
-                Transaction.Status.CONFIRMED
+                List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
         );
-        long expectedNonce = confirmedSentCount + 1;
+        long expectedNonce = (latestNonce == null ? 0L : latestNonce.longValue()) + 1;
 
         if (nonce == null || nonce < 0 || nonce.longValue() != expectedNonce) {
             throw new InvalidNonceException(expectedNonce, nonce);

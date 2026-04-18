@@ -2,7 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import BlockchainExplorer from './BlockchainExplorer.js';
-import BlockChainDiagram from './BlockChainDiagram.js';
+import BlockChainDiagram from './BlockChainDiagram.jsx';
 import { getBlockByHash, getBlockByHeight, getBlocks, getChainStatus } from '../../services/blockchainExplorerApi.js';
 
 const mockSetSearchParams = jest.fn();

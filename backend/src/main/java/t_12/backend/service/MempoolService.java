@@ -36,6 +36,10 @@ public class MempoolService {
                 transaction.getAmount(),
                 transaction.getFee()
         );
+        transactionValidationService.validateNonce(
+                transaction.getSenderAddress(),
+                transaction.getNonce()
+        );
 
         if (transaction.getTransactionHash() != null
                 && transactionRepository.existsByTransactionHash(transaction.getTransactionHash())) {

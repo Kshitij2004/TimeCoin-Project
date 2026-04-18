@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
                 .requestMatchers("/api/wallet/**").authenticated()
+                .requestMatchers("/api/staking/**").authenticated()
                 .requestMatchers("/api/coin/**").authenticated()
                 .requestMatchers("/api/coins/**").authenticated()
                 .requestMatchers("/api/transactions/**").authenticated()

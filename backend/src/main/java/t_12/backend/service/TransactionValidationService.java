@@ -63,14 +63,29 @@ public class TransactionValidationService {
             return;
         }
 
-        Integer latestNonce = transactionRepository.findMaxNonceBySenderAddressAndStatuses(
-                senderAddress,
-                List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
-        );
-        long expectedNonce = (latestNonce == null ? 0L : latestNonce.longValue()) + 1;
+        long expectedNonce = getExpectedNextNonce(senderAddress);
 
         if (nonce == null || nonce < 0 || nonce.longValue() != expectedNonce) {
             throw new InvalidNonceException(expectedNonce, nonce);
         }
+    }
+
+    /**
+     * Resolves the sender's next expected nonce using both confirmed and
+     * pending transactions.
+     *
+     * @param senderAddress the sender wallet address
+     * @return next expected nonce (max observed nonce + 1)
+     */
+    public long getExpectedNextNonce(String senderAddress) {
+        if (senderAddress == null) {
+            return 0L;
+        }
+
+        Integer latestNonce = transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                senderAddress,
+                List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
+        );
+        return (latestNonce == null ? 0L : latestNonce.longValue()) + 1;
     }
 }

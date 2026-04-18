@@ -136,7 +136,8 @@ public class MempoolService {
             }
         }
 
-        if (transaction.getTransactionHash() != null) {
+        if (transaction.getTransactionHash() != null
+                && transactionRepository.existsByTransactionHash(transaction.getTransactionHash())) {
             throw new DuplicateResourceException(
                     "Transaction with this hash already exists: " + transaction.getTransactionHash()
             );

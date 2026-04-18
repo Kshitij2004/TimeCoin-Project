@@ -132,7 +132,7 @@ class MempoolServiceTest {
 
     @Test
     void enqueueValidatedTransaction_dbConstraintButNonceStillValid_mapsToDuplicateHashConflict() {
-        when(transactionRepository.existsByTransactionHash("hash_1")).thenReturn(false);
+        when(transactionRepository.existsByTransactionHash("hash_1")).thenReturn(false, true);
         when(transactionRepository.existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
                 tx.getSenderAddress(),
                 tx.getReceiverAddress(),

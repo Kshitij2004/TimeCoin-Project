@@ -5,15 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,7 +28,6 @@ import t_12.backend.entity.Transaction;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.InsufficientFundsException;
 import t_12.backend.repository.ListingRepository;
-import t_12.backend.repository.TransactionRepository;
 import t_12.backend.repository.WalletRepository;
 
 /**
@@ -48,9 +45,6 @@ public class ListingsServiceTest {
 
     @Mock
     private WalletRepository walletRepository;
-
-    @Mock
-    private TransactionRepository transactionRepository;
 
     @Mock
     private TransactionService transactionService;
@@ -299,8 +293,13 @@ public class ListingsServiceTest {
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
         when(walletRepository.findByUserId(BUYER_ID)).thenReturn(Optional.of(buyerWallet));
         when(walletRepository.findByUserId(SELLER_ID)).thenReturn(Optional.of(sellerWallet));
-        when(transactionService.generateTransactionHash(any(), any(), any(), any(), anyInt(), any(LocalDateTime.class)))
-                .thenReturn("mock-tx-hash");
+        when(transactionValidationService.getExpectedNextNonce(buyerWallet.getWalletAddress()))
+                .thenReturn(1L);
+        Transaction created = new Transaction();
+        created.setTransactionHash("mock-tx-hash");
+        when(transactionService.createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        )).thenReturn(created);
 
         String txHash = listingService.purchaseListing(LISTING_ID, BUYER_ID);
 
@@ -310,7 +309,9 @@ public class ListingsServiceTest {
         assertEquals(SUFFICIENT_BALANCE, buyerWallet.getCoinBalance());
         assertEquals(BigDecimal.ZERO, sellerWallet.getCoinBalance());
         assertEquals(Listing.Status.SOLD, activeListing.getStatus());
-        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        verify(transactionService, times(1)).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
         verify(walletRepository, never()).save(buyerWallet);
         verify(walletRepository, never()).save(sellerWallet);
         verify(listingRepository, times(1)).save(activeListing);
@@ -327,7 +328,9 @@ public class ListingsServiceTest {
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
 
         verify(walletRepository, never()).findByUserId(any());
-        verify(transactionRepository, never()).save(any());
+        verify(transactionService, never()).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
     }
 
     /**
@@ -342,7 +345,9 @@ public class ListingsServiceTest {
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
 
         assertEquals("Listing is no longer available (status: SOLD)", ex.getMessage());
-        verify(transactionRepository, never()).save(any());
+        verify(transactionService, never()).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
     }
 
     /**
@@ -357,7 +362,9 @@ public class ListingsServiceTest {
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
 
         assertEquals("You cannot purchase your own listing", ex.getMessage());
-        verify(transactionRepository, never()).save(any());
+        verify(transactionService, never()).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
     }
 
     /**
@@ -378,7 +385,9 @@ public class ListingsServiceTest {
         assertThrows(InsufficientFundsException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
 
-        verify(transactionRepository, never()).save(any());
+        verify(transactionService, never()).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
     }
 
     /**
@@ -392,7 +401,9 @@ public class ListingsServiceTest {
         assertThrows(t_12.backend.exception.ResourceNotFoundException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
 
-        verify(transactionRepository, never()).save(any());
+        verify(transactionService, never()).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
     }
 
     /**
@@ -407,7 +418,9 @@ public class ListingsServiceTest {
         assertThrows(t_12.backend.exception.ResourceNotFoundException.class,
                 () -> listingService.purchaseListing(LISTING_ID, BUYER_ID));
 
-        verify(transactionRepository, never()).save(any());
+        verify(transactionService, never()).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
     }
 
     /**
@@ -419,8 +432,13 @@ public class ListingsServiceTest {
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(activeListing));
         when(walletRepository.findByUserId(BUYER_ID)).thenReturn(Optional.of(buyerWallet));
         when(walletRepository.findByUserId(SELLER_ID)).thenReturn(Optional.of(sellerWallet));
-        when(transactionService.generateTransactionHash(any(), any(), any(), any(), anyInt(), any(LocalDateTime.class)))
-                .thenReturn("mock-tx-hash");
+        when(transactionValidationService.getExpectedNextNonce(buyerWallet.getWalletAddress()))
+                .thenReturn(1L);
+        Transaction created = new Transaction();
+        created.setTransactionHash("mock-tx-hash");
+        when(transactionService.createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        )).thenReturn(created);
 
         String txHash = listingService.purchaseListing(LISTING_ID, BUYER_ID);
 
@@ -429,6 +447,9 @@ public class ListingsServiceTest {
         assertEquals(0, buyerWallet.getCoinBalance().compareTo(PRICE));
         assertEquals(0, sellerWallet.getCoinBalance().compareTo(BigDecimal.ZERO));
         assertEquals(Listing.Status.SOLD, activeListing.getStatus());
+        verify(transactionService, times(1)).createMarketplaceTransaction(
+                any(), any(), any(), any(), anyInt(), any(), any(), any(), any(), any()
+        );
         verify(walletRepository, never()).save(buyerWallet);
         verify(walletRepository, never()).save(sellerWallet);
     }

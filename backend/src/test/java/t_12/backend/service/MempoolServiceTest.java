@@ -20,9 +20,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import t_12.backend.entity.Transaction;
 import t_12.backend.exception.DuplicateResourceException;
+import t_12.backend.exception.InvalidNonceException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.TransactionRepository;
 
@@ -99,6 +101,59 @@ class MempoolServiceTest {
         assertThrows(DuplicateResourceException.class, () -> mempoolService.enqueueValidatedTransaction(tx));
 
         verify(transactionRepository, never()).save(any(Transaction.class));
+    }
+
+    @Test
+    void enqueueValidatedTransaction_dbNonceConflict_throwsInvalidNonceException() {
+        when(transactionRepository.existsByTransactionHash("hash_1")).thenReturn(false);
+        when(transactionRepository.existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+                tx.getSenderAddress(),
+                tx.getReceiverAddress(),
+                tx.getAmount(),
+                tx.getFee(),
+                tx.getNonce(),
+                Transaction.Status.PENDING
+        )).thenReturn(false);
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate sender nonce"));
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                tx.getSenderAddress(),
+                List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
+        )).thenReturn(1);
+
+        InvalidNonceException ex = assertThrows(
+                InvalidNonceException.class,
+                () -> mempoolService.enqueueValidatedTransaction(tx)
+        );
+
+        assertTrue(ex.getMessage().contains("expected 2"));
+        assertTrue(ex.getMessage().contains("received 1"));
+    }
+
+    @Test
+    void enqueueValidatedTransaction_dbConstraintButNonceStillValid_mapsToDuplicateHashConflict() {
+        when(transactionRepository.existsByTransactionHash("hash_1")).thenReturn(false);
+        when(transactionRepository.existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
+                tx.getSenderAddress(),
+                tx.getReceiverAddress(),
+                tx.getAmount(),
+                tx.getFee(),
+                tx.getNonce(),
+                Transaction.Status.PENDING
+        )).thenReturn(false);
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate transaction hash"));
+        when(transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                tx.getSenderAddress(),
+                List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
+        )).thenReturn(0);
+
+        DuplicateResourceException ex = assertThrows(
+                DuplicateResourceException.class,
+                () -> mempoolService.enqueueValidatedTransaction(tx)
+        );
+
+        assertTrue(ex.getMessage().contains("Transaction with this hash already exists"));
     }
 
     @Test

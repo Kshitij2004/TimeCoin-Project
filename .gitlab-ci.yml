@@ -70,9 +70,9 @@ test-backend:
     - echo "Running backend unit tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew testUnit jacocoTestReport
-    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { print "Total: " covered/instructions*100 "%" }'' build/reports/jacoco/test/jacocoTestReport.csv'
-  coverage: '/Total:\s*(\d+(?:\.\d+)?)%/'
+    - ./gradlew testUnit jacocoTestReport jacocoTestCoverageVerification
+    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { printf "Total: %.2f%%\n", covered/instructions*100 }'' build/reports/jacoco/test/jacocoTestReport.csv'
+  coverage: '/Total:\s*(\d+\.\d+)%/'
   artifacts:
     when: always
     paths:
@@ -164,9 +164,9 @@ test-frontend:
     - echo "Running frontend tests..."
     - cd frontend
     - npm ci
-    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=cobertura --coverageReporters=json-summary --reporters=default --reporters=jest-junit
-    - 'node -e "const pct=require(\"./coverage/coverage-summary.json\").total.statements.pct; console.log(`Total: ${pct}%`);"'
-  coverage: '/Total:\s*(\d+(?:\.\d+)?)%/'
+    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+    - echo "Frontend tests complete"
+  coverage: '/Statements\s*:\s*([0-9.]+)%/'
   artifacts:
     when: always
     paths:

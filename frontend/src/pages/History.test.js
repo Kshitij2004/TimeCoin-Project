@@ -59,7 +59,7 @@ test('renders transactions table after successful fetch', async () => {
   
   // Verify the call uses the correct URL
   expect(api.get).toHaveBeenCalledWith(
-    expect.stringContaining('/transactions?page=1&limit=10'),
+    expect.stringContaining('/wallet/transactions?page=1&limit=10'),
     expect.any(Object) // Placeholder for the AbortSignal
   );
 });

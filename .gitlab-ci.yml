@@ -4,23 +4,6 @@ stages:
   - test
   - lint
 
-# Shared change sets (YAML anchors)
-.backend-rules:
-  rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
-
-.frontend-rules:
-  rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
-
 # Validate (always runs)
 check-required-files:
   stage: validate
@@ -47,11 +30,7 @@ build-backend:
   tags:
     - cs506
   rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
@@ -74,11 +53,7 @@ test-backend:
   tags:
     - cs506
   rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-backend
   variables:
@@ -117,11 +92,7 @@ test-schema:
   tags:
     - cs506
   rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-backend
   variables:
@@ -155,11 +126,7 @@ build-frontend:
   tags:
     - cs506
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   variables:
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:
@@ -180,11 +147,7 @@ test-frontend:
   tags:
     - cs506
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-frontend
   variables:
@@ -222,11 +185,7 @@ lint-frontend:
   tags:
     - cs506
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-frontend
   variables:

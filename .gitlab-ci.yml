@@ -201,7 +201,7 @@ test-frontend:
     - echo "Running frontend tests..."
     - cd frontend
     - npm ci
-    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
     - echo "Frontend tests complete"
   coverage: '/Statements\s*:\s*([0-9.]+)%/'
   artifacts:

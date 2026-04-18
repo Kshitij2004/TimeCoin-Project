@@ -187,6 +187,89 @@ class ChainValidationServiceTest {
         assertEquals(20, report.getFailure().getTransactionId());
     }
 
+    @Test
+    void validateFullChain_emptyChain_passesWithZeroCounts() {
+        when(blockRepository.findAllByOrderByBlockHeightAsc()).thenReturn(List.of());
+
+        ChainValidationReportDTO report = chainValidationService.validateFullChain();
+
+        assertTrue(report.isValid());
+        assertEquals(0, report.getCheckedBlocks());
+        assertEquals(0, report.getCheckedTransactions());
+        assertNull(report.getFailure());
+    }
+
+    @Test
+    void validateBlock_missingBlock_returnsBlockNotFoundFailure() {
+        when(blockRepository.findByBlockHeight(99)).thenReturn(Optional.empty());
+
+        ChainValidationReportDTO report = chainValidationService.validateBlock(99);
+
+        assertFalse(report.isValid());
+        assertEquals(0, report.getCheckedBlocks());
+        assertEquals(0, report.getCheckedTransactions());
+        assertNotNull(report.getFailure());
+        assertEquals("BLOCK_NOT_FOUND", report.getFailure().getCode());
+    }
+
+    @Test
+    void validateBlock_validBlock_passes() {
+        LocalDateTime blockTime = LocalDateTime.of(2026, 1, 1, 0, 2, 0);
+        Block block = block(2, 1, "genesis_hash", "block_1_hash", blockTime);
+        Transaction tx = transaction(
+                30,
+                "sender_wallet",
+                "receiver_wallet",
+                new BigDecimal("2.00000000"),
+                new BigDecimal("0.01000000"),
+                7,
+                LocalDateTime.of(2026, 1, 1, 0, 1, 0),
+                "tx_hash_30"
+        );
+
+        when(blockRepository.findByBlockHeight(1)).thenReturn(Optional.of(block));
+        when(blockTransactionRepository.findByBlockIdOrderByIdAsc(2))
+                .thenReturn(List.of(blockTransaction(201, 2, 30)));
+        when(transactionRepository.findById(30)).thenReturn(Optional.of(tx));
+        when(transactionService.generateTransactionHash(
+                tx.getSenderAddress(),
+                tx.getReceiverAddress(),
+                tx.getAmount(),
+                tx.getFee(),
+                tx.getNonce(),
+                tx.getTimestamp()
+        )).thenReturn("tx_hash_30");
+        when(blockService.generateBlockHash(1, "genesis_hash", blockTime, List.of("tx_hash_30")))
+                .thenReturn("block_1_hash");
+
+        ChainValidationReportDTO report = chainValidationService.validateBlock(1);
+
+        assertTrue(report.isValid());
+        assertEquals(1, report.getCheckedBlocks());
+        assertEquals(1, report.getCheckedTransactions());
+        assertNull(report.getFailure());
+    }
+
+    @Test
+    void validateBlock_missingJoinedTransaction_isIgnored() {
+        LocalDateTime blockTime = LocalDateTime.of(2026, 1, 1, 0, 5, 0);
+        Block block = block(5, 4, "prior_hash", "block_4_hash", blockTime);
+
+        when(blockRepository.findByBlockHeight(4)).thenReturn(Optional.of(block));
+        when(blockTransactionRepository.findByBlockIdOrderByIdAsc(5))
+                .thenReturn(List.of(blockTransaction(301, 5, 999)));
+        when(transactionRepository.findById(999)).thenReturn(Optional.empty());
+        when(blockService.generateBlockHash(4, "prior_hash", blockTime, List.of()))
+                .thenReturn("block_4_hash");
+
+        ChainValidationReportDTO report = chainValidationService.validateBlock(4);
+
+        assertTrue(report.isValid());
+        assertEquals(1, report.getCheckedBlocks());
+        assertEquals(0, report.getCheckedTransactions());
+        assertNull(report.getFailure());
+    }
+
     private Block block(
             int id,
             int height,

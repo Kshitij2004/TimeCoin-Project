@@ -3,6 +3,7 @@ package t_12.backend.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -11,11 +12,13 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -123,6 +126,32 @@ class BlockchainExplorerServiceTest {
     }
 
     @Test
+    void getBlockByHash_includesLinkedTransactions() {
+        Block block = new Block();
+        block.setId(4);
+        block.setBlockHeight(3);
+        block.setBlockHash("hash_by_hash");
+        block.setPreviousHash("prev_hash");
+        block.setTimestamp(LocalDateTime.of(2026, 3, 22, 13, 0, 0));
+
+        Transaction tx = new Transaction();
+        tx.setId(12);
+        tx.setTransactionHash("tx_hash_12");
+        tx.setTimestamp(LocalDateTime.of(2026, 3, 22, 12, 59, 0));
+        tx.setStatus(Transaction.Status.CONFIRMED);
+
+        when(blockService.findByHash("hash_by_hash")).thenReturn(block);
+        when(blockService.getBlockTransactions(4)).thenReturn(List.of(tx));
+
+        BlockDetailDTO result = blockchainExplorerService.getBlockByHash("hash_by_hash");
+
+        assertEquals(3, result.getBlockHeight());
+        assertEquals("hash_by_hash", result.getBlockHash());
+        assertEquals(1, result.getTransactions().size());
+        assertEquals("tx_hash_12", result.getTransactions().get(0).getTransactionHash());
+    }
+
+    @Test
     void getRecentBlocks_returnsNewestFirstWithPagination() {
         Block block9 = new Block();
         block9.setBlockHeight(9);
@@ -177,6 +206,25 @@ class BlockchainExplorerServiceTest {
     }
 
     @Test
+    void getRecentBlocks_nullInputs_useDefaults() {
+        Block block = new Block();
+        block.setBlockHeight(9);
+        block.setBlockHash("hash9");
+        block.setPreviousHash("hash8");
+        block.setStatus(Block.Status.COMMITTED);
+        block.setTimestamp(LocalDateTime.of(2026, 3, 22, 12, 0, 0));
+
+        when(blockRepository.findAllByOrderByBlockHeightDesc(PageRequest.of(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(block), PageRequest.of(0, 20), 1));
+
+        BlockListResponseDTO result = blockchainExplorerService.getRecentBlocks(null, null);
+
+        assertEquals(1, result.getPagination().getPage());
+        assertEquals(20, result.getPagination().getLimit());
+        assertEquals(1, result.getData().size());
+    }
+
+    @Test
     void minePendingTransactions_minesNewBlockFromPendingPool() {
         Transaction pending1 = new Transaction();
         pending1.setId(10);
@@ -211,6 +259,65 @@ class BlockchainExplorerServiceTest {
     }
 
     @Test
+    void minePendingTransactions_withNoCommittedBlocks_createsGenesisFirst() {
+        Transaction pending = new Transaction();
+        pending.setId(21);
+        pending.setTransactionHash("tx_hash_21");
+        pending.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 0, 0));
+
+        Block mined = new Block();
+        mined.setId(7);
+        mined.setBlockHeight(1);
+        mined.setBlockHash("hash_1");
+        mined.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 1, 0));
+
+        when(mempoolService.getPendingTransactions()).thenReturn(List.of(pending));
+        when(blockRepository.count()).thenReturn(0L);
+        when(blockService.createBlock(anyList(), eq("validator_addr"))).thenReturn(mined);
+        when(blockService.getBlockTransactions(7)).thenReturn(List.of(pending));
+
+        BlockDetailDTO result = blockchainExplorerService.minePendingTransactions(10, "validator_addr");
+
+        assertEquals(1, result.getBlockHeight());
+        verify(blockService).createGenesisBlock();
+    }
+
+    @Test
+    void minePendingTransactions_filtersOutInvalidPendingEntries() {
+        Transaction valid = new Transaction();
+        valid.setId(30);
+        valid.setTransactionHash("tx_hash_30");
+        valid.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 1, 0));
+
+        Transaction missingId = new Transaction();
+        missingId.setTransactionHash("tx_missing_id");
+        missingId.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 2, 0));
+
+        Transaction missingHash = new Transaction();
+        missingHash.setId(31);
+        missingHash.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 3, 0));
+
+        Block mined = new Block();
+        mined.setId(8);
+        mined.setBlockHeight(2);
+        mined.setBlockHash("hash_2");
+        mined.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 4, 0));
+
+        when(mempoolService.getPendingTransactions()).thenReturn(Arrays.asList(null, missingId, valid, missingHash));
+        when(blockRepository.count()).thenReturn(1L);
+        when(blockService.createBlock(anyList(), eq("validator_addr"))).thenReturn(mined);
+        when(blockService.getBlockTransactions(8)).thenReturn(List.of(valid));
+
+        blockchainExplorerService.minePendingTransactions(10, "validator_addr");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Transaction>> listCaptor = ArgumentCaptor.forClass((Class) List.class);
+        verify(blockService).createBlock(listCaptor.capture(), eq("validator_addr"));
+        assertEquals(1, listCaptor.getValue().size());
+        assertEquals(30, listCaptor.getValue().get(0).getId());
+    }
+
+    @Test
     void minePendingTransactions_emptyPool_throwsConflict() {
         when(mempoolService.getPendingTransactions()).thenReturn(List.of());
 
@@ -232,5 +339,41 @@ class BlockchainExplorerServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("limit must be an integer between 1 and 1000", exception.getMessage());
+    }
+
+    @Test
+    void minePendingTransactions_invalidLimitAboveMax_throwsBadRequest() {
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> blockchainExplorerService.minePendingTransactions(1001, null)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("limit must be an integer between 1 and 1000", exception.getMessage());
+    }
+
+    @Test
+    void minePendingTransactions_wrapsUnexpectedExceptionWithRootCause() {
+        Transaction pending = new Transaction();
+        pending.setId(55);
+        pending.setTransactionHash("tx_hash_55");
+        pending.setTimestamp(LocalDateTime.of(2026, 3, 22, 10, 0, 0));
+
+        RuntimeException failure = new RuntimeException(
+                "wrapper",
+                new IllegalStateException("disk offline")
+        );
+
+        when(mempoolService.getPendingTransactions()).thenReturn(List.of(pending));
+        when(blockRepository.count()).thenReturn(1L);
+        when(blockService.createBlock(anyList(), eq("validator_addr"))).thenThrow(failure);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> blockchainExplorerService.minePendingTransactions(10, "validator_addr")
+        );
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatus());
+        assertTrue(exception.getMessage().contains("Mining failed: IllegalStateException: disk offline"));
     }
 }

@@ -1,61 +1,61 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import api from "../../services/api.js"; // Using our new centralized client
+import api from "../../services/api.js";
 import "./Dashboard.css";
 
-// We no longer need SEED_USER_ID or getAuthToken because 
-// the backend identifies the user via the JWT in the header.
-
 function Dashboard() {
-    const [wallet, setWallet] = useState(null);
+    const [balance, setBalance] = useState(null);
+    const [coin, setCoin] = useState(null);
     const [transactions, setTransactions] = useState([]);
-    const [loadingWallet, setLoadingWallet] = useState(true);
-    const [loadingTxns, setLoadingTxns] = useState(true);
-    const [walletError, setWalletError] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [balanceError, setBalanceError] = useState(null);
     const [txnError, setTxnError] = useState(null);
+    const [hasPending, setHasPending] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    // — Fetch data using our centralized API utility ——————————————————————
     useEffect(() => {
         const fetchDashboardData = async () => {
-            // Fetch Wallet
+            // Fetch ledger-derived balance (issue #120)
+            // Uses JWT to identify user — no wallet address needed
             try {
-                setLoadingWallet(true);
-                // The JWT is automatically attached by our api.js interceptor!
-                const walletRes = await api.get("/wallet");
-                setWallet(walletRes.data);
+                const balanceRes = await api.get("/wallet/balance");
+                setBalance(balanceRes.data);
             } catch (err) {
-                setWalletError(err.response?.data?.message || "Failed to load wallet.");
-                // If this error is a 401, api.js automatically redirects to /login
-            } finally {
-                setLoadingWallet(false);
+                setBalanceError(err.response?.data?.message || "Failed to load balance.");
             }
 
-            // Fetch Transactions
+            // Fetch coin price
             try {
-                setLoadingTxns(true);
+                const coinRes = await api.get("/coin");
+                setCoin(coinRes.data);
+            } catch {}
+
+            // Fetch transactions
+            try {
                 const txnRes = await api.get("/wallet/transactions?page=1&limit=10");
-                
-                // Handle different response structures
+                let txnList = [];
                 if (txnRes.data && txnRes.data.data) {
-                    setTransactions(txnRes.data.data);
+                    txnList = txnRes.data.data;
                 } else if (Array.isArray(txnRes.data)) {
-                    setTransactions(txnRes.data);
+                    txnList = txnRes.data;
                 }
+                setTransactions(txnList);
+                setHasPending(txnList.some(
+                    (tx) => tx.status && tx.status.toLowerCase() === "pending"
+                ));
             } catch (err) {
                 setTxnError(err.response?.data?.message || "Failed to load transactions.");
-            } finally {
-                setLoadingTxns(false);
             }
+
+            setLoading(false);
         };
 
         fetchDashboardData();
     }, []);
 
     const handleCopyAddress = () => {
-        const address = wallet ? wallet.walletAddress : null;
-        if (address) {
-            navigator.clipboard.writeText(address).then(() => {
+        if (balance?.walletAddress) {
+            navigator.clipboard.writeText(balance.walletAddress).then(() => {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             });
@@ -90,7 +90,7 @@ function Dashboard() {
     };
 
     const renderWalletSection = () => {
-        if (loadingWallet) {
+        if (loading) {
             return (
                 <div className="loading-container">
                     <div className="spinner"></div>
@@ -99,10 +99,10 @@ function Dashboard() {
             );
         }
 
-        if (walletError) {
+        if (balanceError && !balance) {
             return (
                 <div className="error-container">
-                    <p className="error-message">Error: {walletError}</p>
+                    <p className="error-message">Error: {balanceError}</p>
                     <button className="retry-btn" onClick={() => window.location.reload()}>
                         Retry
                     </button>
@@ -110,27 +110,51 @@ function Dashboard() {
             );
         }
 
-        if (!wallet) return null;
-
         return (
             <>
-                <div className="wallet-address-bar">
-                    <span className="wallet-address-label">Wallet Address:</span>
-                    <code className="wallet-address-value">{wallet.walletAddress || "—"}</code>
-                    <button className="copy-btn" onClick={handleCopyAddress}>
-                        {copied ? "✓ Copied" : "Copy"}
-                    </button>
-                </div>
+                {balance?.walletAddress && (
+                    <div className="wallet-address-bar">
+                        <span className="wallet-address-label">Wallet Address:</span>
+                        <code className="wallet-address-value">{balance.walletAddress}</code>
+                        <button className="copy-btn" onClick={handleCopyAddress}>
+                            {copied ? "✓ Copied" : "Copy"}
+                        </button>
+                    </div>
+                )}
 
+                {/* Pending transactions indicator (issue #120) */}
+                {hasPending && (
+                    <div className="pending-banner" role="alert">
+                        <span className="pending-icon">⏳</span>
+                        You have unconfirmed outgoing transactions. Your available balance may change once they are confirmed.
+                    </div>
+                )}
+
+                {/* Ledger-derived balance display (issue #120) */}
                 <div className="stats-grid">
                     <div className="stat-card">
-                        <h3>Wallet Balance</h3>
-                        <div className="value">{Number(wallet.coinBalance || 0).toFixed(2)} CRYP</div>
+                        <h3>Available Balance</h3>
+                        <div className="value" data-testid="available-balance">
+                            {balance ? Number(balance.available).toFixed(4) + " TC" : "0.0000 TC"}
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <h3>Staked</h3>
+                        <div className="value" data-testid="staked-balance">
+                            {balance ? Number(balance.staked).toFixed(4) + " TC" : "0.0000 TC"}
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <h3>Total Balance</h3>
+                        <div className="value" data-testid="total-balance">
+                            {balance ? Number(balance.total).toFixed(4) + " TC" : "0.0000 TC"}
+                        </div>
                     </div>
                     <div className="stat-card">
                         <h3>Current Coin Price</h3>
-                        <div className="value">$161.75</div>
-                        <div className="sub-value">+5.2% in the last 24h</div>
+                        <div className="value">
+                            {coin ? "$" + Number(coin.currentPrice).toFixed(2) : "—"}
+                        </div>
                     </div>
                 </div>
             </>
@@ -138,7 +162,7 @@ function Dashboard() {
     };
 
     const renderTransactionsSection = () => {
-        if (loadingTxns) {
+        if (loading) {
             return (
                 <div className="loading-container"><div className="spinner"></div></div>
             );
@@ -168,7 +192,7 @@ function Dashboard() {
                             <tr key={tx.id || index}>
                                 <td className="tx-type">{tx.type || "—"}</td>
                                 <td className="tx-amount">
-                                    {tx.amount != null ? Number(tx.amount).toFixed(2) + " CRYP" : "—"}
+                                    {tx.amount != null ? Number(tx.amount).toFixed(2) + " TC" : "—"}
                                 </td>
                                 <td>
                                     <span className={"tx-status " + getStatusClass(tx.status)}>
@@ -187,8 +211,8 @@ function Dashboard() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        localStorage.removeItem("token");
+        window.location.href = "/login";
     };
 
     return (
@@ -199,7 +223,7 @@ function Dashboard() {
                     <Link to="/dashboard" className="nav-link active">Dashboard</Link>
                     <Link to="/marketplace" className="nav-link">Marketplace</Link>
                     <Link to="/history" className="nav-link">Detailed Wallet</Link>
-                    <button onClick={handleLogout} className="nav-link logout-btn" style={{background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer'}}>
+                    <button onClick={handleLogout} className="nav-link logout-btn" style={{ background: "none", border: "none", textAlign: "left", cursor: "pointer" }}>
                         Log Out
                     </button>
                 </nav>
@@ -226,8 +250,7 @@ function Dashboard() {
 
                 <h2 className="products-header">Popular in Marketplace</h2>
                 <div className="products-grid">
-                    {/* Simplified product cards for brevity */}
-                    {[1, 2, 3, 4].map(i => (
+                    {[1, 2, 3, 4].map((i) => (
                         <div key={i} className="product-card">
                             <div className="product-image">Image Placeholder</div>
                             <div className="product-title">Item {i}</div>

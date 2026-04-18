@@ -2,11 +2,10 @@ package t_12.backend.service;
 
 import java.math.BigDecimal;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import t_12.backend.entity.Transaction;
-import t_12.backend.exception.ApiException;
+import t_12.backend.exception.InvalidNonceException;
 import t_12.backend.exception.InsufficientFundsException;
 import t_12.backend.repository.TransactionRepository;
 
@@ -69,11 +68,8 @@ public class TransactionValidationService {
         );
         long expectedNonce = confirmedSentCount + 1;
 
-        if (nonce == null || nonce.longValue() != expectedNonce) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Invalid nonce: expected " + expectedNonce + " but received " + nonce + "."
-            );
+        if (nonce == null || nonce < 0 || nonce.longValue() != expectedNonce) {
+            throw new InvalidNonceException(expectedNonce, nonce);
         }
     }
 }

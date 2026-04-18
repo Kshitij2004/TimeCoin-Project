@@ -16,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import t_12.backend.entity.Transaction;
-import t_12.backend.exception.ApiException;
+import t_12.backend.exception.InvalidNonceException;
 import t_12.backend.exception.InsufficientFundsException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.TransactionRepository;
@@ -161,7 +161,7 @@ class TransactionValidationServiceTest {
         when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
                 .thenReturn(3L);
 
-        ApiException ex = assertThrows(ApiException.class, () -> validationService.validateNonce(SENDER, 3));
+        InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, 3));
 
         assertTrue(ex.getMessage().contains("expected 4"));
         assertTrue(ex.getMessage().contains("received 3"));
@@ -172,9 +172,31 @@ class TransactionValidationServiceTest {
         when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
                 .thenReturn(3L);
 
-        ApiException ex = assertThrows(ApiException.class, () -> validationService.validateNonce(SENDER, 5));
+        InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, 5));
 
         assertTrue(ex.getMessage().contains("expected 4"));
         assertTrue(ex.getMessage().contains("received 5"));
+    }
+
+    @Test
+    void validateNonce_negativeNonce_rejectedWithExpectedAndProvided() {
+        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
+                .thenReturn(0L);
+
+        InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, -1));
+
+        assertTrue(ex.getMessage().contains("expected 1"));
+        assertTrue(ex.getMessage().contains("received -1"));
+    }
+
+    @Test
+    void validateNonce_nullNonce_rejectedWithExpectedAndProvided() {
+        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
+                .thenReturn(0L);
+
+        InvalidNonceException ex = assertThrows(InvalidNonceException.class, () -> validationService.validateNonce(SENDER, null));
+
+        assertTrue(ex.getMessage().contains("expected 1"));
+        assertTrue(ex.getMessage().contains("received null"));
     }
 }

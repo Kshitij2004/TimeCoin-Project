@@ -2,12 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 /**
  * BlockChainDiagram
- *
- *  blocks – array from getBlocks() data, each { blockHeight, blockHash, transactionCount, status? }
- *  selectedHeight – currently selected block height (highlighted node)
- *  inspectingHeight – height currently loading detail (shows spinner)
- *  onSelectBlock – callback(height) when a node is clicked
- *  newBlockHeight – height of a block that just arrived (drives entrance animation)
  */
 export default function BlockChainDiagram({
   blocks = [],
@@ -20,8 +14,9 @@ export default function BlockChainDiagram({
   const [animatedHeights, setAnimatedHeights] = useState(new Set());
 
   // Auto-scroll right when new blocks arrive
+  // Guard against jsdom in tests where scrollTo is not implemented
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && typeof scrollRef.current.scrollTo === 'function') {
       scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
     }
   }, [blocks.length]);
@@ -83,6 +78,7 @@ export default function BlockChainDiagram({
 }
 
 // Block node
+
 function BlockNode({ block, status, isSelected, isInspecting, isNew, onSelect }) {
   const [hovered, setHovered] = useState(false);
 
@@ -160,6 +156,7 @@ function BlockNode({ block, status, isSelected, isInspecting, isNew, onSelect })
 }
 
 // Connector arrow
+
 function ChainConnector({ status }) {
   const s = status.toLowerCase();
   return (
@@ -171,6 +168,7 @@ function ChainConnector({ status }) {
 }
 
 // Legend item
+
 function LegendItem({ status, label }) {
   const s = status.toLowerCase();
   return (
@@ -181,7 +179,8 @@ function LegendItem({ status, label }) {
   );
 }
 
-//Helper
+// Helpers
+
 function shortHash(hash) {
   if (!hash || typeof hash !== 'string') return '—';
   if (hash.length <= 14) return hash;

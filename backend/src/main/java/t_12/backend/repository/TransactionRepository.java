@@ -76,5 +76,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
             Transaction.Status status
     );
 
+    long countBySenderAddressAndStatus(String senderAddress, Transaction.Status status);
+
     long countByStatus(Transaction.Status status);
 }

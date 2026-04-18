@@ -135,4 +135,22 @@ public class GlobalExceptionHandler {
                 "error", "Bad Request",
                 "message", ex.getMessage()));
     }
+
+    /**
+     * Handles mining requests rejected due to an active cooldown period.
+     * retryAfter tells the client how many seconds to wait before retrying.
+     *
+     * @param ex the thrown CooldownException
+     * @return response with 429 status and retryAfter value
+     */
+    @ExceptionHandler(CooldownException.class)
+    public ResponseEntity<Map<String, Object>> handleCooldown(CooldownException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 429,
+                "error", "Too Many Requests",
+                "message", ex.getMessage(),
+                "retryAfter", ex.getRetryAfter()
+        ));
+    }
 }

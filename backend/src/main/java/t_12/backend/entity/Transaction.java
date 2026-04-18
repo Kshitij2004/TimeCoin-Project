@@ -26,7 +26,7 @@ import jakarta.persistence.UniqueConstraint;
 public class Transaction {
 
     public enum TransactionType {
-        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL
+        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL, MINT
     }
 
     public enum Status {

@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount DECIMAL(18, 8) NOT NULL,
     user_id INT DEFAULT NULL,                                   -- set for user-facing buy/sell history rows
     symbol VARCHAR(10) DEFAULT NULL,
-    transaction_type ENUM('BUY', 'SELL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL') DEFAULT NULL,
+    transaction_type ENUM('BUY', 'SELL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL', 'MINT') DEFAULT NULL,
     price_at_time DECIMAL(15, 2) DEFAULT NULL,
     total_usd DECIMAL(18, 2) DEFAULT NULL,
     fee DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000,

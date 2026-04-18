@@ -95,8 +95,8 @@ test-backend:
     - echo "Running backend unit tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew testUnit jacocoTestReport
-    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { print "Total: " covered/instructions*100 "%" }'' build/reports/jacoco/test/jacocoTestReport.csv'
+    - ./gradlew testUnit jacocoTestReport jacocoTestCoverageVerification
+    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { printf "Total: %.2f%%\n", covered/instructions*100 }'' build/reports/jacoco/test/jacocoTestReport.csv'
   coverage: '/Total:\s*(\d+\.\d+)%/'
   artifacts:
     when: always
@@ -202,6 +202,7 @@ test-frontend:
     - cd frontend
     - npm ci
     - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+    - echo "Frontend tests complete"
   coverage: '/Statements\s*:\s*([0-9.]+)%/'
   artifacts:
     when: always

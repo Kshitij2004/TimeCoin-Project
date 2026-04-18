@@ -15,14 +15,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import t_12.backend.entity.Transaction;
+import t_12.backend.exception.ApiException;
 import t_12.backend.exception.InsufficientFundsException;
 import t_12.backend.exception.ResourceNotFoundException;
+import t_12.backend.repository.TransactionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionValidationServiceTest {
 
     @Mock
     private BalanceService balanceService;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     @InjectMocks
     private TransactionValidationService validationService;
@@ -140,5 +146,35 @@ class TransactionValidationServiceTest {
 
         assertDoesNotThrow(() ->
                 validationService.validateBalance(SENDER, BigDecimal.ZERO, BigDecimal.ZERO));
+    }
+
+    @Test
+    void validateNonce_validNonce_passes() {
+        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
+                .thenReturn(3L);
+
+        assertDoesNotThrow(() -> validationService.validateNonce(SENDER, 4));
+    }
+
+    @Test
+    void validateNonce_duplicateNonce_rejectedWithExpectedAndProvided() {
+        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
+                .thenReturn(3L);
+
+        ApiException ex = assertThrows(ApiException.class, () -> validationService.validateNonce(SENDER, 3));
+
+        assertTrue(ex.getMessage().contains("expected 4"));
+        assertTrue(ex.getMessage().contains("received 3"));
+    }
+
+    @Test
+    void validateNonce_skippedNonce_rejectedWithExpectedAndProvided() {
+        when(transactionRepository.countBySenderAddressAndStatus(SENDER, Transaction.Status.CONFIRMED))
+                .thenReturn(3L);
+
+        ApiException ex = assertThrows(ApiException.class, () -> validationService.validateNonce(SENDER, 5));
+
+        assertTrue(ex.getMessage().contains("expected 4"));
+        assertTrue(ex.getMessage().contains("received 5"));
     }
 }

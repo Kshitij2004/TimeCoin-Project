@@ -76,5 +76,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
             Transaction.Status status
     );
 
+    @Query("SELECT COALESCE(MAX(t.nonce), 0) FROM Transaction t " +
+           "WHERE t.senderAddress = :senderAddress AND t.status IN :statuses")
+    Integer findMaxNonceBySenderAddressAndStatuses(
+            @Param("senderAddress") String senderAddress,
+            @Param("statuses") Collection<Transaction.Status> statuses
+    );
+
+    long countBySenderAddressAndStatus(String senderAddress, Transaction.Status status);
+
     long countByStatus(Transaction.Status status);
 }

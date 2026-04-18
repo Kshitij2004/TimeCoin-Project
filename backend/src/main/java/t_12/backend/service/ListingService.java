@@ -15,7 +15,6 @@ import t_12.backend.entity.Wallet;
 import t_12.backend.exception.ForbiddenException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.ListingRepository;
-import t_12.backend.repository.TransactionRepository;
 import t_12.backend.repository.WalletRepository;
 
 /**
@@ -27,15 +26,13 @@ public class ListingService {
 
     private final ListingRepository listingRepository;
     private final WalletRepository walletRepository;
-    private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
     private final TransactionValidationService transactionValidationService;
 
     public ListingService(ListingRepository listingRepository, WalletRepository walletRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService, TransactionValidationService transactionValidationService) {
+            TransactionService transactionService, TransactionValidationService transactionValidationService) {
         this.listingRepository = listingRepository;
         this.walletRepository = walletRepository;
-        this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
         this.transactionValidationService = transactionValidationService;
     }
@@ -199,32 +196,22 @@ public class ListingService {
         //    IS the balance change. Once confirmed into a block, BalanceService
         //    picks it up automatically via the ledger.
 
-        // 8. Record the transaction as PENDING in the database (acts as mempool entry).
-        //    The block assembler will later pick this up and include it in a block.
-        LocalDateTime now = LocalDateTime.now();
-        Transaction tx = new Transaction();
-        tx.setSenderAddress(buyerWallet.getWalletAddress());
-        tx.setReceiverAddress(sellerWallet.getWalletAddress());
-        tx.setAmount(price);
-        tx.setFee(BigDecimal.ZERO.setScale(8)); // previously a scaling issue based on columns (18, 8) and (18, 0)
-        // now both are (18, 8) to ensure fee can be zero with correct scale.
-        tx.setNonce(0); // TODO: implement per-sender nonce tracking in validation service
-        // TODO: see TransactionValidationService.validateNonce() for details on nonce implementation.
-        tx.setTimestamp(now);
-        tx.setStatus(Transaction.Status.PENDING);
-        tx.setTransactionHash(transactionService.generateTransactionHash(buyerWallet.getWalletAddress(),
-                sellerWallet.getWalletAddress(), price, BigDecimal.ZERO.setScale(8), 0, now));
-
-        // Marketplace fields — needed for purchase history and transaction ledger.
-        tx.setUserId(buyerUserId);
-        tx.setSymbol("TC");
-        tx.setTransactionType(Transaction.TransactionType.BUY);
-        tx.setPriceAtTime(listing.getPrice());
-        // TODO: calculate totalUsd using current coin price once CoinRepository
-        // TODO: is injected into ListingService. Left null for now as a known limitation.
-        tx.setTotalUsd(null); // USD price not available in this context — no coin price reference here
-
-        transactionRepository.save(tx);
+        // 8. Enqueue marketplace transaction through TransactionService so nonce,
+        //    duplicate, and mempool validation are consistently enforced.
+        int nonce = Math.toIntExact(
+                transactionValidationService.getExpectedNextNonce(buyerWallet.getWalletAddress()));
+        Transaction tx = transactionService.createMarketplaceTransaction(
+                buyerWallet.getWalletAddress(),
+                sellerWallet.getWalletAddress(),
+                price,
+                BigDecimal.ZERO.setScale(8),
+                nonce,
+                buyerUserId,
+                "TC",
+                Transaction.TransactionType.BUY,
+                listing.getPrice(),
+                null
+        );
 
         // 9. Mark the listing as SOLD so it can no longer be purchased
         listing.setStatus(Listing.Status.SOLD);

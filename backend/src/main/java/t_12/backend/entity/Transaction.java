@@ -20,7 +20,7 @@ import jakarta.persistence.Table;
 public class Transaction {
 
     public enum TransactionType {
-        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL
+        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL, MINT
     }
 
     public enum Status {

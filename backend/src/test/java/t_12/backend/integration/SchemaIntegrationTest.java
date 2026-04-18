@@ -36,7 +36,8 @@ import t_12.backend.repository.WalletRepository;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-        "agents.enabled=false"
+        "agents.enabled=false",
+        "ratelimit.test.enabled=false"
 })
 class SchemaIntegrationTest {
 

@@ -71,6 +71,7 @@ class MempoolServiceTest {
         assertEquals(Transaction.Status.PENDING, saved.getStatus());
         assertNull(saved.getBlockId());
         verify(transactionValidationService).validateBalance(tx.getSenderAddress(), tx.getAmount(), tx.getFee());
+        verify(transactionValidationService).validateNonce(tx.getSenderAddress(), tx.getNonce());
         verify(transactionRepository).save(tx);
     }
 

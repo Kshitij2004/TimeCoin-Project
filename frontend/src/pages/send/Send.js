@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import api from "../../services/api.js"; // Using our centralized client
+import api from "../../services/api.js";
 import "./Send.css";
 
 function Send() {
-    const [wallet, setWallet] = useState(null);
+    const [balance, setBalance] = useState(null);
+    const [walletAddress, setWalletAddress] = useState(null);
     const [recipientAddress, setRecipientAddress] = useState("");
     const [amount, setAmount] = useState("");
     const [memo, setMemo] = useState("");
@@ -12,15 +13,20 @@ function Send() {
     const [walletLoading, setWalletLoading] = useState(true);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [showConfirm, setShowConfirm] = useState(false);
 
-    // — Fetch wallet for balance display on mount ————————————
+    // Fetch wallet address and ledger-derived balance on mount
     useEffect(() => {
-        const fetchWallet = async () => {
+        const fetchWalletData = async () => {
             setWalletLoading(true);
             try {
-                // Token is automatically attached by api.js
-                const response = await api.get("/wallet");
-                setWallet(response.data);
+                // Get wallet address
+                const walletRes = await api.get("/wallet");
+                setWalletAddress(walletRes.data.walletAddress);
+
+                // Get ledger-derived balance (issue #120)
+                const balanceRes = await api.get("/wallet/balance");
+                setBalance(balanceRes.data);
             } catch (err) {
                 setError(err.response?.data?.message || "Failed to load wallet data.");
             } finally {
@@ -28,10 +34,15 @@ function Send() {
             }
         };
 
-        fetchWallet();
+        fetchWalletData();
     }, []);
 
-    // — Client-side validation ——————————————————————
+    const networkFee = 0.01;
+    const parsedAmount = parseFloat(amount) || 0;
+    const availableBalance = balance ? parseFloat(balance.available) : 0;
+    const estimatedBalanceAfter = (availableBalance - parsedAmount - networkFee).toFixed(4);
+
+    // Client-side validation
     const validate = () => {
         if (!recipientAddress.trim()) {
             return "Recipient wallet address is required.";
@@ -39,25 +50,24 @@ function Send() {
         if (recipientAddress.trim().length < 3) {
             return "Invalid wallet address format.";
         }
-        if (wallet && recipientAddress.trim() === wallet.walletAddress) {
+        if (walletAddress && recipientAddress.trim() === walletAddress) {
             return "Cannot send to your own wallet address.";
         }
 
-        const numAmount = parseFloat(amount);
-        if (!amount || isNaN(numAmount)) {
+        if (!amount || isNaN(parsedAmount)) {
             return "Please enter a valid amount.";
         }
-        if (numAmount <= 0) {
+        if (parsedAmount <= 0) {
             return "Amount must be greater than 0.";
         }
-        if (wallet && numAmount > parseFloat(wallet.coinBalance)) {
-            return "Insufficient balance. You have " + parseFloat(wallet.coinBalance).toFixed(2) + " CRYP.";
+        if (parsedAmount + networkFee > availableBalance) {
+            return "Insufficient balance. You have " + availableBalance.toFixed(4) + " TC (fee: " + networkFee + " TC).";
         }
         return null;
     };
 
-    // — Submit transfer —————————————————————————————
-    const handleSubmit = async (e) => {
+    // Show confirmation modal
+    const handleFormSubmit = (e) => {
         e.preventDefault();
         setError(null);
         setSuccess(null);
@@ -68,24 +78,25 @@ function Send() {
             return;
         }
 
-        if (!wallet) {
-            setError("Wallet data not available.");
-            return;
-        }
+        setShowConfirm(true);
+    };
 
+    // Actually submit the transfer
+    const handleConfirmSend = async () => {
+        setShowConfirm(false);
         setLoading(true);
+        setError(null);
 
         const requestBody = {
-            senderAddress: wallet.walletAddress,
+            senderAddress: walletAddress,
             receiverAddress: recipientAddress.trim(),
-            amount: parseFloat(amount),
-            fee: 0.01,
+            amount: parsedAmount,
+            fee: networkFee,
             nonce: 0,
-            memo: memo.trim() // Included the memo in the request
+            memo: memo.trim(),
         };
 
         try {
-            // Using the centralized api client for the POST request
             const response = await api.post("/transactions/transfer", requestBody);
             const tx = response.data;
 
@@ -96,14 +107,15 @@ function Send() {
                 status: tx.status,
             });
 
-            // Reset form
             setRecipientAddress("");
             setAmount("");
             setMemo("");
 
-            // Refresh wallet balance after successful transfer
-            const walletUpdate = await api.get("/wallet");
-            setWallet(walletUpdate.data);
+            // Refresh balance after transfer
+            try {
+                const balanceRes = await api.get("/wallet/balance");
+                setBalance(balanceRes.data);
+            } catch {}
 
         } catch (err) {
             setError(err.response?.data?.message || "Transfer failed. Please try again.");
@@ -111,8 +123,6 @@ function Send() {
             setLoading(false);
         }
     };
-
-    const balance = wallet ? parseFloat(wallet.coinBalance).toFixed(2) : "—";
 
     return (
         <div className="send-page">
@@ -123,10 +133,10 @@ function Send() {
                     <Link to="/marketplace" className="nav-link">Marketplace</Link>
                     <Link to="/send" className="nav-link active">Send</Link>
                     <Link to="/history" className="nav-link">Detailed Wallet</Link>
-                    <button 
-                        onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }} 
+                    <button
+                        onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
                         className="nav-link logout-btn"
-                        style={{background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer'}}
+                        style={{ background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}
                     >
                         Log Out
                     </button>
@@ -142,7 +152,7 @@ function Send() {
                     <div className="balance-display">
                         <span className="balance-label">Available Balance</span>
                         <span className="balance-value">
-                            {walletLoading ? "Loading..." : balance + " CRYP"}
+                            {walletLoading ? "Loading..." : availableBalance.toFixed(4) + " TC"}
                         </span>
                     </div>
 
@@ -150,7 +160,7 @@ function Send() {
                         <div className="success-container">
                             <h3>Transfer Submitted!</h3>
                             <p>
-                                <strong>{success.amount} CRYP</strong> sent to{" "}
+                                <strong>{success.amount} TC</strong> sent to{" "}
                                 <code>{success.receiver}</code>
                             </p>
                             <p>Status: <span className="status-tag">{success.status}</span></p>
@@ -158,8 +168,8 @@ function Send() {
                                 <span className="hash-label">Transaction Hash:</span>
                                 <code className="hash-value">{success.hash}</code>
                             </div>
-                            <Link to={"/history"} className="view-status-link">
-                                View Transaction Status →
+                            <Link to={"/blockchain"} className="view-status-link">
+                                View in Block Explorer →
                             </Link>
                         </div>
                     )}
@@ -171,13 +181,13 @@ function Send() {
                     )}
 
                     {!success && (
-                        <form className="send-form-wrapper" onSubmit={handleSubmit}>
+                        <form className="send-form-wrapper" onSubmit={handleFormSubmit}>
                             <div className="form-group">
                                 <label htmlFor="recipient">Recipient Wallet Address</label>
                                 <input
                                     id="recipient"
                                     type="text"
-                                    placeholder="e.g. addr_2"
+                                    placeholder="e.g. wlt_abc123..."
                                     value={recipientAddress}
                                     onChange={(e) => setRecipientAddress(e.target.value)}
                                     disabled={loading}
@@ -185,7 +195,7 @@ function Send() {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="amount">Amount (CRYP)</label>
+                                <label htmlFor="amount">Amount (TC)</label>
                                 <input
                                     id="amount"
                                     type="number"
@@ -212,8 +222,18 @@ function Send() {
 
                             <div className="fee-info">
                                 <span>Network Fee:</span>
-                                <span>0.01 CRYP</span>
+                                <span>{networkFee} TC</span>
                             </div>
+
+                            {/* Estimated balance after transfer (issue #115) */}
+                            {parsedAmount > 0 && (
+                                <div className="fee-info estimated-balance">
+                                    <span>Balance after transfer:</span>
+                                    <span className={parseFloat(estimatedBalanceAfter) < 0 ? "negative" : ""}>
+                                        {estimatedBalanceAfter} TC
+                                    </span>
+                                </div>
+                            )}
 
                             <button
                                 type="submit"
@@ -225,6 +245,51 @@ function Send() {
                         </form>
                     )}
                 </div>
+
+                {/* Confirmation modal (issue #115) */}
+                {showConfirm && (
+                    <div className="modal-overlay" onClick={() => setShowConfirm(false)}>
+                        <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                            <h3>Confirm Transfer</h3>
+                            <div className="modal-details">
+                                <div className="modal-row">
+                                    <span className="modal-label">To:</span>
+                                    <code className="modal-value">{recipientAddress}</code>
+                                </div>
+                                <div className="modal-row">
+                                    <span className="modal-label">Amount:</span>
+                                    <span className="modal-value">{parsedAmount} TC</span>
+                                </div>
+                                <div className="modal-row">
+                                    <span className="modal-label">Fee:</span>
+                                    <span className="modal-value">{networkFee} TC</span>
+                                </div>
+                                <div className="modal-row">
+                                    <span className="modal-label">Total:</span>
+                                    <span className="modal-value modal-total">{(parsedAmount + networkFee).toFixed(4)} TC</span>
+                                </div>
+                                {memo && (
+                                    <div className="modal-row">
+                                        <span className="modal-label">Memo:</span>
+                                        <span className="modal-value">{memo}</span>
+                                    </div>
+                                )}
+                                <div className="modal-row">
+                                    <span className="modal-label">Balance after:</span>
+                                    <span className="modal-value">{estimatedBalanceAfter} TC</span>
+                                </div>
+                            </div>
+                            <div className="modal-actions">
+                                <button className="modal-cancel" onClick={() => setShowConfirm(false)}>
+                                    Cancel
+                                </button>
+                                <button className="modal-confirm" onClick={handleConfirmSend}>
+                                    Confirm & Send
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

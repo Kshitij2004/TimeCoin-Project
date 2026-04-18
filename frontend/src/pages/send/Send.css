@@ -178,6 +178,17 @@
     border-top: 1px solid #2a3a4e;
 }
 
+.estimated-balance {
+    border-top: none;
+    padding-top: 0;
+    font-weight: 500;
+}
+
+.estimated-balance .negative {
+    color: #ff5252;
+    font-weight: 700;
+}
+
 .send-btn {
     background: #00d4ff;
     color: #0f1724;
@@ -212,4 +223,116 @@
     color: #ff5252;
     font-size: 14px;
     margin: 0;
+}
+
+/* ——— Confirmation Modal (issue #115) ————————— */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-card {
+    background: #1a2332;
+    border: 1px solid #2a3a4e;
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-card h3 {
+    color: #00d4ff;
+    font-size: 20px;
+    margin: 0 0 24px 0;
+}
+
+.modal-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.modal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.modal-label {
+    font-size: 13px;
+    color: #8892a4;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.modal-value {
+    font-size: 14px;
+    color: #e0e0e0;
+    text-align: right;
+    word-break: break-all;
+}
+
+.modal-value code {
+    background: #0f1724;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.modal-total {
+    color: #00d4ff;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.modal-cancel {
+    flex: 1;
+    background: transparent;
+    color: #8892a4;
+    border: 1px solid #2a3a4e;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-cancel:hover {
+    border-color: #8892a4;
+    color: #e0e0e0;
+}
+
+.modal-confirm {
+    flex: 1;
+    background: #00d4ff;
+    color: #0f1724;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.modal-confirm:hover {
+    background: #00bbdd;
 }

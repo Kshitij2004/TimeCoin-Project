@@ -20,7 +20,7 @@ public class TwoFactorService {
 
     private static final int CODE_DIGITS = 6;
     private static final int TIME_STEP_SECONDS = 30;
-    private static final int ALLOWED_WINDOW = 1; // +/- 1 step for clock drift
+    private static final int ALLOWED_WINDOW = 10; // +/- 10 steps (~5 minutes) for clock drift
 
     private static final String BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 

@@ -74,6 +74,9 @@ public class UserService {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setCreatedAt(LocalDateTime.now());
+        // 2FA is enabled by default for all new users
+        user.setTwoFactorSecret(twoFactorService.generateSecret());
+        user.setTwoFactorEnabled(true);
 
         User savedUser = userRepository.save(user);
         WalletCreationResult walletCreationResult = walletService.createWalletForUser(savedUser.getId());
@@ -190,6 +193,17 @@ public class UserService {
     public LoginResponse refresh(String refreshToken) {
         RefreshToken validated = refreshTokenService.validate(refreshToken);
         return issueTokens(validated.getUserId());
+    }
+
+    /**
+     * Returns the otpauth URI for the given user, used to display a QR code.
+     */
+    public String getOtpAuthUri(t_12.backend.entity.User user) {
+        return twoFactorService.buildOtpAuthUri(
+                user.getTwoFactorSecret(),
+                user.getUsername(),
+                "CrypMart"
+        );
     }
 
     private LoginResponse issueTokens(int userId) {

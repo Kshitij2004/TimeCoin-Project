@@ -37,9 +37,12 @@ public class AuthController {
                 request.getPassword()
         );
 
+        String otpAuthUri = userService.getOtpAuthUri(registrationResult.getUser());
+
         RegisterResponseDTO dto = new RegisterResponseDTO(
                 registrationResult,
-                exposePrivateKeyOnCreate
+                exposePrivateKeyOnCreate,
+                otpAuthUri
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);

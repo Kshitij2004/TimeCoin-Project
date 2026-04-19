@@ -73,6 +73,38 @@ public class TransactionService {
     }
 
     /**
+     * Creates a coinbase (MINT) transaction with null sender and type MINT.
+     * Used by the mining service to credit rewards to a miner's wallet.
+     *
+     * @param receiverAddress the miner's wallet address
+     * @param amount the reward amount
+     * @return the saved Transaction entity with PENDING status and MINT type
+     */
+    public Transaction createCoinbaseTransaction(String receiverAddress, BigDecimal amount) {
+        LocalDateTime timestamp = LocalDateTime.now();
+        String hash = generateTransactionHash(null, receiverAddress, amount,
+                BigDecimal.ZERO, 0, timestamp);
+
+        Transaction transaction = new Transaction();
+        transaction.setSenderAddress(null);
+        transaction.setReceiverAddress(receiverAddress);
+        transaction.setAmount(amount);
+        transaction.setFee(BigDecimal.ZERO.setScale(8));
+        transaction.setNonce(0);
+        transaction.setTimestamp(timestamp);
+        transaction.setTransactionHash(hash);
+        transaction.setStatus(Transaction.Status.PENDING);
+        transaction.setBlockId(null);
+        transaction.setUserId(null);
+        transaction.setSymbol(null);
+        transaction.setTransactionType(Transaction.TransactionType.MINT);
+        transaction.setPriceAtTime(null);
+        transaction.setTotalUsd(null);
+
+        return mempoolService.enqueueValidatedTransaction(transaction);
+    }
+
+    /**
      * Creates a marketplace purchase transaction with status PENDING. Includes
      * marketplace-specific fields (userId, symbol, transactionType,
      * priceAtTime, totalUsd) alongside the blockchain fields.

@@ -12,20 +12,17 @@ public class WalletDTO {
     private final Integer userId;
     private final String walletAddress;
     private final String publicKey;
-    // !! TODO: swap coinBalance to BalanceService.getBalance(walletAddress).getAvailable()
-    // !! once ledger-derived balance issue lands.
     private final BigDecimal coinBalance;
 
     /**
-     * Constructs a WalletDTO from a Wallet entity.
-     *
      * @param wallet the Wallet entity to convert
+     * @param coinBalance ledger-derived spendable balance from BalanceService
      */
-    public WalletDTO(Wallet wallet) {
+    public WalletDTO(Wallet wallet, BigDecimal coinBalance) {
         this.userId = wallet.getUserId();
         this.walletAddress = wallet.getWalletAddress();
         this.publicKey = wallet.getPublicKey();
-        this.coinBalance = wallet.getCoinBalance();
+        this.coinBalance = coinBalance;
     }
 
     public Integer getUserId() {

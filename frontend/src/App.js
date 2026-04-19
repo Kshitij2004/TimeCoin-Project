@@ -29,12 +29,12 @@ function App() {
         <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
-        
+
         {/* Marketplace Routes */}
         <Route path="/marketplace" element={
           <ProtectedRoute><Marketplace /></ProtectedRoute>
         } />
-        
+
         {/* Route for creating a new listing */}
         <Route path="/marketplace/new" element={
           <ProtectedRoute><CreateListing /></ProtectedRoute>

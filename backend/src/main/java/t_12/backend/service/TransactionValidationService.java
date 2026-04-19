@@ -1,10 +1,14 @@
 package t_12.backend.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import t_12.backend.entity.Transaction;
+import t_12.backend.exception.InvalidNonceException;
 import t_12.backend.exception.InsufficientFundsException;
+import t_12.backend.repository.TransactionRepository;
 
 /**
  * Validates transactions before creation. Uses spendable balance
@@ -14,9 +18,13 @@ import t_12.backend.exception.InsufficientFundsException;
 public class TransactionValidationService {
 
     private final BalanceService balanceService;
+    private final TransactionRepository transactionRepository;
 
-    public TransactionValidationService(BalanceService balanceService) {
+    public TransactionValidationService(
+            BalanceService balanceService,
+            TransactionRepository transactionRepository) {
         this.balanceService = balanceService;
+        this.transactionRepository = transactionRepository;
     }
 
     /**
@@ -51,6 +59,33 @@ public class TransactionValidationService {
      * @param nonce the nonce provided in the transaction
      */
     public void validateNonce(String senderAddress, Integer nonce) {
-        // TODO(team): implement per-sender nonce tracking.
+        if (senderAddress == null) {
+            return;
+        }
+
+        long expectedNonce = getExpectedNextNonce(senderAddress);
+
+        if (nonce == null || nonce < 0 || nonce.longValue() != expectedNonce) {
+            throw new InvalidNonceException(expectedNonce, nonce);
+        }
+    }
+
+    /**
+     * Resolves the sender's next expected nonce using both confirmed and
+     * pending transactions.
+     *
+     * @param senderAddress the sender wallet address
+     * @return next expected nonce (max observed nonce + 1)
+     */
+    public long getExpectedNextNonce(String senderAddress) {
+        if (senderAddress == null) {
+            return 0L;
+        }
+
+        Integer latestNonce = transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                senderAddress,
+                List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
+        );
+        return (latestNonce == null ? 0L : latestNonce.longValue()) + 1;
     }
 }

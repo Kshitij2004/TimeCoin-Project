@@ -4,23 +4,6 @@ stages:
   - test
   - lint
 
-# Shared change sets (YAML anchors)
-.backend-rules:
-  rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
-
-.frontend-rules:
-  rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
-
 # Validate (always runs)
 check-required-files:
   stage: validate
@@ -47,11 +30,7 @@ build-backend:
   tags:
     - cs506
   rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
@@ -74,11 +53,7 @@ test-backend:
   tags:
     - cs506
   rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-backend
   variables:
@@ -95,8 +70,8 @@ test-backend:
     - echo "Running backend unit tests..."
     - cd backend
     - chmod +x gradlew
-    - ./gradlew testUnit jacocoTestReport
-    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { print "Total: " covered/instructions*100 "%" }'' build/reports/jacoco/test/jacocoTestReport.csv'
+    - ./gradlew testUnit jacocoTestReport jacocoTestCoverageVerification
+    - 'awk -F"," ''{ instructions += $4 + $5; covered += $5 } END { printf "Total: %.2f%%\n", covered/instructions*100 }'' build/reports/jacoco/test/jacocoTestReport.csv'
   coverage: '/Total:\s*(\d+\.\d+)%/'
   artifacts:
     when: always
@@ -117,11 +92,7 @@ test-schema:
   tags:
     - cs506
   rules:
-    - changes:
-        - backend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-backend
   variables:
@@ -155,11 +126,7 @@ build-frontend:
   tags:
     - cs506
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   variables:
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:
@@ -180,11 +147,7 @@ test-frontend:
   tags:
     - cs506
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-frontend
   variables:
@@ -201,7 +164,8 @@ test-frontend:
     - echo "Running frontend tests..."
     - cd frontend
     - npm ci
-    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+    - npm test -- --watchAll=false --passWithNoTests --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=html --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+    - echo "Frontend tests complete"
   coverage: '/Statements\s*:\s*([0-9.]+)%/'
   artifacts:
     when: always
@@ -221,11 +185,7 @@ lint-frontend:
   tags:
     - cs506
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
-        - docker-compose.yml
-    - when: never
+    - when: always
   needs:
     - job: build-frontend
   variables:

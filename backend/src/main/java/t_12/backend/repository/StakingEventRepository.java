@@ -17,6 +17,7 @@ import t_12.backend.entity.StakingEvent;
 @Repository
 public interface StakingEventRepository extends JpaRepository<StakingEvent, Integer> {
     List<StakingEvent> findByWalletAddress(String walletAddress);
+    List<StakingEvent> findByWalletAddressOrderByCreatedAtDescIdDesc(String walletAddress);
     List<StakingEvent> findByEventType(StakingEvent.EventType eventType);
 
     /** Sum staking amounts by address and event type (STAKE or UNSTAKE) */

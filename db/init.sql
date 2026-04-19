@@ -86,6 +86,7 @@ CREATE INDEX idx_tx_status ON transactions(status);
 CREATE INDEX idx_tx_hash ON transactions(transaction_hash);
 CREATE INDEX idx_tx_block ON transactions(block_id);
 CREATE INDEX idx_tx_user_type_time ON transactions(user_id, transaction_type, timestamp);
+CREATE UNIQUE INDEX uk_tx_sender_nonce ON transactions(sender_address, nonce);
 
 -- 6. Block-Transaction Join Table
 -- exists alongside transactions.block_id for efficient "get all txs in block X"

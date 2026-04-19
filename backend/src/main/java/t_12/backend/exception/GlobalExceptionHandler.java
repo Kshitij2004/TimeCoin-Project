@@ -86,6 +86,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles nonce mismatches with structured expected/provided values.
+     *
+     * @param ex the thrown InvalidNonceException
+     * @return response with 400 status and nonce mismatch details
+     */
+    @ExceptionHandler(InvalidNonceException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidNonce(
+            InvalidNonceException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 400,
+                "error", "Bad Request",
+                "message", ex.getMessage(),
+                "expectedNonce", ex.getExpectedNonce(),
+                "providedNonce", ex.getProvidedNonce()
+        ));
+    }
+
+    /**
      * Handles forbidden access attempts, such as ownership violations.
      *
      * @param ex the caught ForbiddenException

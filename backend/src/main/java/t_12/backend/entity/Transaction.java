@@ -11,12 +11,18 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 // A single TimeCoin transfer between wallet addresses. Uses addresses
 // (not user IDs) because on-chain identity is the wallet address.
 // Lifecycle: PENDING (in mempool) -> CONFIRMED (in a block) or REJECTED.
 @Entity
-@Table(name = "transactions")
+@Table(
+        name = "transactions",
+        uniqueConstraints = {
+            @UniqueConstraint(name = "uk_tx_sender_nonce", columnNames = {"sender_address", "nonce"})
+        }
+)
 public class Transaction {
 
     public enum TransactionType {

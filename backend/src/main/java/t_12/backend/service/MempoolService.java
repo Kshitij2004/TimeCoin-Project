@@ -98,11 +98,20 @@ public class MempoolService {
         return transactionRepository.save(tx);
     }
 
+    /**
+     * Returns true if an equivalent PENDING transaction already exists. Handles
+     * all three address shapes: buy (null sender), sell (null receiver), and
+     * transfer (both addresses set).
+     */
     private boolean isDuplicatePending(Transaction transaction) {
-        if (transaction.getSenderAddress() == null) {
+        String sender = transaction.getSenderAddress();
+        String receiver = transaction.getReceiverAddress();
+
+        // buy / coinbase: sender null, receiver set
+        if (sender == null && receiver != null) {
             return transactionRepository
                     .existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
-                            transaction.getReceiverAddress(),
+                            receiver,
                             transaction.getAmount(),
                             transaction.getFee(),
                             transaction.getNonce(),
@@ -110,10 +119,23 @@ public class MempoolService {
                     );
         }
 
+        // sell: sender set, receiver null
+        if (sender != null && receiver == null) {
+            return transactionRepository
+                    .existsBySenderAddressAndReceiverAddressIsNullAndAmountAndFeeAndNonceAndStatus(
+                            sender,
+                            transaction.getAmount(),
+                            transaction.getFee(),
+                            transaction.getNonce(),
+                            Transaction.Status.PENDING
+                    );
+        }
+
+        // transfer: both set
         return transactionRepository
                 .existsBySenderAddressAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
-                        transaction.getSenderAddress(),
-                        transaction.getReceiverAddress(),
+                        sender,
+                        receiver,
                         transaction.getAmount(),
                         transaction.getFee(),
                         transaction.getNonce(),

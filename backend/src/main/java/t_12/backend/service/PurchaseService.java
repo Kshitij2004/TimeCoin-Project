@@ -18,12 +18,15 @@ import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.ApiException;
 import t_12.backend.repository.CoinRepository;
-import t_12.backend.repository.TransactionRepository;
 import t_12.backend.repository.UserRepository;
 import t_12.backend.repository.WalletRepository;
 
 /**
  * Handles TimeCoin purchases against the shared backend schema.
+ *
+ * Buy/sell transactions are enqueued via MempoolService as PENDING and
+ * transitioned to CONFIRMED by BlockAssemblyScheduler. This ensures every
+ * coin buy/sell appears in a block on the blockchain explorer.
  */
 @Service
 public class PurchaseService {
@@ -32,48 +35,31 @@ public class PurchaseService {
     private final UserRepository userRepository;
     private final CoinRepository coinRepository;
     private final WalletRepository walletRepository;
-    private final TransactionRepository transactionRepository;
     private final WalletService walletService;
     private final BalanceService balanceService;
     private final PriceEngineService priceEngineService;
+    private final MempoolService mempoolService;
+    private final TransactionValidationService transactionValidationService;
 
-    /**
-     * Creates a purchase service with persistence, wallet, balance,
-     * and price engine dependencies.
-     *
-     * @param userRepository repository for users
-     * @param coinRepository repository for coin state
-     * @param walletRepository repository for wallet state
-     * @param transactionRepository repository for transaction ledger rows
-     * @param walletService service for wallet identity backfill logic
-     * @param balanceService service for ledger-derived balance lookups
-     * @param priceEngineService service for dynamic price recalculation
-     */
     public PurchaseService(
             UserRepository userRepository,
             CoinRepository coinRepository,
             WalletRepository walletRepository,
-            TransactionRepository transactionRepository,
             WalletService walletService,
             BalanceService balanceService,
-            PriceEngineService priceEngineService) {
+            PriceEngineService priceEngineService,
+            MempoolService mempoolService,
+            TransactionValidationService transactionValidationService) {
         this.userRepository = userRepository;
         this.coinRepository = coinRepository;
         this.walletRepository = walletRepository;
-        this.transactionRepository = transactionRepository;
         this.walletService = walletService;
         this.balanceService = balanceService;
         this.priceEngineService = priceEngineService;
+        this.mempoolService = mempoolService;
+        this.transactionValidationService = transactionValidationService;
     }
 
-    /**
-     * Executes a TimeCoin purchase and writes all related state updates.
-     *
-     * @param userId authenticated user identifier
-     * @param symbol requested coin symbol
-     * @param amount amount to purchase
-     * @return purchase response containing transaction and wallet data
-     */
     @Transactional
     public PurchaseResponse purchaseCoin(Integer userId, String symbol, BigDecimal amount) {
         validateInput(userId, symbol, amount);
@@ -94,13 +80,11 @@ public class PurchaseService {
         coin.setUpdatedAt(LocalDateTime.now());
         coinRepository.save(coin);
 
-        // no coinBalance mutation - the CONFIRMED transaction below is the balance change,
-        // picked up automatically by BalanceService via the ledger
-
         BigDecimal totalUsd = coin.getCurrentPrice()
                 .multiply(amount)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        // buys have null sender — nonce not used per-sender for coinbase-style rows
         Transaction transaction = new Transaction();
         transaction.setUserId(user.getId());
         transaction.setSymbol(normalizeSymbol(symbol));
@@ -114,32 +98,25 @@ public class PurchaseService {
         transaction.setNonce(0);
         transaction.setTimestamp(LocalDateTime.now());
         transaction.setTransactionHash("buy_" + UUID.randomUUID());
-        transaction.setStatus(Transaction.Status.CONFIRMED);
+        transaction.setStatus(Transaction.Status.PENDING);
         transaction.setBlockId(null);
-        Transaction savedTransaction = transactionRepository.save(transaction);
 
-        // recalculate coin price based on buy volume
+        Transaction savedTransaction = mempoolService.enqueueValidatedTransaction(transaction);
+
         priceEngineService.recordBuy(amount);
 
-        // fetch ledger-derived balance after the transaction is saved
-        BigDecimal available = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
+        // optimistic balance — ledger only counts CONFIRMED, so show the user
+        // their expected post-confirmation balance right away
+        BigDecimal confirmedAvailable = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
+        BigDecimal optimisticBalance = confirmedAvailable.add(amount);
 
         return new PurchaseResponse(
-                "Coin purchase successful",
+                "Coin purchase enqueued",
                 new PurchaseTransactionDTO(savedTransaction),
-                new PurchaseWalletDTO(wallet, available)
+                new PurchaseWalletDTO(wallet, optimisticBalance)
         );
     }
 
-    /**
-     * Executes a TimeCoin sell and writes all related state updates.
-     * Validates the seller has sufficient ledger-derived balance before proceeding.
-     *
-     * @param userId authenticated user identifier
-     * @param symbol requested coin symbol
-     * @param amount amount to sell
-     * @return purchase response containing transaction and wallet data
-     */
     @Transactional
     public PurchaseResponse sellCoin(Integer userId, String symbol, BigDecimal amount) {
         validateInput(userId, symbol, amount);
@@ -152,14 +129,12 @@ public class PurchaseService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet not found"));
         wallet = walletService.ensureWalletIdentity(wallet);
 
-        // check ledger-derived balance
         BigDecimal available = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
         if (available.compareTo(amount) < 0) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Insufficient balance: available " + available + ", requested " + amount);
         }
 
-        // return coins to circulating supply
         coin.setCirculatingSupply(coin.getCirculatingSupply().add(amount));
         coin.setUpdatedAt(LocalDateTime.now());
         coinRepository.save(coin);
@@ -167,6 +142,10 @@ public class PurchaseService {
         BigDecimal totalUsd = coin.getCurrentPrice()
                 .multiply(amount)
                 .setScale(2, RoundingMode.HALF_UP);
+
+        // sells have a real sender — pick the next sequential nonce for this wallet
+        int nonce = Math.toIntExact(
+                transactionValidationService.getExpectedNextNonce(wallet.getWalletAddress()));
 
         Transaction transaction = new Transaction();
         transaction.setUserId(user.getId());
@@ -178,32 +157,25 @@ public class PurchaseService {
         transaction.setPriceAtTime(coin.getCurrentPrice());
         transaction.setTotalUsd(totalUsd);
         transaction.setFee(BigDecimal.ZERO.setScale(8, RoundingMode.HALF_UP));
-        transaction.setNonce(0);
+        transaction.setNonce(nonce);
         transaction.setTimestamp(LocalDateTime.now());
         transaction.setTransactionHash("sell_" + UUID.randomUUID());
-        transaction.setStatus(Transaction.Status.CONFIRMED);
+        transaction.setStatus(Transaction.Status.PENDING);
         transaction.setBlockId(null);
-        Transaction savedTransaction = transactionRepository.save(transaction);
 
-        // recalculate coin price based on sell volume
+        Transaction savedTransaction = mempoolService.enqueueValidatedTransaction(transaction);
+
         priceEngineService.recordSell(amount);
 
-        BigDecimal updatedBalance = balanceService.getBalance(wallet.getWalletAddress()).getAvailable();
+        BigDecimal optimisticBalance = available.subtract(amount);
 
         return new PurchaseResponse(
-                "Coin sell successful",
+                "Coin sell enqueued",
                 new PurchaseTransactionDTO(savedTransaction),
-                new PurchaseWalletDTO(wallet, updatedBalance)
+                new PurchaseWalletDTO(wallet, optimisticBalance)
         );
     }
 
-    /**
-     * Validates buy request payload fields.
-     *
-     * @param userId request user ID
-     * @param symbol request symbol
-     * @param amount request amount
-     */
     private void validateInput(Integer userId, String symbol, BigDecimal amount) {
         if (userId == null || userId <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "userId must be a positive integer");
@@ -222,12 +194,6 @@ public class PurchaseService {
         }
     }
 
-    /**
-     * Normalizes input symbol and applies default TimeCoin symbol when absent.
-     *
-     * @param symbol user-provided symbol
-     * @return normalized symbol
-     */
     private String normalizeSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             return DEFAULT_SYMBOL;

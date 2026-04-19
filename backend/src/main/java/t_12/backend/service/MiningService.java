@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import t_12.backend.api.mining.MineResponse;
 import t_12.backend.api.mining.MiningStatsResponse;
 import t_12.backend.entity.MiningAccumulator;
+import t_12.backend.entity.Transaction;
 import t_12.backend.exception.CooldownException;
 import t_12.backend.repository.MiningAccumulatorRepository;
 import t_12.backend.repository.TransactionRepository;
@@ -83,6 +84,9 @@ public class MiningService {
             accumulator.setLastMinedAt(LocalDateTime.now());
         } else {
             accumulator = new MiningAccumulator(walletAddress);
+            // Explicit first click — don't rely on constructor defaults
+            accumulator.setClickCount(1);
+            accumulator.setLastMinedAt(LocalDateTime.now());
         }
 
         MiningAccumulator saved = miningAccumulatorRepository.save(accumulator);
@@ -104,7 +108,7 @@ public class MiningService {
             return;
         }
 
-        BigDecimal totalCoinbaseSupply = transactionRepository.sumConfirmedCoinbaseSupply();
+        BigDecimal totalCoinbaseSupply = transactionRepository.sumConfirmedCoinbaseSupply(Transaction.Status.CONFIRMED);
 
         for (MiningAccumulator row : rows) {
             BigDecimal reward = calculateReward(row.getClickCount(), totalCoinbaseSupply);
@@ -122,9 +126,9 @@ public class MiningService {
      */
     public MiningStatsResponse getStats(String walletAddress) {
         BigDecimal totalMined = transactionRepository
-                .sumConfirmedCoinbaseByReceiver(walletAddress);
+                .sumConfirmedCoinbaseByReceiver(walletAddress, Transaction.Status.CONFIRMED);
         long totalCount = transactionRepository
-                .countConfirmedCoinbaseByReceiver(walletAddress);
+                .countConfirmedCoinbaseByReceiver(walletAddress, Transaction.Status.CONFIRMED);
 
         long cooldownRemaining = 0;
         MiningAccumulator accumulator = miningAccumulatorRepository

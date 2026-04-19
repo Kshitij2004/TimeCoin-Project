@@ -3,10 +3,10 @@ package t_12.backend.api.mining;
 public class MineResponse {
 
     private final int clickCount;
-    private final long cooldownRemaining;
+    private final int cooldownRemaining;
     private final String message;
 
-    public MineResponse(int clickCount, long cooldownRemaining, String message) {
+    public MineResponse(int clickCount, int cooldownRemaining, String message) {
         this.clickCount = clickCount;
         this.cooldownRemaining = cooldownRemaining;
         this.message = message;
@@ -16,7 +16,7 @@ public class MineResponse {
         return clickCount;
     }
 
-    public long getCooldownRemaining() {
+    public int getCooldownRemaining() {
         return cooldownRemaining;
     }
 

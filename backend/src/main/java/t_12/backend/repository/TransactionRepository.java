@@ -91,20 +91,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
 
     // Total coinbase supply (for halving calculation)
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
-            + "WHERE t.senderAddress IS NULL AND t.status = 'CONFIRMED'")
-    BigDecimal sumConfirmedCoinbaseSupply();
+            + "WHERE t.senderAddress IS NULL AND t.status = :status")
+    BigDecimal sumConfirmedCoinbaseSupply(@Param("status") Transaction.Status status);
 
     // Stats per wallet: total mined amount
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
             + "WHERE t.senderAddress IS NULL "
-            + "AND t.receiverAddress = :address AND t.status = 'CONFIRMED'")
-    BigDecimal sumConfirmedCoinbaseByReceiver(@Param("address") String address);
+            + "AND t.receiverAddress = :address AND t.status = :status")
+    BigDecimal sumConfirmedCoinbaseByReceiver(@Param("address") String address,
+            @Param("status") Transaction.Status status);
 
     // Stats per wallet: total mined count
     @Query("SELECT COUNT(t) FROM Transaction t "
             + "WHERE t.senderAddress IS NULL "
-            + "AND t.receiverAddress = :address AND t.status = 'CONFIRMED'")
-    long countConfirmedCoinbaseByReceiver(@Param("address") String address);
+            + "AND t.receiverAddress = :address AND t.status = :status")
+    long countConfirmedCoinbaseByReceiver(@Param("address") String address,
+            @Param("status") Transaction.Status status);
 
     boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
             String receiverAddress,

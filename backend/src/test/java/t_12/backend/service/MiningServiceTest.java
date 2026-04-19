@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
@@ -26,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import t_12.backend.api.mining.MineResponse;
 import t_12.backend.api.mining.MiningStatsResponse;
 import t_12.backend.entity.MiningAccumulator;
+import t_12.backend.entity.Transaction;
 import t_12.backend.exception.CooldownException;
 import t_12.backend.repository.MiningAccumulatorRepository;
 import t_12.backend.repository.TransactionRepository;
@@ -66,7 +68,9 @@ public class MiningServiceTest {
 
         assertEquals(1, response.getClickCount());
         assertEquals(5, response.getCooldownRemaining());
-        verify(miningAccumulatorRepository).save(any(MiningAccumulator.class));
+        ArgumentCaptor<MiningAccumulator> captor = ArgumentCaptor.forClass(MiningAccumulator.class);
+        verify(miningAccumulatorRepository).save(captor.capture());
+        assertEquals(1, captor.getValue().getClickCount());
     }
 
     @Test
@@ -74,7 +78,7 @@ public class MiningServiceTest {
         String wallet = "addr_1";
         MiningAccumulator existing = new MiningAccumulator(wallet);
         existing.setClickCount(3);
-        // Last mined 10 seconds ago — well past the 5 second cooldown
+        // Last mined 10 seconds ago - well past the 5 second cooldown
         existing.setLastMinedAt(LocalDateTime.now().minusSeconds(10));
 
         when(miningAccumulatorRepository.findById(wallet)).thenReturn(Optional.of(existing));
@@ -84,13 +88,16 @@ public class MiningServiceTest {
         MineResponse response = miningService.mine(wallet);
 
         assertEquals(4, response.getClickCount());
+        ArgumentCaptor<MiningAccumulator> captor = ArgumentCaptor.forClass(MiningAccumulator.class);
+        verify(miningAccumulatorRepository).save(captor.capture());
+        assertEquals(4, captor.getValue().getClickCount());
     }
 
     @Test
     void mine_withinCooldown_throwsCooldownException() {
         String wallet = "addr_1";
         MiningAccumulator existing = new MiningAccumulator(wallet);
-        // Last mined 2 seconds ago — still within the 5 second cooldown
+        // Last mined 2 seconds ago - still within the 5 second cooldown
         existing.setLastMinedAt(LocalDateTime.now().minusSeconds(2));
 
         when(miningAccumulatorRepository.findById(wallet)).thenReturn(Optional.of(existing));
@@ -99,6 +106,21 @@ public class MiningServiceTest {
                 () -> miningService.mine(wallet));
         assertTrue(ex.getRetryAfter() > 0);
         verify(miningAccumulatorRepository, never()).save(any());
+    }
+
+    @Test
+    void mine_atExactCooldownBoundary_succeeds() {
+        String wallet = "addr_1";
+        MiningAccumulator existing = new MiningAccumulator(wallet);
+        // Last mined exactly 5 seconds ago — code uses <, so 5s-ago should pass
+        existing.setLastMinedAt(LocalDateTime.now().minusSeconds(5));
+
+        when(miningAccumulatorRepository.findById(wallet)).thenReturn(Optional.of(existing));
+        when(miningAccumulatorRepository.save(any(MiningAccumulator.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        MineResponse response = miningService.mine(wallet);
+        assertEquals(2, response.getClickCount());
     }
 
     @Test
@@ -116,7 +138,8 @@ public class MiningServiceTest {
         MiningAccumulator row2 = new MiningAccumulator("addr_2");
         row2.setClickCount(5);
 
-        when(transactionRepository.sumConfirmedCoinbaseSupply()).thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumConfirmedCoinbaseSupply(Transaction.Status.CONFIRMED))
+                .thenReturn(BigDecimal.ZERO);
 
         miningService.flushAccumulator(List.of(row1, row2));
 
@@ -137,13 +160,35 @@ public class MiningServiceTest {
 
         // Supply equals threshold → scale factor = 1 / (1 + 1) = 0.5
         // Expected reward = 10 clicks * 1.0 base * 0.5 = 5.0
-        when(transactionRepository.sumConfirmedCoinbaseSupply())
+        when(transactionRepository.sumConfirmedCoinbaseSupply(Transaction.Status.CONFIRMED))
                 .thenReturn(new BigDecimal("100.00000000"));
 
         miningService.flushAccumulator(List.of(row));
 
         verify(transactionService).createCoinbaseTransaction(
                 eq("addr_1"), eq(new BigDecimal("5.00000000")));
+    }
+
+    @Test
+    void flushAccumulator_withHalvingEnabled_rewardApproachesZeroAtHugeSupply() {
+        ReflectionTestUtils.setField(miningService, "halvingEnabled", true);
+        ReflectionTestUtils.setField(miningService, "halvingThreshold", new BigDecimal("100.00000000"));
+
+        MiningAccumulator row = new MiningAccumulator("addr_1");
+        row.setClickCount(1);
+
+        // Supply = 1,000,000x threshold → scale = 1 / (1 + 10000) ≈ 0.0001
+        // Reward = 1 * 1.0 * ~0.0001 — must be positive but very small
+        when(transactionRepository.sumConfirmedCoinbaseSupply(Transaction.Status.CONFIRMED))
+                .thenReturn(new BigDecimal("1000000.00000000"));
+
+        miningService.flushAccumulator(List.of(row));
+
+        ArgumentCaptor<BigDecimal> rewardCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(transactionService).createCoinbaseTransaction(eq("addr_1"), rewardCaptor.capture());
+        BigDecimal reward = rewardCaptor.getValue();
+        assertTrue(reward.compareTo(BigDecimal.ZERO) > 0, "reward must remain positive");
+        assertTrue(reward.compareTo(new BigDecimal("0.01")) < 0, "reward must be very small at huge supply");
     }
 
     @Test
@@ -156,9 +201,9 @@ public class MiningServiceTest {
     @Test
     void getStats_returnsConfirmedCoinbaseTotals() {
         String wallet = "addr_1";
-        when(transactionRepository.sumConfirmedCoinbaseByReceiver(wallet))
+        when(transactionRepository.sumConfirmedCoinbaseByReceiver(wallet, Transaction.Status.CONFIRMED))
                 .thenReturn(new BigDecimal("42.00000000"));
-        when(transactionRepository.countConfirmedCoinbaseByReceiver(wallet))
+        when(transactionRepository.countConfirmedCoinbaseByReceiver(wallet, Transaction.Status.CONFIRMED))
                 .thenReturn(7L);
         when(miningAccumulatorRepository.findById(wallet)).thenReturn(Optional.empty());
 
@@ -176,9 +221,9 @@ public class MiningServiceTest {
         MiningAccumulator existing = new MiningAccumulator(wallet);
         existing.setLastMinedAt(LocalDateTime.now().minusSeconds(2));
 
-        when(transactionRepository.sumConfirmedCoinbaseByReceiver(wallet))
+        when(transactionRepository.sumConfirmedCoinbaseByReceiver(wallet, Transaction.Status.CONFIRMED))
                 .thenReturn(BigDecimal.ZERO);
-        when(transactionRepository.countConfirmedCoinbaseByReceiver(wallet))
+        when(transactionRepository.countConfirmedCoinbaseByReceiver(wallet, Transaction.Status.CONFIRMED))
                 .thenReturn(0L);
         when(miningAccumulatorRepository.findById(wallet)).thenReturn(Optional.of(existing));
 

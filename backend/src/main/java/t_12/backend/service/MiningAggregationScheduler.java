@@ -1,6 +1,7 @@
 package t_12.backend.service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -36,7 +37,7 @@ public class MiningAggregationScheduler {
      * flush them into coinbase transactions. Skips silently if mining is
      * disabled or no rows are present.
      */
-    @Scheduled(fixedDelayString = "${mining.window-seconds}000")
+    @Scheduled(fixedDelayString = "${mining.window-seconds}", timeUnit = TimeUnit.SECONDS)
     public void flush() {
         if (!miningEnabled) {
             return;

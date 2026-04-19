@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +26,14 @@ import t_12.backend.repository.PriceHistoryRepository;
 @Service
 public class PriceEngineService {
 
-    private static final BigDecimal SENSITIVITY = new BigDecimal("0.01");
     private static final BigDecimal PRICE_FLOOR = new BigDecimal("0.01");
     private static final BigDecimal PRICE_CEILING = new BigDecimal("1000000.00");
 
     private final CoinRepository coinRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+
+    @Value("${price-engine.sensitivity:5.0}")
+    private BigDecimal sensitivity;
 
     public PriceEngineService(CoinRepository coinRepository,
                               PriceHistoryRepository priceHistoryRepository) {
@@ -59,9 +62,9 @@ public class PriceEngineService {
             return;
         }
 
+        // keep high precision throughout the multiplication chain
         BigDecimal ratio = tradeAmount.divide(supply, 10, RoundingMode.HALF_UP);
-        BigDecimal priceChange = SENSITIVITY.multiply(ratio).multiply(currentPrice)
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal priceChange = sensitivity.multiply(ratio).multiply(currentPrice);
 
         BigDecimal newPrice;
         if (isBuy) {
@@ -69,6 +72,9 @@ public class PriceEngineService {
         } else {
             newPrice = currentPrice.subtract(priceChange);
         }
+
+        // round only at the end, after add/subtract
+        newPrice = newPrice.setScale(2, RoundingMode.HALF_UP);
 
         if (newPrice.compareTo(PRICE_FLOOR) < 0) {
             newPrice = PRICE_FLOOR;

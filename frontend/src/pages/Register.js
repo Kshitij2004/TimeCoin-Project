@@ -50,8 +50,13 @@ function Register() {
         }
     };
 
+    // Extract secret from otpauth URI for manual entry fallback
+    const secret = otpAuthUri
+        ? (otpAuthUri.match(/secret=([A-Z0-9]+)/)?.[1] || '')
+        : '';
+
     const qrCodeUrl = otpAuthUri
-        ? `https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=${encodeURIComponent(otpAuthUri)}`
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(otpAuthUri)}`
         : null;
 
     // QR code setup screen shown after successful registration
@@ -62,26 +67,46 @@ function Register() {
                     <h2>Set Up Two-Factor Authentication</h2>
 
                     <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '20px', fontSize: '14px', lineHeight: '1.6' }}>
-                        Your account has 2FA enabled by default. Scan this QR code with Google Authenticator or Authy to complete setup.
+                        Your account has 2FA enabled by default. Scan this QR code with Google Authenticator or Authy.
                     </p>
 
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
                         <img
                             src={qrCodeUrl}
                             alt="2FA QR Code"
-                            style={{ borderRadius: '8px', border: '4px solid white' }}
+                            style={{ borderRadius: '8px', border: '4px solid white', background: 'white' }}
                         />
                     </div>
 
+                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', fontSize: '13px', marginBottom: '12px' }}>
+                        Or enter this code manually in your authenticator app:
+                    </p>
+
+                    <div style={{
+                        background: 'var(--bg-dark)',
+                        border: '1px solid var(--input-border)',
+                        borderRadius: '6px',
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontFamily: 'monospace',
+                        fontSize: '16px',
+                        color: 'var(--accent-blue)',
+                        letterSpacing: '2px',
+                        marginBottom: '20px',
+                        wordBreak: 'break-all'
+                    }}>
+                        {secret}
+                    </div>
+
                     <p style={{ color: 'var(--text-muted)', textAlign: 'center', fontSize: '13px', marginBottom: '28px', lineHeight: '1.5' }}>
-                        After scanning, you'll receive a 6-digit code in your authenticator app. You'll need this code every time you log in.
+                        After scanning or entering the code, you'll need the 6-digit code from the app every time you log in.
                     </p>
 
                     <button
                         className="login-btn"
                         onClick={() => navigate('/login')}
                     >
-                        I'VE SCANNED THE CODE — GO TO LOGIN
+                        CONTINUE TO LOGIN
                     </button>
                 </div>
             </div>

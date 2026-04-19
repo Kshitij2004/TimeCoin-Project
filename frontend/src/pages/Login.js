@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api.js'; // Import our centralized client
+import api from '../services/api.js';
 import '../Login.css';
 
 function Login() {
@@ -30,30 +30,28 @@ function Login() {
                 password: formData.password
             });
 
-            // Log the response to DevTools to verify the structure if redirect fails
-            console.log('Login Response Data:', response.data);
+            const data = response.data;
 
-            /**
-             * FIX: Flexible token extraction.
-             * 1. Check for response.data.token (Standard JSON object)
-             * 2. Check for response.data (If backend returns plain string JWT)
-             */
-            const token = response.data?.accessToken || response.data?.token || (typeof response.data === 'string' ? response.data : null);
+            // If 2FA is required, redirect to verification page with tempToken
+            if (data.requires2FA && data.tempToken) {
+                sessionStorage.setItem('2fa_temp_token', data.tempToken);
+                navigate('/login/verify');
+                return;
+            }
+
+            // Normal login — extract accessToken
+            const token = data.accessToken || data.token ||
+                (typeof data === 'string' ? data : null);
 
             if (token) {
-                // Store the real JWT in localStorage for the Interceptor to use
                 localStorage.setItem('token', token);
-                
-                // Redirect to the dashboard
                 navigate('/dashboard');
             } else {
                 setError('Authentication successful, but no token was found in the response.');
             }
         } catch (err) {
-            // Capture specific backend error messages if available
             const message = err.response?.data?.message || 'Login failed. Please check your credentials.';
             setError(message);
-            console.error('Login error:', err);
         } finally {
             setLoading(false);
         }
@@ -64,37 +62,37 @@ function Login() {
             <div className="login-container">
                 <form onSubmit={handleSubmit}>
                     <h2>Sign in to CrypMart</h2>
-                    
+
                     {error && (
                         <div role="alert" style={{ color: '#ff4d4d', marginBottom: '15px', textAlign: 'center', fontSize: '14px' }}>
                             {error}
                         </div>
                     )}
-                    
+
                     <div className="input-group">
-                        <input 
-                            type="text" 
-                            name="username" 
-                            placeholder="Username" 
+                        <input
+                            type="text"
+                            name="username"
+                            placeholder="Username"
                             value={formData.username}
                             onChange={handleChange}
                             disabled={loading}
-                            required 
+                            required
                         />
                     </div>
-                    
+
                     <div className="input-group">
-                        <input 
-                            type="password" 
-                            name="password" 
-                            placeholder="Password" 
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Password"
                             value={formData.password}
                             onChange={handleChange}
                             disabled={loading}
-                            required 
+                            required
                         />
                     </div>
-                    
+
                     <button type="submit" className="login-btn" disabled={loading}>
                         {loading ? 'LOGGING IN...' : 'LOG IN'}
                     </button>
@@ -102,7 +100,7 @@ function Login() {
                     <div className="links">
                         <a href="/forgot-password">Forgot Password?</a>
                         <div className="register-text">
-                            Don't have an account? 
+                            Don't have an account?
                             <Link to="/register" className="register-link">Register here</Link>
                         </div>
                     </div>

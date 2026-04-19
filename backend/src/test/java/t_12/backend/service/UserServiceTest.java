@@ -39,6 +39,12 @@ class UserServiceTest {
     @Mock
     private WalletService walletService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private TwoFactorService twoFactorService;
+
     private UserService userService;
 
     @BeforeEach
@@ -47,13 +53,11 @@ class UserServiceTest {
                 userRepository,
                 walletService,
                 refreshTokenService,
+                twoFactorService,
                 "test-secret-key-that-is-long-enough-32chars",
                 1
         );
     }
-
-    @Mock
-    private RefreshTokenService refreshTokenService;
 
     /**
      * Tests successful user registration with valid input. Verifies user and
@@ -61,22 +65,22 @@ class UserServiceTest {
      */
     @Test
     void Register_ReturnsUser_WhenValidInputTest() {
-        // Arrange; simulate no existing username or email
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(false);
-        when(userRepository.existsByEmail("test@email.com"))
-                .thenReturn(false);
+        when(userRepository.existsByUsername("testuser")).thenReturn(false);
+        when(userRepository.existsByEmail("test@email.com")).thenReturn(false);
 
-        // Simulate the repository saving and returning a user with an id
+        // Mock 2FA secret generation (called during registration)
+        when(twoFactorService.generateSecret()).thenReturn("TESTBASE32SECRET");
+
         User savedUser = new User();
         savedUser.setId(1);
         savedUser.setUsername("testuser");
         savedUser.setEmail("test@email.com");
         savedUser.setPasswordHash("hashedpassword");
         savedUser.setCreatedAt(LocalDateTime.now());
+        savedUser.setTwoFactorSecret("TESTBASE32SECRET");
+        savedUser.setTwoFactorEnabled(true);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        // Simulate wallet creation returning a wallet identity.
         Wallet savedWallet = new Wallet();
         savedWallet.setUserId(1);
         savedWallet.setWalletAddress("wlt_test");
@@ -85,79 +89,57 @@ class UserServiceTest {
         when(walletService.createWalletForUser(1))
                 .thenReturn(new WalletCreationResult(savedWallet, "private_key_test"));
 
-        // Act
-        User result = userService.register(
-                "testuser",
-                "test@email.com",
-                "password123"
-        );
+        User result = userService.register("testuser", "test@email.com", "password123");
 
-        // Assert;  user is returned with correct fields
         assertNotNull(result);
         assertEquals("testuser", result.getUsername());
         assertEquals("test@email.com", result.getEmail());
 
-        // Verify the right methods were called the right number of times
-        verify(userRepository, times(1))
-                .existsByUsername("testuser");
-        verify(userRepository, times(1))
-                .existsByEmail("test@email.com");
-        verify(userRepository, times(1))
-                .save(any(User.class));
-        verify(walletService, times(1))
-                .createWalletForUser(1);
+        verify(userRepository, times(1)).existsByUsername("testuser");
+        verify(userRepository, times(1)).existsByEmail("test@email.com");
+        verify(userRepository, times(1)).save(any(User.class));
+        verify(walletService, times(1)).createWalletForUser(1);
+        verify(twoFactorService, times(1)).generateSecret();
     }
 
     /**
      * Tests that registration throws DuplicateResourceException when username
-     * is already taken. Verifies that no user or wallet is saved in this case.
+     * is already taken.
      */
     @Test
     void Register_ThrowsException_WhenUsernameTakenTest() {
-        // Simulate username already existing
         when(userRepository.existsByUsername("testuser")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> {
-            userService.register(
-                    "testuser",
-                    "test@email.com",
-                    "password123"
-            );
+            userService.register("testuser", "test@email.com", "password123");
         });
 
-        // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
         verify(walletService, never()).createWalletForUser(any());
     }
 
     /**
-     * Tests that registration throws DuplicateResourceException when email is
-     * already taken. Verifies that no user or wallet is saved in this case.
+     * Tests that registration throws DuplicateResourceException when email
+     * is already taken.
      */
     @Test
     void Register_ThrowsException_WhenEmailTakenTest() {
-        // Simulate username being free but email already existing
         when(userRepository.existsByUsername("testuser")).thenReturn(false);
         when(userRepository.existsByEmail("test@email.com")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> {
-            userService.register(
-                    "testuser",
-                    "test@email.com",
-                    "password123");
+            userService.register("testuser", "test@email.com", "password123");
         });
 
-        // Verify we never proceeded to save anything
         verify(userRepository, never()).save(any(User.class));
         verify(walletService, never()).createWalletForUser(any());
     }
 
     /**
-     * Tests successful login with valid credentials. Verifies that a non-null
-     * JWT token string is returned.
+     * Tests successful login when 2FA is disabled — returns real tokens directly.
      */
     @Test
-    void Login_ReturnsTokens_WhenValidCredentialsTest() {
+    void Login_ReturnsTokens_WhenValidCredentialsAndNo2FATest() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
         String hash = encoder.encode("password123");
 
@@ -165,6 +147,7 @@ class UserServiceTest {
         user.setId(1);
         user.setUsername("testuser");
         user.setPasswordHash(hash);
+        user.setTwoFactorEnabled(false); // 2FA off for this test
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken("uuid-refresh-token");
@@ -181,6 +164,31 @@ class UserServiceTest {
         assertNotNull(response.getAccessToken());
         assert (!response.getAccessToken().isBlank());
         assertEquals("uuid-refresh-token", response.getRefreshToken());
+    }
+
+    /**
+     * Tests that login returns requires2FA=true when 2FA is enabled.
+     */
+    @Test
+    void Login_Returns2FARequired_When2FAEnabledTest() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String hash = encoder.encode("password123");
+
+        User user = new User();
+        user.setId(1);
+        user.setUsername("testuser");
+        user.setPasswordHash(hash);
+        user.setTwoFactorEnabled(true);
+        user.setTwoFactorSecret("TESTBASE32SECRET");
+
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(java.util.Optional.of(user));
+
+        LoginResponse response = userService.login("testuser", "password123");
+
+        assertNotNull(response);
+        assert (response.isRequires2FA());
+        assertNotNull(response.getTempToken());
     }
 
     /**
@@ -242,8 +250,7 @@ class UserServiceTest {
     }
 
     /**
-     * Tests that refresh throws ApiException when given an invalid refresh
-     * token.
+     * Tests that refresh throws ApiException when given an invalid refresh token.
      */
     @Test
     void Refresh_ThrowsException_WhenInvalidRefreshTokenTest() {

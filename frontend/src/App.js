@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute.js';
 // Import pages from the /pages folder
 import Landing from './pages/Landing.js';
 import Login from './pages/Login.js';
+import LoginVerify from './pages/LoginVerify.js';
 import Register from './pages/Register.js';
 import Dashboard from './pages/dashboard/Dashboard.js';
 import Marketplace from './pages/marketplace/Marketplace.js';
@@ -23,6 +24,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/login/verify" element={<LoginVerify />} />
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}

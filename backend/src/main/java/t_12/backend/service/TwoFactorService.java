@@ -1,5 +1,6 @@
 package t_12.backend.service;
 
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -12,21 +13,19 @@ import org.springframework.stereotype.Service;
 
 /**
  * Implements TOTP (Time-based One-Time Password) per RFC 6238.
- * Uses HMAC-SHA1, 30-second windows, 6-digit codes.
- * No third-party dependencies — pure Java crypto.
+ * HMAC-SHA1, 30-second windows, 6-digit codes.
  */
 @Service
 public class TwoFactorService {
 
     private static final int CODE_DIGITS = 6;
     private static final int TIME_STEP_SECONDS = 30;
-    // Allow 1 step before/after to account for clock drift
-    private static final int ALLOWED_WINDOW = 1;
+    private static final int ALLOWED_WINDOW = 1; // +/- 1 step for clock drift
+
+    private static final String BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
     /**
-     * Generates a random Base32-encoded TOTP secret for a new user.
-     *
-     * @return a 20-byte random secret encoded as Base32
+     * Generates a random Base32 secret (20 bytes → 32 chars).
      */
     public String generateSecret() {
         byte[] buffer = new byte[20];
@@ -35,28 +34,18 @@ public class TwoFactorService {
     }
 
     /**
-     * Builds a TOTP URI for QR code generation.
-     * Compatible with Google Authenticator and similar apps.
-     *
-     * @param secret   the Base32-encoded secret
-     * @param username the account username to display in the app
-     * @param issuer   the app name (e.g. "CrypMart")
-     * @return otpauth:// URI string
+     * Builds an otpauth:// URI for QR code display.
      */
     public String buildOtpAuthUri(String secret, String username, String issuer) {
         return String.format(
                 "otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30",
-                encode(issuer), encode(username), secret, encode(issuer)
+                urlEncode(issuer), urlEncode(username), secret, urlEncode(issuer)
         );
     }
 
     /**
-     * Verifies a 6-digit TOTP code against the user's secret.
-     * Accepts codes from the current window and one step before/after.
-     *
-     * @param secret      the Base32-encoded secret stored for the user
-     * @param code        the 6-digit code entered by the user
-     * @return true if the code is valid
+     * Verifies a 6-digit TOTP code against the stored secret.
+     * Accepts codes from the current window and +/- 1 step for drift.
      */
     public boolean verifyCode(String secret, String code) {
         if (secret == null || code == null || code.length() != CODE_DIGITS) {
@@ -65,8 +54,8 @@ public class TwoFactorService {
 
         long currentStep = Instant.now().getEpochSecond() / TIME_STEP_SECONDS;
 
-        for (int i = -ALLOWED_WINDOW; i <= ALLOWED_WINDOW; i++) {
-            String expected = generateCode(secret, currentStep + i);
+        for (int offset = -ALLOWED_WINDOW; offset <= ALLOWED_WINDOW; offset++) {
+            String expected = generateCode(secret, currentStep + offset);
             if (expected != null && expected.equals(code)) {
                 return true;
             }
@@ -80,79 +69,83 @@ public class TwoFactorService {
     private String generateCode(String secret, long timeStep) {
         try {
             byte[] key = base32Decode(secret);
-            byte[] data = longToBytes(timeStep);
+
+            // Convert time step to 8-byte big-endian
+            byte[] timeBytes = ByteBuffer.allocate(8).putLong(timeStep).array();
 
             Mac mac = Mac.getInstance("HmacSHA1");
             mac.init(new SecretKeySpec(key, "HmacSHA1"));
-            byte[] hash = mac.doFinal(data);
+            byte[] hash = mac.doFinal(timeBytes);
 
             // Dynamic truncation per RFC 4226
             int offset = hash[hash.length - 1] & 0x0F;
-            int binary =
-                    ((hash[offset]     & 0x7F) << 24) |
-                            ((hash[offset + 1] & 0xFF) << 16) |
-                            ((hash[offset + 2] & 0xFF) << 8)  |
-                            (hash[offset + 3] & 0xFF);
+            int binary = ((hash[offset] & 0x7F) << 24)
+                    | ((hash[offset + 1] & 0xFF) << 16)
+                    | ((hash[offset + 2] & 0xFF) << 8)
+                    |  (hash[offset + 3] & 0xFF);
 
-            int otp = binary % (int) Math.pow(10, CODE_DIGITS);
-            return String.format("%0" + CODE_DIGITS + "d", otp);
+            int otp = binary % 1_000_000;
+            return String.format("%06d", otp);
 
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             return null;
         }
     }
 
-    private byte[] longToBytes(long value) {
-        byte[] result = new byte[8];
-        for (int i = 7; i >= 0; i--) {
-            result[i] = (byte) (value & 0xFF);
-            value >>= 8;
-        }
-        return result;
-    }
-
-    // ── Base32 encoding/decoding (RFC 4648) ────────────────────────────────
-
-    private static final String BASE32_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    // ── Base32 ─────────────────────────────────────────────────────────────
 
     private String base32Encode(byte[] data) {
         StringBuilder sb = new StringBuilder();
         int buffer = 0;
         int bitsLeft = 0;
+
         for (byte b : data) {
             buffer = (buffer << 8) | (b & 0xFF);
             bitsLeft += 8;
             while (bitsLeft >= 5) {
-                sb.append(BASE32_CHARS.charAt((buffer >> (bitsLeft - 5)) & 0x1F));
+                int index = (buffer >> (bitsLeft - 5)) & 0x1F;
+                sb.append(BASE32_ALPHABET.charAt(index));
                 bitsLeft -= 5;
             }
         }
+
         if (bitsLeft > 0) {
-            sb.append(BASE32_CHARS.charAt((buffer << (5 - bitsLeft)) & 0x1F));
+            int index = (buffer << (5 - bitsLeft)) & 0x1F;
+            sb.append(BASE32_ALPHABET.charAt(index));
         }
+
         return sb.toString();
     }
 
     private byte[] base32Decode(String input) {
-        input = input.toUpperCase().replaceAll("=", "");
-        byte[] result = new byte[input.length() * 5 / 8];
+        // Normalize: uppercase, strip padding and whitespace
+        String cleaned = input.toUpperCase().replaceAll("[=\\s]", "");
+
+        int outputLength = (cleaned.length() * 5) / 8;
+        byte[] output = new byte[outputLength];
+
         int buffer = 0;
         int bitsLeft = 0;
-        int index = 0;
-        for (char c : input.toCharArray()) {
-            int val = BASE32_CHARS.indexOf(c);
-            if (val < 0) continue;
-            buffer = (buffer << 5) | val;
+        int outputIndex = 0;
+
+        for (int i = 0; i < cleaned.length(); i++) {
+            int value = BASE32_ALPHABET.indexOf(cleaned.charAt(i));
+            if (value < 0) {
+                continue; // skip any non-base32 chars
+            }
+            buffer = (buffer << 5) | value;
             bitsLeft += 5;
+
             if (bitsLeft >= 8) {
-                result[index++] = (byte) ((buffer >> (bitsLeft - 8)) & 0xFF);
                 bitsLeft -= 8;
+                output[outputIndex++] = (byte) ((buffer >> bitsLeft) & 0xFF);
             }
         }
-        return result;
+
+        return output;
     }
 
-    private String encode(String value) {
+    private String urlEncode(String value) {
         return value.replace(" ", "%20").replace(":", "%3A");
     }
 }

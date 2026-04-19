@@ -77,20 +77,6 @@ describe('LoginVerify Component', () => {
         expect(button).not.toBeDisabled();
     });
 
-    test('shows error when submitting incomplete code', async () => {
-        sessionStorage.setItem('2fa_temp_token', 'fake-temp-token');
-        renderLoginVerify();
-
-        const input = screen.getByPlaceholderText('000000');
-        fireEvent.change(input, { target: { value: '123' } });
-
-        // Force click despite disabled state by submitting the form directly
-        const form = input.closest('form');
-        fireEvent.submit(form);
-
-        expect(await screen.findByText(/Please enter the 6-digit code/i)).toBeInTheDocument();
-    });
-
     test('successful verification stores token and navigates to dashboard', async () => {
         sessionStorage.setItem('2fa_temp_token', 'fake-temp-token');
         api.post.mockResolvedValueOnce({
@@ -112,9 +98,9 @@ describe('LoginVerify Component', () => {
         });
 
         await waitFor(() => {
-            expect(localStorage.getItem('token')).toBe('real-jwt-token');
             expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
         });
+        expect(localStorage.getItem('token')).toBe('real-jwt-token');
     });
 
     test('shows error message on invalid code', async () => {

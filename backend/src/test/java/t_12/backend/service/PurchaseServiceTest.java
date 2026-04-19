@@ -28,10 +28,8 @@ import t_12.backend.entity.User;
 import t_12.backend.entity.Wallet;
 import t_12.backend.exception.ApiException;
 import t_12.backend.repository.CoinRepository;
-import t_12.backend.repository.TransactionRepository;
 import t_12.backend.repository.UserRepository;
 import t_12.backend.repository.WalletRepository;
-
 
 /**
  * Unit tests for PurchaseService.
@@ -49,9 +47,6 @@ class PurchaseServiceTest {
     private WalletRepository walletRepository;
 
     @Mock
-    private TransactionRepository transactionRepository;
-
-    @Mock
     private WalletService walletService;
 
     @Mock
@@ -60,11 +55,17 @@ class PurchaseServiceTest {
     @Mock
     private PriceEngineService priceEngineService;
 
+    @Mock
+    private MempoolService mempoolService;
+
+    @Mock
+    private TransactionValidationService transactionValidationService;
+
     @InjectMocks
     private PurchaseService purchaseService;
 
     @Test
-    void purchaseCoinSucceedsAndReturnsUpdatedWallet() {
+    void purchaseCoinSucceedsAndEnqueuesToMempool() {
         User user = new User();
         user.setId(1);
 
@@ -84,28 +85,32 @@ class PurchaseServiceTest {
         when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
         when(walletRepository.findByUserId(1)).thenReturn(Optional.of(wallet));
         when(walletService.ensureWalletIdentity(wallet)).thenReturn(wallet);
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(42);
             return transaction;
         });
         when(balanceService.getBalance("wlt_1")).thenReturn(
-                new BalanceResponse("wlt_1", new BigDecimal("1.25"), BigDecimal.ZERO, new BigDecimal("1.25")));
+                new BalanceResponse("wlt_1", new BigDecimal("0.00"), BigDecimal.ZERO, new BigDecimal("0.00")));
 
         PurchaseResponse response = purchaseService.purchaseCoin(1, "tc", new BigDecimal("1.25"));
 
-        assertEquals("Coin purchase successful", response.getMessage());
+        assertEquals("Coin purchase enqueued", response.getMessage());
         assertEquals(new BigDecimal("1.25"), response.getTransaction().getAmount());
+        // optimistic balance: ledger shows 0.00, plus this purchase of 1.25 → 1.25
         assertEquals(new BigDecimal("1.25"), response.getWallet().getCoinBalance());
         assertEquals(new BigDecimal("98.75"), coin.getCirculatingSupply());
 
-        // coinBalance on the entity must not be modified
         assertEquals(BigDecimal.ZERO, wallet.getCoinBalance());
         verify(walletRepository, never()).save(wallet);
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository).save(transactionCaptor.capture());
-        assertEquals(Transaction.TransactionType.BUY, transactionCaptor.getValue().getTransactionType());
+        verify(mempoolService).enqueueValidatedTransaction(transactionCaptor.capture());
+        Transaction enqueued = transactionCaptor.getValue();
+        assertEquals(Transaction.TransactionType.BUY, enqueued.getTransactionType());
+        assertEquals(Transaction.Status.PENDING, enqueued.getStatus());
+        assertEquals(null, enqueued.getSenderAddress());
+        assertEquals("wlt_1", enqueued.getReceiverAddress());
         verify(priceEngineService).recordBuy(new BigDecimal("1.25"));
     }
 
@@ -118,6 +123,7 @@ class PurchaseServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("symbol must be TC", exception.getMessage());
+        verify(mempoolService, never()).enqueueValidatedTransaction(any());
     }
 
     @Test
@@ -147,6 +153,7 @@ class PurchaseServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         assertEquals("Insufficient circulating supply", exception.getMessage());
+        verify(mempoolService, never()).enqueueValidatedTransaction(any());
     }
 
     @Test
@@ -173,30 +180,28 @@ class PurchaseServiceTest {
             backfilledWallet.setPublicKey("pub_backfilled");
             return backfilledWallet;
         });
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(99);
             return transaction;
         });
         when(balanceService.getBalance("wlt_backfilled")).thenReturn(
-                new BalanceResponse("wlt_backfilled", new BigDecimal("1.25"), BigDecimal.ZERO, new BigDecimal("1.25")));
+                new BalanceResponse("wlt_backfilled", new BigDecimal("0.00"), BigDecimal.ZERO, new BigDecimal("0.00")));
 
         PurchaseResponse response = purchaseService.purchaseCoin(9, "TC", new BigDecimal("1.25"));
 
         assertNotNull(response.getWallet().getWalletAddress());
-
-        // coinBalance on the entity must not be modified
         assertEquals(BigDecimal.ZERO, wallet.getCoinBalance());
         verify(walletRepository, never()).save(wallet);
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository).save(transactionCaptor.capture());
+        verify(mempoolService).enqueueValidatedTransaction(transactionCaptor.capture());
         verify(walletService, atLeastOnce()).ensureWalletIdentity(wallet);
         assertNotNull(transactionCaptor.getValue().getReceiverAddress());
     }
 
     @Test
-    void sellCoinSucceedsAndReturnsUpdatedWallet() {
+    void sellCoinSucceedsAndEnqueuesToMempool() {
         User user = new User();
         user.setId(1);
 
@@ -218,7 +223,8 @@ class PurchaseServiceTest {
         when(walletService.ensureWalletIdentity(wallet)).thenReturn(wallet);
         when(balanceService.getBalance("wlt_1")).thenReturn(
                 new BalanceResponse("wlt_1", new BigDecimal("10.00"), BigDecimal.ZERO, new BigDecimal("10.00")));
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+        when(transactionValidationService.getExpectedNextNonce("wlt_1")).thenReturn(1L);
+        when(mempoolService.enqueueValidatedTransaction(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction transaction = invocation.getArgument(0);
             transaction.setId(42);
             return transaction;
@@ -226,14 +232,20 @@ class PurchaseServiceTest {
 
         PurchaseResponse response = purchaseService.sellCoin(1, "TC", new BigDecimal("1.25"));
 
-        assertEquals("Coin sell successful", response.getMessage());
+        assertEquals("Coin sell enqueued", response.getMessage());
         assertEquals(new BigDecimal("1.25"), response.getTransaction().getAmount());
+        // optimistic balance: 10.00 - 1.25 = 8.75
+        assertEquals(new BigDecimal("8.75"), response.getWallet().getCoinBalance());
         assertEquals(new BigDecimal("101.25"), coin.getCirculatingSupply());
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository).save(captor.capture());
-        assertEquals(Transaction.TransactionType.SELL, captor.getValue().getTransactionType());
-        assertEquals("wlt_1", captor.getValue().getSenderAddress());
+        verify(mempoolService).enqueueValidatedTransaction(captor.capture());
+        Transaction enqueued = captor.getValue();
+        assertEquals(Transaction.TransactionType.SELL, enqueued.getTransactionType());
+        assertEquals(Transaction.Status.PENDING, enqueued.getStatus());
+        assertEquals("wlt_1", enqueued.getSenderAddress());
+        assertEquals(null, enqueued.getReceiverAddress());
+        assertEquals(1, enqueued.getNonce());
 
         verify(priceEngineService).recordSell(new BigDecimal("1.25"));
     }
@@ -264,8 +276,7 @@ class PurchaseServiceTest {
                 () -> purchaseService.sellCoin(1, "TC", new BigDecimal("1.25")));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatus());
-        verify(transactionRepository, never()).save(any());
-
+        verify(mempoolService, never()).enqueueValidatedTransaction(any());
     }
 
     @Test
@@ -275,5 +286,6 @@ class PurchaseServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
         assertEquals("symbol must be TC", ex.getMessage());
+        verify(mempoolService, never()).enqueueValidatedTransaction(any());
     }
 }

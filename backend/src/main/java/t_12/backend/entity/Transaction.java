@@ -11,22 +11,21 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 
 // A single TimeCoin transfer between wallet addresses. Uses addresses
 // (not user IDs) because on-chain identity is the wallet address.
 // Lifecycle: PENDING (in mempool) -> CONFIRMED (in a block) or REJECTED.
+//
+// senderAddress is nullable for coinbase/BUY transactions (minting new coins
+// or buying from the supply pool). receiverAddress is nullable for SELL
+// transactions (returning coins to the supply pool). Both null is invalid
+// and rejected at the service layer.
 @Entity
-@Table(
-        name = "transactions",
-        uniqueConstraints = {
-            @UniqueConstraint(name = "uk_tx_sender_nonce", columnNames = {"sender_address", "nonce"})
-        }
-)
+@Table(name = "transactions")
 public class Transaction {
 
     public enum TransactionType {
-        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL
+        BUY, SELL, TRANSFER, DEPOSIT, WITHDRAWAL, MINT
     }
 
     public enum Status {
@@ -37,11 +36,12 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // nullable to allow coinbase/reward transactions that mint new TimeCoin
+    // nullable to allow coinbase/BUY transactions that mint or draw from supply
     @Column(name = "sender_address", length = 128)
     private String senderAddress;
 
-    @Column(name = "receiver_address", nullable = false, length = 128)
+    // nullable to allow SELL transactions that return coins to supply
+    @Column(name = "receiver_address", length = 128)
     private String receiverAddress;
 
     @Column(name = "amount", nullable = false, precision = 18, scale = 8)

@@ -58,15 +58,16 @@ CREATE INDEX idx_blocks_validator ON blocks(validator_address);
 
 -- 5. Transactions
 -- uses wallet addresses (not user IDs) because on-chain identity is the address.
--- sender_address is nullable to allow coinbase/reward transactions with no sender.
+-- sender_address is nullable for BUY/coinbase transactions (coins drawn from supply).
+-- receiver_address is nullable for SELL transactions (coins returned to supply).
 CREATE TABLE IF NOT EXISTS transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    sender_address VARCHAR(128),                                -- null for coinbase (reward) transactions
-    receiver_address VARCHAR(128) NOT NULL,
+    sender_address VARCHAR(128),                                -- null for BUY/coinbase
+    receiver_address VARCHAR(128),                              -- null for SELL (returned to supply)
     amount DECIMAL(18, 8) NOT NULL,
     user_id INT DEFAULT NULL,                                   -- set for user-facing buy/sell history rows
     symbol VARCHAR(10) DEFAULT NULL,
-    transaction_type ENUM('BUY', 'SELL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL') DEFAULT NULL,
+    transaction_type ENUM('BUY', 'SELL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL', 'MINT') DEFAULT NULL,
     price_at_time DECIMAL(15, 2) DEFAULT NULL,
     total_usd DECIMAL(18, 2) DEFAULT NULL,
     fee DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000,
@@ -79,14 +80,15 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 -- heavily indexed because this is the most-queried table (balance computation,
--- mempool filtering, block assembly all hit it)
+-- mempool filtering, block assembly all hit it). Per-sender nonce sequencing is
+-- enforced at the service layer in TransactionValidationService rather than
+-- at the DB level, since buy/sell transactions all use nonce=0 by design.
 CREATE INDEX idx_tx_sender ON transactions(sender_address);
 CREATE INDEX idx_tx_receiver ON transactions(receiver_address);
 CREATE INDEX idx_tx_status ON transactions(status);
 CREATE INDEX idx_tx_hash ON transactions(transaction_hash);
 CREATE INDEX idx_tx_block ON transactions(block_id);
 CREATE INDEX idx_tx_user_type_time ON transactions(user_id, transaction_type, timestamp);
-CREATE UNIQUE INDEX uk_tx_sender_nonce ON transactions(sender_address, nonce);
 
 -- 6. Block-Transaction Join Table
 -- exists alongside transactions.block_id for efficient "get all txs in block X"
@@ -164,7 +166,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 
--- 10. Price History
+-- 11. Price History
 -- tracks coin price over time for charting. one row per recalculation.
 CREATE TABLE IF NOT EXISTS price_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -173,3 +175,13 @@ CREATE TABLE IF NOT EXISTS price_history (
 );
 
 CREATE INDEX idx_price_history_time ON price_history(recorded_at);
+
+-- 12. Mining Accumulator
+-- tracks click-based mining progress for each wallet. window_start and last_mined_at
+-- allow enforcing cooldowns and time-based limits on mining rewards.
+CREATE TABLE IF NOT EXISTS mining_accumulator (
+    wallet_address  VARCHAR(128)    NOT NULL PRIMARY KEY,
+    click_count     INT             NOT NULL DEFAULT 0,
+    window_start    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_mined_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

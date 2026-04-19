@@ -25,6 +25,11 @@ public class TransactionHistoryService {
             Transaction.TransactionType.SELL
     );
 
+    private static final List<Transaction.TransactionType> ON_CHAIN_TYPES = List.of(
+            Transaction.TransactionType.MINT,
+            Transaction.TransactionType.TRANSFER
+    );
+
     private final TransactionRepository transactionRepository;
 
     public TransactionHistoryService(TransactionRepository transactionRepository) {
@@ -43,6 +48,14 @@ public class TransactionHistoryService {
             Integer userId,
             Integer page,
             Integer limit) {
+        return getUserTransactions(userId, null, page, limit);
+    }
+
+    public TransactionHistoryResponseDTO getUserTransactions(
+            Integer userId,
+            String walletAddress,
+            Integer page,
+            Integer limit) {
         if (userId == null || userId <= 0) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
         }
@@ -57,11 +70,12 @@ public class TransactionHistoryService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "limit must be an integer between 1 and 100");
         }
 
-        Page<Transaction> results = transactionRepository.findByUserIdAndTransactionTypeInOrderByTimestampDescIdDesc(
-                userId,
-                PURCHASE_TYPES,
-                PageRequest.of(resolvedPage - 1, resolvedLimit)
-        );
+        PageRequest pageRequest = PageRequest.of(resolvedPage - 1, resolvedLimit);
+        Page<Transaction> results = walletAddress != null
+                ? transactionRepository.findWalletTransactions(
+                        userId, walletAddress, PURCHASE_TYPES, ON_CHAIN_TYPES, pageRequest)
+                : transactionRepository.findByUserIdAndTransactionTypeInOrderByTimestampDescIdDesc(
+                        userId, PURCHASE_TYPES, pageRequest);
 
         List<TransactionHistoryItemDTO> items = results.getContent()
                 .stream()

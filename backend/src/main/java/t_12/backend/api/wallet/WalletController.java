@@ -44,9 +44,9 @@ public class WalletController {
     @GetMapping
     public ResponseEntity<WalletDTO> getWallet() {
         Integer userId = getAuthenticatedUserId();
-        return ResponseEntity.ok(
-                new WalletDTO(walletService.getWalletByUserId(userId))
-        );
+        Wallet wallet = walletService.getWalletByUserId(userId);
+        BigDecimal spendable = balanceService.getSpendableBalance(wallet.getWalletAddress());
+        return ResponseEntity.ok(new WalletDTO(wallet, spendable));
     }
 
     /**
@@ -81,8 +81,9 @@ public class WalletController {
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "limit", required = false) Integer limit) {
         Integer userId = getAuthenticatedUserId();
+        Wallet wallet = walletService.getWalletByUserId(userId);
         return ResponseEntity.ok(
-                transactionHistoryService.getUserTransactions(userId, page, limit)
+                transactionHistoryService.getUserTransactions(userId, wallet.getWalletAddress(), page, limit)
         );
     }
 

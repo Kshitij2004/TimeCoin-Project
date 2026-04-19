@@ -1,0 +1,5 @@
+$kind: http-request
+name: User One Mining Test
+url: ""
+method: GET
+order: 2136680122292911

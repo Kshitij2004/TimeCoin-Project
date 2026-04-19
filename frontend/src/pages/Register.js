@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api.js';
+import { registerUser } from '../services/api.js';
 import '../Login.css';
 
 function Register() {
@@ -19,26 +19,54 @@ function Register() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const validate = () => {
+        const { username, email, password, confirmPassword } = formData;
+
+        if (!username || !email || !password || !confirmPassword) {
+            return 'All fields are required.';
+        }
+
+        if (username.length < 3 || username.length > 20) {
+            return 'Username must be 3-20 characters long.';
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return 'Email must match standard format (e.g. user@example.com).';
+        }
+
+        if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+            return 'Password must be at least 8 characters and contain uppercase, lowercase, and a number.';
+        }
+
+        if (password !== confirmPassword) {
+            return 'Passwords do not match.';
+        }
+
+        return null;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match.');
+        const validationError = validate();
+        if (validationError) {
+            setError(validationError);
             return;
         }
 
         setLoading(true);
         try {
-            const response = await api.post('/auth/register', {
+            const data = await registerUser({
                 username: formData.username,
                 email: formData.email,
                 password: formData.password,
             });
 
             // 2FA is enabled by default — show QR code so user can set up authenticator
-            if (response.data.otpAuthUri) {
-                setOtpAuthUri(response.data.otpAuthUri);
+            if (data?.otpAuthUri) {
+                setOtpAuthUri(data.otpAuthUri);
             } else {
                 navigate('/login');
             }
@@ -117,7 +145,7 @@ function Register() {
         <div className="login-container-wrapper">
             <div className="login-container">
                 <form onSubmit={handleSubmit}>
-                    <h2>Create Account</h2>
+                    <h2>Register</h2>
 
                     {error && (
                         <div role="alert" style={{ color: '#ff4d4d', marginBottom: '15px', textAlign: 'center', fontSize: '14px' }}>
@@ -133,7 +161,6 @@ function Register() {
                             value={formData.username}
                             onChange={handleChange}
                             disabled={loading}
-                            required
                         />
                     </div>
 
@@ -145,7 +172,6 @@ function Register() {
                             value={formData.email}
                             onChange={handleChange}
                             disabled={loading}
-                            required
                         />
                     </div>
 
@@ -157,7 +183,6 @@ function Register() {
                             value={formData.password}
                             onChange={handleChange}
                             disabled={loading}
-                            required
                         />
                     </div>
 
@@ -169,12 +194,11 @@ function Register() {
                             value={formData.confirmPassword}
                             onChange={handleChange}
                             disabled={loading}
-                            required
                         />
                     </div>
 
                     <button type="submit" className="login-btn" disabled={loading}>
-                        {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+                        {loading ? 'REGISTERING...' : 'REGISTER'}
                     </button>
 
                     <div className="links">

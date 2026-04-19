@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import t_12.backend.entity.Coin;
 import t_12.backend.entity.PriceHistory;
@@ -46,6 +47,9 @@ class PriceEngineServiceTest {
         coin.setCurrentPrice(new BigDecimal("100.00"));
         coin.setCirculatingSupply(new BigDecimal("1000.00"));
         coin.setTotalSupply(new BigDecimal("1000000.00"));
+
+        // sensitivity is @Value-injected in production; wire it manually for unit tests
+        ReflectionTestUtils.setField(priceEngineService, "sensitivity", new BigDecimal("0.01"));
     }
 
     @Test
@@ -88,6 +92,8 @@ class PriceEngineServiceTest {
 
     @Test
     void recordSell_priceDoesNotDropBelowFloor() {
+        // force high sensitivity so clamping actually engages instead of the change rounding to zero
+        ReflectionTestUtils.setField(priceEngineService, "sensitivity", new BigDecimal("100"));
         coin.setCurrentPrice(new BigDecimal("0.02"));
         when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
 
@@ -98,6 +104,8 @@ class PriceEngineServiceTest {
 
     @Test
     void recordBuy_priceDoesNotExceedCeiling() {
+        // force high sensitivity so clamping actually engages instead of the change rounding to zero
+        ReflectionTestUtils.setField(priceEngineService, "sensitivity", new BigDecimal("100"));
         coin.setCurrentPrice(new BigDecimal("999999.99"));
         when(coinRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(coin));
 

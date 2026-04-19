@@ -12,6 +12,7 @@ import t_12.backend.entity.BlockTransaction;
  */
 @Repository
 public interface BlockTransactionRepository extends JpaRepository<BlockTransaction, Integer> {
+    List<BlockTransaction> findByBlockIdOrderByIdAsc(Integer blockId);
     List<BlockTransaction> findByBlockId(Integer blockId);
     List<BlockTransaction> findByTransactionId(Integer transactionId);
 }

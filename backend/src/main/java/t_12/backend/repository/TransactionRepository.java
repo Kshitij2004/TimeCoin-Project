@@ -19,45 +19,94 @@ import t_12.backend.entity.Transaction;
  */
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
+
     Optional<Transaction> findByTransactionHash(String transactionHash);
+
     List<Transaction> findBySenderAddress(String senderAddress);
+
     List<Transaction> findByReceiverAddress(String receiverAddress);
+
     List<Transaction> findByStatus(Transaction.Status status);
+
     List<Transaction> findByBlockId(Integer blockId);
+
     Page<Transaction> findByUserIdAndTransactionTypeInOrderByTimestampDescIdDesc(
             Integer userId,
             Collection<Transaction.TransactionType> transactionTypes,
             Pageable pageable
     );
+
     long countByUserIdAndTransactionTypeIn(
             Integer userId,
             Collection<Transaction.TransactionType> transactionTypes
     );
+
+    @Query("SELECT t FROM Transaction t WHERE "
+            + "(t.userId = :userId AND t.transactionType IN :purchaseTypes) "
+            + "OR (t.transactionType IN :onChainTypes AND "
+            + "    (t.receiverAddress = :walletAddress OR t.senderAddress = :walletAddress)) "
+            + "ORDER BY t.timestamp DESC, t.id DESC")
+    Page<Transaction> findWalletTransactions(
+            @Param("userId") Integer userId,
+            @Param("walletAddress") String walletAddress,
+            @Param("purchaseTypes") Collection<Transaction.TransactionType> purchaseTypes,
+            @Param("onChainTypes") Collection<Transaction.TransactionType> onChainTypes,
+            Pageable pageable
+    );
+
     List<Transaction> findBySenderAddressOrReceiverAddress(String senderAddress, String receiverAddress);
+
     boolean existsByTransactionHash(String transactionHash);
 
-    /** Sum of amounts received by this address in confirmed transactions */
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.receiverAddress = :address AND t.status = :status")
+    /**
+     * Sum of amounts received by this address in confirmed transactions
+     */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
+            + "WHERE t.receiverAddress = :address AND t.status = :status")
     BigDecimal sumAmountByReceiverAndStatus(@Param("address") String address,
-                                            @Param("status") Transaction.Status status);
+            @Param("status") Transaction.Status status);
 
-    /** Sum of amounts sent by this address in confirmed transactions */
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.senderAddress = :address AND t.status = :status")
+    /**
+     * Sum of amounts sent by this address in confirmed transactions
+     */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
+            + "WHERE t.senderAddress = :address AND t.status = :status")
     BigDecimal sumAmountBySenderAndStatus(@Param("address") String address,
-                                          @Param("status") Transaction.Status status);
+            @Param("status") Transaction.Status status);
 
-    /** Sum of fees paid by this address in confirmed transactions */
-    @Query("SELECT COALESCE(SUM(t.fee), 0) FROM Transaction t " +
-           "WHERE t.senderAddress = :address AND t.status = :status")
+    /**
+     * Sum of fees paid by this address in confirmed transactions
+     */
+    @Query("SELECT COALESCE(SUM(t.fee), 0) FROM Transaction t "
+            + "WHERE t.senderAddress = :address AND t.status = :status")
     BigDecimal sumFeesBySenderAndStatus(@Param("address") String address,
-                                        @Param("status") Transaction.Status status);
+            @Param("status") Transaction.Status status);
 
-    /** Sum of (amount + fee) for pending outgoing transactions from this address */
-    @Query("SELECT COALESCE(SUM(t.amount + t.fee), 0) FROM Transaction t " +
-           "WHERE t.senderAddress = :address AND t.status = 'PENDING'")
+    /**
+     * Sum of (amount + fee) for pending outgoing transactions from this address
+     */
+    @Query("SELECT COALESCE(SUM(t.amount + t.fee), 0) FROM Transaction t "
+            + "WHERE t.senderAddress = :address AND t.status = 'PENDING'")
     BigDecimal sumPendingOutgoingByAddress(@Param("address") String address);
+
+    // Total coinbase supply (for halving calculation)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
+            + "WHERE t.senderAddress IS NULL AND t.status = :status")
+    BigDecimal sumConfirmedCoinbaseSupply(@Param("status") Transaction.Status status);
+
+    // Stats per wallet: total mined amount
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
+            + "WHERE t.senderAddress IS NULL "
+            + "AND t.receiverAddress = :address AND t.status = :status")
+    BigDecimal sumConfirmedCoinbaseByReceiver(@Param("address") String address,
+            @Param("status") Transaction.Status status);
+
+    // Stats per wallet: total mined count
+    @Query("SELECT COUNT(t) FROM Transaction t "
+            + "WHERE t.senderAddress IS NULL "
+            + "AND t.receiverAddress = :address AND t.status = :status")
+    long countConfirmedCoinbaseByReceiver(@Param("address") String address,
+            @Param("status") Transaction.Status status);
 
     boolean existsBySenderAddressIsNullAndReceiverAddressAndAmountAndFeeAndNonceAndStatus(
             String receiverAddress,
@@ -75,6 +124,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
             Integer nonce,
             Transaction.Status status
     );
+
+    @Query("SELECT COALESCE(MAX(t.nonce), 0) FROM Transaction t " +
+           "WHERE t.senderAddress = :senderAddress AND t.status IN :statuses")
+    Integer findMaxNonceBySenderAddressAndStatuses(
+            @Param("senderAddress") String senderAddress,
+            @Param("statuses") Collection<Transaction.Status> statuses
+    );
+
+    long countBySenderAddressAndStatus(String senderAddress, Transaction.Status status);
 
     long countByStatus(Transaction.Status status);
 }

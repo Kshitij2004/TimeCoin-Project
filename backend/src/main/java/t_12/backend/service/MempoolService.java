@@ -2,10 +2,12 @@ package t_12.backend.service;
 
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import t_12.backend.entity.Transaction;
 import t_12.backend.exception.DuplicateResourceException;
+import t_12.backend.exception.InvalidNonceException;
 import t_12.backend.exception.ResourceNotFoundException;
 import t_12.backend.repository.TransactionRepository;
 
@@ -36,6 +38,10 @@ public class MempoolService {
                 transaction.getAmount(),
                 transaction.getFee()
         );
+        transactionValidationService.validateNonce(
+                transaction.getSenderAddress(),
+                transaction.getNonce()
+        );
 
         if (transaction.getTransactionHash() != null
                 && transactionRepository.existsByTransactionHash(transaction.getTransactionHash())) {
@@ -52,7 +58,12 @@ public class MempoolService {
 
         transaction.setStatus(Transaction.Status.PENDING);
         transaction.setBlockId(null);
-        return transactionRepository.save(transaction);
+        try {
+            return transactionRepository.save(transaction);
+        } catch (DataIntegrityViolationException ex) {
+            handleSaveConstraintViolation(transaction);
+            throw ex;
+        }
     }
 
     /**
@@ -108,5 +119,30 @@ public class MempoolService {
                         transaction.getNonce(),
                         Transaction.Status.PENDING
                 );
+    }
+
+    private void handleSaveConstraintViolation(Transaction transaction) {
+        if (transaction.getSenderAddress() != null) {
+            Integer latestNonce = transactionRepository.findMaxNonceBySenderAddressAndStatuses(
+                    transaction.getSenderAddress(),
+                    List.of(Transaction.Status.CONFIRMED, Transaction.Status.PENDING)
+            );
+            long expectedNonce = (latestNonce == null ? 0L : latestNonce.longValue()) + 1;
+            Integer providedNonce = transaction.getNonce();
+            if (providedNonce == null
+                    || providedNonce < 0
+                    || providedNonce.longValue() != expectedNonce) {
+                throw new InvalidNonceException(expectedNonce, providedNonce);
+            }
+        }
+
+        if (transaction.getTransactionHash() != null
+                && transactionRepository.existsByTransactionHash(transaction.getTransactionHash())) {
+            throw new DuplicateResourceException(
+                    "Transaction with this hash already exists: " + transaction.getTransactionHash()
+            );
+        }
+
+        throw new DuplicateResourceException("Transaction violates database uniqueness constraints.");
     }
 }

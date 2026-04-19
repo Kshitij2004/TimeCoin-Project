@@ -1,5 +1,6 @@
 package t_12.backend.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,6 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Inte
     List<PriceHistory> findAllByOrderByRecordedAtAsc();
 
     List<PriceHistory> findAllByOrderByRecordedAtDesc();
+
+    List<PriceHistory> findByRecordedAtAfterOrderByRecordedAtAsc(LocalDateTime since);
 }

@@ -15,6 +15,7 @@ import t_12.backend.entity.Block;
  */
 @Repository
 public interface BlockRepository extends JpaRepository<Block, Integer> {
+    List<Block> findAllByOrderByBlockHeightAsc();
     Optional<Block> findByBlockHeight(Integer blockHeight);
     Optional<Block> findByBlockHash(String blockHash);
     List<Block> findByStatus(Block.Status status);

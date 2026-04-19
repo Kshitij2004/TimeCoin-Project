@@ -35,7 +35,7 @@ export default function History({ pageSize = 10 }) {
       setError('');
 
       try {
-        const response = await api.get(`/transactions?page=${page}&limit=${pageSize}`, {
+        const response = await api.get(`/wallet/transactions?page=${page}&limit=${pageSize}`, {
           signal: controller.signal
         });
 

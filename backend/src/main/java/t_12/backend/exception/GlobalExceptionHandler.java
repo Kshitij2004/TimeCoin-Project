@@ -86,6 +86,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles nonce mismatches with structured expected/provided values.
+     *
+     * @param ex the thrown InvalidNonceException
+     * @return response with 400 status and nonce mismatch details
+     */
+    @ExceptionHandler(InvalidNonceException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidNonce(
+            InvalidNonceException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 400,
+                "error", "Bad Request",
+                "message", ex.getMessage(),
+                "expectedNonce", ex.getExpectedNonce(),
+                "providedNonce", ex.getProvidedNonce()
+        ));
+    }
+
+    /**
      * Handles forbidden access attempts, such as ownership violations.
      *
      * @param ex the caught ForbiddenException
@@ -115,5 +134,23 @@ public class GlobalExceptionHandler {
                 "status", 400,
                 "error", "Bad Request",
                 "message", ex.getMessage()));
+    }
+
+    /**
+     * Handles mining requests rejected due to an active cooldown period.
+     * retryAfter tells the client how many seconds to wait before retrying.
+     *
+     * @param ex the thrown CooldownException
+     * @return response with 429 status and retryAfter value
+     */
+    @ExceptionHandler(CooldownException.class)
+    public ResponseEntity<Map<String, Object>> handleCooldown(CooldownException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 429,
+                "error", "Too Many Requests",
+                "message", ex.getMessage(),
+                "retryAfter", ex.getRetryAfter()
+        ));
     }
 }

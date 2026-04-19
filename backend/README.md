@@ -236,6 +236,7 @@ GET http://localhost:8080/api/transactions?page=1&limit=10
 ### POST /api/transactions/transfer
 
 Submits a blockchain transfer. Valid transactions are enqueued in the mempool as `PENDING`.
+Nonce must equal the sender's next expected value (`max(sender nonce in CONFIRMED/PENDING) + 1`).
 
 **Headers:**
 ```text
@@ -254,6 +255,17 @@ Authorization: Bearer <jwt>
 ```
 
 **Response:** `201 Created` with a transaction entity whose `status` is `PENDING` and `blockId` is `null`.
+
+**Nonce mismatch response:** `400 Bad Request`
+```json
+{
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Invalid nonce: expected 2 but received 1.",
+    "expectedNonce": 2,
+    "providedNonce": 1
+}
+```
 
 ### GET /api/transactions/{hash}
 
@@ -387,7 +399,7 @@ Expected result: `200 OK` and the same transaction in `PENDING` state.
 
 Re-send the exact same `POST /api/transactions/transfer` payload from step 6.
 
-Expected result: `409 Conflict` because the same transaction cannot appear twice in `PENDING` state.
+Expected result: `400 Bad Request` with `expectedNonce` and `providedNonce` because nonce `1` is now stale once the first transfer is pending.
 
 9. New pending transfer check:
 

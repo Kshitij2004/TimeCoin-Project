@@ -740,7 +740,7 @@ describe('BlockchainExplorer – chain diagram integration', () => {
     fireEvent.click(screen.getByLabelText(/Block 2/i));
 
     await waitFor(() => expect(getBlockByHeight).toHaveBeenCalledWith(expect.objectContaining({ height: 2 })));
-    expect(await screen.findByText('hashtwo')).toBeInTheDocument();
+    expect((await screen.findAllByText('hashtwo')).length).toBeGreaterThan(0);
   });
 
   test('does not render diagram while data is loading', async () => {

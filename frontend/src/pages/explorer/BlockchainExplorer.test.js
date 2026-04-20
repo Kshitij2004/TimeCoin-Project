@@ -496,7 +496,7 @@ test('clear inspector resets detail state and removes hash/height query params',
 });
 
 
-// New tests for BlockChainDiagram component
+// Tests for BlockChainDiagram
 
 describe('BlockChainDiagram', () => {
   const baseBlocks = [
@@ -775,9 +775,9 @@ describe('BlockchainExplorer – chain diagram integration', () => {
 
     await screen.findByRole('region', { name: /Visual block chain diagram/i });
 
-    // Click Inspect scoped to the blocks table to avoid diagram node buttons
+    // Table has 3 rows each with Inspect; use getAllByRole and pick the first (block 1)
     const blocksTable = screen.getByRole('table', { name: /Recent blocks table/i });
-    fireEvent.click(within(blocksTable).getByRole('button', { name: 'Inspect' }));
+    fireEvent.click(within(blocksTable).getAllByRole('button', { name: 'Inspect' })[0]);
 
     await waitFor(() => expect(getBlockByHeight).toHaveBeenCalledWith(expect.objectContaining({ height: 1 })));
 

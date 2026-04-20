@@ -179,7 +179,7 @@ function LegendItem({ status, label }) {
   );
 }
 
-// Helpers
+// Helper
 
 function shortHash(hash) {
   if (!hash || typeof hash !== 'string') return '—';

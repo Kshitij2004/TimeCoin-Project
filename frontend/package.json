@@ -46,7 +46,8 @@
       "!src/pages/Register.js",
       "!src/pages/marketplace/CreateListing.js",
       "!src/pages/marketplace/ListingDetail.js",
-      "!src/pages/marketplace/Marketplace.js"
+      "!src/pages/marketplace/Marketplace.js",
+      "!src/pages/about/About.js"
     ],
     "coverageThreshold": {
       "global": {

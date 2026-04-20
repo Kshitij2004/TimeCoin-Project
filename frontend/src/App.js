@@ -12,6 +12,7 @@ import Marketplace from './pages/marketplace/Marketplace.js';
 import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/BlockchainExplorer.js';
+import About from './pages/about/About.js';
 
 // Marketplace specific pages
 import CreateListing from './pages/marketplace/CreateListing.js';
@@ -26,6 +27,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/login/verify" element={<LoginVerify />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/about" element={<About />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

@@ -1,0 +1,282 @@
+/* ── Layout ── */
+.about-page {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #101624 0%, #0e1320 100%);
+  color: #f0f4ff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Sidebar ── (matches Dashboard sidebar pattern) */
+.about-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #131b2c;
+  border-right: 1px solid #2f3b56;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.about-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f0f4ff;
+  letter-spacing: -0.02em;
+  margin-bottom: 32px;
+}
+
+.about-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.about-nav-link {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #8ea0c2;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.about-nav-link:hover {
+  background: #1a2438;
+  color: #e6ecff;
+}
+
+.about-nav-link--active {
+  background: #1f2e48;
+  color: #e6ecff;
+  font-weight: 500;
+}
+
+/* ── Main content ── */
+.about-main {
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 860px;
+}
+
+/* ── Hero ── */
+.about-hero {
+  margin-bottom: 48px;
+}
+
+.about-hero-eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #4b5f8a;
+  margin-bottom: 10px;
+}
+
+.about-hero-title {
+  font-size: 42px;
+  font-weight: 700;
+  color: #f0f4ff;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 14px;
+}
+
+.about-hero-sub {
+  font-size: 16px;
+  color: #8ea0c2;
+  line-height: 1.7;
+  max-width: 620px;
+  margin: 0 0 20px;
+}
+
+.about-repo-link {
+  font-size: 13px;
+  color: #578aff;
+  text-decoration: none;
+  border-bottom: 1px solid #578aff44;
+  padding-bottom: 1px;
+  transition: border-color 150ms;
+}
+
+.about-repo-link:hover {
+  border-color: #578aff;
+}
+
+/* ── Sections ── */
+.about-section {
+  margin-bottom: 44px;
+  padding-bottom: 44px;
+  border-bottom: 1px solid #1e2a3f;
+}
+
+.about-section--last {
+  border-bottom: none;
+}
+
+.about-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e6ecff;
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+
+.about-body {
+  font-size: 14px;
+  color: #8ea0c2;
+  line-height: 1.75;
+  margin: 0 0 12px;
+}
+
+/* ── How it works cards ── */
+.about-how-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.about-how-card {
+  background: #1a2132;
+  border: 1px solid #2f3b56;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.about-how-number {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: #4b5f8a;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.about-how-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e6ecff;
+  margin: 0 0 8px;
+}
+
+.about-how-body {
+  font-size: 13px;
+  color: #8ea0c2;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── Team cards ── */
+.about-team-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-team-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #1a2132;
+  border: 1px solid #2f3b56;
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.about-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #1f2e48;
+  border: 1px solid #2f3b56;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8ea0c2;
+  flex-shrink: 0;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.04em;
+}
+
+.about-team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.about-team-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e6ecff;
+}
+
+.about-team-role {
+  font-size: 12px;
+  color: #4b5f8a;
+}
+
+.about-team-email {
+  font-size: 12px;
+  color: #578aff;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 150ms;
+  width: fit-content;
+}
+
+.about-team-email:hover {
+  border-color: #578aff;
+}
+
+.about-avatar--photo {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #2f3b56;
+  flex-shrink: 0;
+}
+
+/* ── Repo button ── */
+.about-repo-btn {
+  display: inline-block;
+  margin-top: 12px;
+  border: 1px solid #4b5f8a;
+  background: #1f2a43;
+  color: #e6ecff;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.about-repo-btn:hover {
+  border-color: #78a1ff;
+  background: #243050;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .about-how-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .about-sidebar {
+    display: none;
+  }
+
+  .about-main {
+    padding: 24px 16px;
+  }
+
+  .about-hero-title {
+    font-size: 28px;
+  }
+}

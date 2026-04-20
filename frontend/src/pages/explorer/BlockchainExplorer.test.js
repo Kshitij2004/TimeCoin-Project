@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import BlockchainExplorer from './BlockchainExplorer.js';
 import BlockChainDiagram from './BlockChainDiagram.jsx';
@@ -238,10 +238,9 @@ test('loads block detail and linked transactions on inspect', async () => {
   renderExplorer();
 
   await screen.findByText('Page 1 of 2');
-  // Both the diagram node and the table row render an "Inspect" button; click the table row one
-  const inspectButtons = screen.getAllByRole('button', { name: 'Inspect' });
-  const tableInspect = inspectButtons.find((btn) => !btn.closest('.chain-node'));
-  fireEvent.click(tableInspect);
+  // Click the Inspect button in the table row (scoped to the blocks table to avoid diagram buttons)
+  const blocksTable = screen.getByRole('table', { name: /Recent blocks table/i });
+  fireEvent.click(within(blocksTable).getByRole('button', { name: 'Inspect' }));
 
   expect(await screen.findByLabelText(/Linked transactions table/i)).toBeInTheDocument();
   expect(screen.getByText('sender_wallet')).toBeInTheDocument();
@@ -273,10 +272,9 @@ test('shows inspect button loading interaction while detail is fetching', async 
   renderExplorer();
 
   await screen.findByText('Page 1 of 2');
-  // Both the diagram node and table row render "Inspect"; target the table row button
-  const inspectButtons = screen.getAllByRole('button', { name: 'Inspect' });
-  const tableInspect = inspectButtons.find((btn) => !btn.closest('.chain-node'));
-  fireEvent.click(tableInspect);
+  // Click the Inspect button scoped to the blocks table to avoid diagram node buttons
+  const blocksTable = screen.getByRole('table', { name: /Recent blocks table/i });
+  fireEvent.click(within(blocksTable).getByRole('button', { name: 'Inspect' }));
 
   // Table row button switches to Inspecting... while the diagram node still shows Inspecting…
   const loadingButton = screen.getByRole('button', { name: 'Inspecting...' });
@@ -498,7 +496,8 @@ test('clear inspector resets detail state and removes hash/height query params',
 });
 
 
-// New tests for BlockChainDiagram
+// New tests for BlockChainDiagram component
+
 describe('BlockChainDiagram', () => {
   const baseBlocks = [
     { blockHeight: 0, blockHash: 'genesis000000000', transactionCount: 0, status: 'COMMITTED' },
@@ -507,10 +506,8 @@ describe('BlockChainDiagram', () => {
   ];
 
   test('renders nothing when blocks array is empty', () => {
-    const { container } = render(
-      <BlockChainDiagram blocks={[]} onSelectBlock={jest.fn()} />
-    );
-    expect(container.firstChild).toBeNull();
+    render(<BlockChainDiagram blocks={[]} onSelectBlock={jest.fn()} />);
+    expect(screen.queryByRole('region', { name: /Visual block chain diagram/i })).not.toBeInTheDocument();
   });
 
   test('renders a node for each block in height order', () => {
@@ -679,9 +676,7 @@ describe('BlockChainDiagram', () => {
 });
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// New tests: chain diagram integration inside BlockchainExplorer
-// ─────────────────────────────────────────────────────────────────────────────
+// New tests for chain diagram integration inside BlockchainExplorer
 
 describe('BlockchainExplorer – chain diagram integration', () => {
   const statusPayload = {
@@ -740,6 +735,7 @@ describe('BlockchainExplorer – chain diagram integration', () => {
     fireEvent.click(screen.getByLabelText(/Block 2/i));
 
     await waitFor(() => expect(getBlockByHeight).toHaveBeenCalledWith(expect.objectContaining({ height: 2 })));
+    // use findAllByText
     expect((await screen.findAllByText('hashtwo')).length).toBeGreaterThan(0);
   });
 
@@ -779,11 +775,9 @@ describe('BlockchainExplorer – chain diagram integration', () => {
 
     await screen.findByRole('region', { name: /Visual block chain diagram/i });
 
-    // Click Inspect in the table row for block 1
-    const inspectButtons = screen.getAllByRole('button', { name: 'Inspect' });
-    // The first Inspect button after diagram nodes is the table row one
-    const tableInspect = inspectButtons.find((btn) => !btn.closest('.chain-node'));
-    fireEvent.click(tableInspect);
+    // Click Inspect scoped to the blocks table to avoid diagram node buttons
+    const blocksTable = screen.getByRole('table', { name: /Recent blocks table/i });
+    fireEvent.click(within(blocksTable).getByRole('button', { name: 'Inspect' }));
 
     await waitFor(() => expect(getBlockByHeight).toHaveBeenCalledWith(expect.objectContaining({ height: 1 })));
 

@@ -13,7 +13,7 @@ import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/explorer/BlockchainExplorer.js';
 import About from './pages/about/About.js';
-
+// Fixed merge conflicts
 // Marketplace specific pages
 import CreateListing from './pages/marketplace/CreateListing.js';
 import ListingDetail from './pages/marketplace/ListingDetail.js';
@@ -27,7 +27,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/login/verify" element={<LoginVerify />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/about" element={<About />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

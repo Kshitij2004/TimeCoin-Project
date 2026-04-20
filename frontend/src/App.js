@@ -11,7 +11,7 @@ import Dashboard from './pages/dashboard/Dashboard.js';
 import Marketplace from './pages/marketplace/Marketplace.js';
 import History from './pages/History.js';
 import Send from './pages/send/Send.js';
-import BlockchainExplorer from './pages/BlockchainExplorer.js';
+import BlockchainExplorer from './pages/explorer/BlockchainExplorer.js';
 import About from './pages/about/About.js';
 
 // Marketplace specific pages

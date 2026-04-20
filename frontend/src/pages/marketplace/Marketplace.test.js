@@ -86,14 +86,17 @@ describe("Marketplace — coin data display", () => {
 
   it("shows current price after loading", async () => {
     renderWithRouter(<Marketplace />);
-    // Adding timeout and ensuring we find the element by TestId
-    const priceElement = await screen.findByTestId("coin-price", {}, { timeout: 3000 });
-    expect(priceElement).toHaveTextContent("$10.00");
+    // wait for the loading placeholder to be replaced with the real price
+    await waitFor(() => {
+      expect(screen.getByTestId("coin-price")).toHaveTextContent("$10.00");
+    }, { timeout: 3000 });
   });
 
   it("shows balance/circulating supply", async () => {
     renderWithRouter(<Marketplace />);
-    expect(await screen.findByText(/500,000/, {}, { timeout: 3000 })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("circulating-supply")).toHaveTextContent("500,000");
+    }, { timeout: 3000 });
   });
 });
 
@@ -136,9 +139,9 @@ describe("Marketplace — successful purchase", () => {
     const input = await screen.findByTestId("amount-input", {}, { timeout: 3000 });
     await userEvent.type(input, "10");
     await userEvent.click(screen.getByTestId("buy-button"));
-    
+
     expect(await screen.findByTestId("status-message")).toHaveTextContent("Successfully purchased");
-    
+
     await waitFor(() => {
       expect(screen.getByTestId("amount-input")).toHaveValue(null);
     });

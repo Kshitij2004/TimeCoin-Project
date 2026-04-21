@@ -12,6 +12,7 @@ import Marketplace from './pages/marketplace/Marketplace.js';
 import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/explorer/BlockchainExplorer.js';
+import Mining from './pages/mining/Mining.js';
 
 // Marketplace specific pages
 import CreateListing from './pages/marketplace/CreateListing.js';
@@ -32,6 +33,11 @@ function App() {
           <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
 
+        {/* Mining Route */}
+        <Route path="/mining" element={
+          <ProtectedRoute><Mining /></ProtectedRoute>
+        } />
+
         {/* Marketplace Routes */}
         <Route path="/marketplace" element={
           <ProtectedRoute><Marketplace /></ProtectedRoute>
@@ -42,7 +48,7 @@ function App() {
           <ProtectedRoute><CreateListing /></ProtectedRoute>
         } />
 
-        {/* Dynamic Route for viewing/buying a specific listing (Issue Requirement) */}
+        {/* Dynamic Route for viewing/buying a specific listing */}
         <Route path="/marketplace/:id" element={
           <ProtectedRoute><ListingDetail /></ProtectedRoute>
         } />
@@ -50,9 +56,11 @@ function App() {
         <Route path="/send" element={
           <ProtectedRoute><Send /></ProtectedRoute>
         } />
+        
         <Route path="/history" element={
           <ProtectedRoute><History /></ProtectedRoute>
         } />
+        
         <Route path="/blockchain" element={
           <ProtectedRoute><BlockchainExplorer /></ProtectedRoute>
         } />

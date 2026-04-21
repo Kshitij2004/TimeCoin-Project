@@ -1,0 +1,116 @@
+/* Container matches the padding and background of your dashboard */
+.mining-page {
+  padding: 2rem;
+  color: #f8fafc;
+  background-color: #0f172a; /* Dark background */
+  min-height: 100vh;
+}
+
+.mining-header {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+/* Wallet address bar style from your image */
+.wallet-info-bar {
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+/* Stats Grid - matching your 4-column top row */
+.mining-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.stat-label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Main Mining Section */
+.mining-main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.mining-card {
+  background: #161e2e; /* Slightly darker card background */
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* The "Mine" Button - Styled like your 'Unstake' button but larger */
+.mine-action-button {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: none;
+  background: #d97706; /* The gold/orange from your Unstake button */
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 40px rgba(217, 119, 6, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mine-action-button:hover:not(:disabled) {
+  transform: scale(1.05);
+  background: #f59e0b;
+  box-shadow: 0 0 60px rgba(217, 119, 6, 0.4);
+}
+
+.mine-action-button:active {
+  transform: scale(0.95);
+}
+
+.mine-action-button:disabled {
+  background: #334155;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cooldown-text {
+  font-size: 0.875rem;
+  margin-top: 10px;
+  font-weight: 400;
+}

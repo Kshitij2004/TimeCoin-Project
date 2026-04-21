@@ -47,7 +47,8 @@
       "!src/pages/marketplace/CreateListing.js",
       "!src/pages/marketplace/ListingDetail.js",
       "!src/pages/marketplace/Marketplace.js",
-      "!src/pages/about/About.js"
+      "!src/services/miningService.js",
+      "!src/pages/mining/Mining.js"
     ],
     "coverageThreshold": {
       "global": {

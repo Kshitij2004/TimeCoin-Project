@@ -12,6 +12,7 @@ import Marketplace from './pages/marketplace/Marketplace.js';
 import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/explorer/BlockchainExplorer.js';
+import Mining from './pages/mining/Mining.js';
 import ErrorPage from './pages/ErrorPage.js';
 
 // Marketplace specific pages

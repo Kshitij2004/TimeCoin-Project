@@ -55,9 +55,9 @@ CREATE INDEX idx_blocks_validator ON blocks(validator_address);
 -- sender_address is nullable for BUY/coinbase transactions (coins drawn from supply).
 -- receiver_address is nullable for SELL transactions (coins returned to supply).
 CREATE TABLE IF NOT EXISTS transactions (
-                                            id INT AUTO_INCREMENT PRIMARY KEY,
-                                            sender_address VARCHAR(128),
-    receiver_address VARCHAR(128),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_address VARCHAR(128),                                -- null for BUY/coinbase
+    receiver_address VARCHAR(128),                              -- null for SELL (returned to supply)
     amount DECIMAL(18, 8) NOT NULL,
     user_id INT DEFAULT NULL,
     symbol VARCHAR(10) DEFAULT NULL,

@@ -17,6 +17,7 @@ import ErrorPage from './pages/ErrorPage.js';
 
 // Marketplace specific pages
 import CreateListing from './pages/marketplace/CreateListing.js';
+import EditListing from './pages/marketplace/EditListing.js';
 import ListingDetail from './pages/marketplace/ListingDetail.js';
 
 function App() {
@@ -48,6 +49,11 @@ function App() {
         {/* Route for creating a new listing */}
         <Route path="/marketplace/new" element={
           <ProtectedRoute><CreateListing /></ProtectedRoute>
+        } />
+
+        {/* Route for editing an owned listing */}
+        <Route path="/marketplace/:id/edit" element={
+          <ProtectedRoute><EditListing /></ProtectedRoute>
         } />
 
         {/* Dynamic Route for viewing/buying a specific listing */}

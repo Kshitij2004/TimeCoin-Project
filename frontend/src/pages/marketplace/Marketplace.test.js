@@ -53,7 +53,11 @@ describe("Marketplace — page renders", () => {
 
   it("shows the Marketplace heading", async () => {
     renderWithRouter(<Marketplace />);
-    expect(await screen.findByText("Marketplace")).toBeInTheDocument();
+    // Match the <h1> specifically — the sidebar also has a "Marketplace" link
+    // so plain findByText would be ambiguous.
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Marketplace" })
+    ).toBeInTheDocument();
   });
 
   it("shows the buy form", async () => {

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.js';
 
 // Import pages from the /pages folder
-import Landing from './pages/Landing.js';
 import Login from './pages/Login.js';
 import LoginVerify from './pages/LoginVerify.js';
 import Register from './pages/Register.js';

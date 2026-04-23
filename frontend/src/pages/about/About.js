@@ -78,6 +78,7 @@ export default function About() {
           <Link to="/marketplace" className="about-nav-link">Marketplace</Link>
           <Link to="/history"     className="about-nav-link">Detailed Wallet</Link>
           <Link to="/about"       className="about-nav-link about-nav-link--active">About</Link>
+          <Link to="/login"       className="about-nav-link">Log In</Link>
         </nav>
       </aside>
 

@@ -76,10 +76,9 @@ public class PurchaseService {
             throw new ApiException(HttpStatus.CONFLICT, "Insufficient circulating supply");
         }
 
-        coin.setCirculatingSupply(coin.getCirculatingSupply().subtract(amount));
-        coin.setUpdatedAt(LocalDateTime.now());
-        coinRepository.save(coin);
-
+        // Circulating supply represents the total TC in the market and is not
+        // changed by trades — buying and selling only transfer coin between
+        // users and the market maker, they don't mint or burn.
         BigDecimal totalUsd = coin.getCurrentPrice()
                 .multiply(amount)
                 .setScale(2, RoundingMode.HALF_UP);
@@ -135,10 +134,8 @@ public class PurchaseService {
                     "Insufficient balance: available " + available + ", requested " + amount);
         }
 
-        coin.setCirculatingSupply(coin.getCirculatingSupply().add(amount));
-        coin.setUpdatedAt(LocalDateTime.now());
-        coinRepository.save(coin);
-
+        // Circulating supply is unchanged on sells for the same reason as buys:
+        // coin moves between the user and the market, not into or out of existence.
         BigDecimal totalUsd = coin.getCurrentPrice()
                 .multiply(amount)
                 .setScale(2, RoundingMode.HALF_UP);

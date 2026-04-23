@@ -99,7 +99,9 @@ class PurchaseServiceTest {
         assertEquals(new BigDecimal("1.25"), response.getTransaction().getAmount());
         // optimistic balance: ledger shows 0.00, plus this purchase of 1.25 → 1.25
         assertEquals(new BigDecimal("1.25"), response.getWallet().getCoinBalance());
-        assertEquals(new BigDecimal("98.75"), coin.getCirculatingSupply());
+        // Circulating supply is unchanged by trades — trading only moves coin,
+        // it doesn't mint or burn.
+        assertEquals(new BigDecimal("100.00"), coin.getCirculatingSupply());
 
         assertEquals(BigDecimal.ZERO, wallet.getCoinBalance());
         verify(walletRepository, never()).save(wallet);
@@ -236,7 +238,8 @@ class PurchaseServiceTest {
         assertEquals(new BigDecimal("1.25"), response.getTransaction().getAmount());
         // optimistic balance: 10.00 - 1.25 = 8.75
         assertEquals(new BigDecimal("8.75"), response.getWallet().getCoinBalance());
-        assertEquals(new BigDecimal("101.25"), coin.getCirculatingSupply());
+        // Circulating supply is unchanged by trades.
+        assertEquals(new BigDecimal("100.00"), coin.getCirculatingSupply());
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(mempoolService).enqueueValidatedTransaction(captor.capture());

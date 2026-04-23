@@ -26,7 +26,7 @@ function App() {
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<About />} />
         <Route path="/error" element={<ErrorPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/login/verify" element={<LoginVerify />} />

@@ -1,12 +1,68 @@
-/* page layout */
+/* page layout — sidebar + main content */
 .marketplace-page {
+  display: flex;
+  align-items: stretch;
+  background: radial-gradient(circle at 20% 20%, #000c1f 0%, #00060f 55%, #000208 100%);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* main content region holds the existing card */
+.marketplace-main {
+  flex: 1;
   padding: 24px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background: radial-gradient(circle at 20% 20%, #000c1f 0%, #00060f 55%, #000208 100%);
-  min-height: 100vh;
-  box-sizing: border-box;
+  min-width: 0; /* allows children to shrink instead of overflowing */
+}
+
+/* sidebar — scoped to the marketplace page so Dashboard styles don't leak in */
+.marketplace-page .sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #1e2433;
+  border-right: 1px solid #323b4e;
+  padding: 30px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.marketplace-page .sidebar .logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #5bc0eb;
+  padding: 0 24px 30px;
+}
+
+.marketplace-page .nav-links {
+  display: flex;
+  flex-direction: column;
+}
+
+.marketplace-page .nav-link {
+  padding: 12px 24px;
+  color: #8b95a5;
+  text-decoration: none;
+  font-size: 15px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.marketplace-page .nav-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.marketplace-page .nav-link.active {
+  color: #5bc0eb;
+  background: rgba(91, 192, 235, 0.08);
+  border-left: 3px solid #5bc0eb;
+  padding-left: 21px;
+}
+
+.marketplace-page .logout-btn {
+  margin-top: auto;
+  color: #e74c3c !important;
 }
 
 /* card container */
@@ -200,6 +256,49 @@
   border: 1px solid #ef4444;
 }
 
+/* ownership filter tabs */
+.ownership-filter {
+  display: inline-flex;
+  gap: 4px;
+  background: rgba(14, 27, 52, 0.75);
+  border: 1px solid rgba(108, 149, 201, 0.25);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.ownership-tab {
+  border: none;
+  background: transparent;
+  color: #9ab6d6;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ownership-tab:hover:not(:disabled) {
+  color: #cdeeff;
+  background: rgba(75, 185, 233, 0.1);
+}
+
+.ownership-tab-active {
+  background: #4bb9e9;
+  color: #0a1128;
+}
+
+.ownership-tab-active:hover {
+  background: #4bb9e9 !important;
+  color: #0a1128 !important;
+}
+
+.ownership-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* listing cards */
 .listing-card {
   background: rgba(14, 27, 52, 0.75);
@@ -218,6 +317,135 @@
 
 .listing-card-sold {
   opacity: 0.5;
+}
+
+.listing-card-mine {
+  border-color: rgba(243, 156, 18, 0.55);
+}
+
+.listing-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.listing-status-mine {
+  color: #f39c12;
+  background: rgba(243, 156, 18, 0.15);
+  border: 1px solid #f39c12;
+}
+
+.listing-owner-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.listing-edit-btn,
+.listing-remove-btn {
+  flex: 1;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.listing-edit-btn {
+  border: 1px solid rgba(75, 185, 233, 0.6);
+  color: #cdeeff;
+}
+
+.listing-edit-btn:hover:not(:disabled) {
+  background: #4bb9e9;
+  color: #0a1128;
+}
+
+.listing-remove-btn {
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #fecaca;
+}
+
+.listing-remove-btn:hover:not(:disabled) {
+  background: #ef4444;
+  color: #0a1128;
+}
+
+.listing-edit-btn:disabled,
+.listing-remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* listing thumbnail on cards */
+.listing-thumb {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: rgba(23, 47, 84, 0.6);
+}
+
+/* image preview inside create/edit forms */
+.listing-image-preview {
+  margin-top: 10px;
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  border: 1px solid rgba(108, 149, 201, 0.25);
+  object-fit: cover;
+}
+
+/* full image on the detail page */
+.listing-detail-image {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  background: rgba(23, 47, 84, 0.6);
+}
+
+/* price-range inputs */
+.price-range-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #80cff2;
+  margin-right: 4px;
+}
+
+.price-range-input {
+  width: 110px;
+  flex: 0 0 auto;
+}
+
+/* clear-filters button */
+.clear-filters-btn {
+  background: transparent;
+  border: 1px solid rgba(108, 149, 201, 0.5);
+  color: #9ab6d6;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.clear-filters-btn:hover:not(:disabled) {
+  border-color: #4bb9e9;
+  color: #cdeeff;
+  background: rgba(75, 185, 233, 0.1);
+}
+
+.clear-filters-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .listing-title {
@@ -282,6 +510,21 @@
 /* responsive */
 @media (max-width: 768px) {
   .marketplace-page {
+    flex-direction: column;
+  }
+
+  .marketplace-page .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #323b4e;
+    padding: 16px 0;
+  }
+
+  .marketplace-page .sidebar .logo {
+    padding: 0 16px 12px;
+  }
+
+  .marketplace-main {
     padding: 12px;
   }
 

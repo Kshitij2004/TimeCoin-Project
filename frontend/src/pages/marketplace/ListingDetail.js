@@ -75,6 +75,14 @@ export default function ListingDetail() {
         </header>
 
         <div style={{ marginTop: "20px" }}>
+          {listing.imageUrl && (
+            <img
+              src={listing.imageUrl}
+              alt={listing.title}
+              className="listing-detail-image"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          )}
           <p style={{ fontSize: "1.1rem", lineHeight: "1.6", color: "#c2d6ef" }}>
             {listing.description}
           </p>

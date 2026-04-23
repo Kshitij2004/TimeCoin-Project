@@ -11,6 +11,7 @@ export default function CreateListing() {
     description: "",
     price: "",
     category: "Goods",
+    imageUrl: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -55,6 +56,7 @@ export default function CreateListing() {
         description: trimmedDesc,
         price: priceNum,
         category: formData.category,
+        imageUrl: formData.imageUrl.trim() || null,
       });
 
       const newListingId = response.data?.id;
@@ -147,6 +149,29 @@ export default function CreateListing() {
               <option value="Goods">Goods</option>
               <option value="Services">Services</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="imageUrl">Image URL (optional)</label>
+            <input
+              id="imageUrl"
+              name="imageUrl"
+              type="url"
+              className="amount-input"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              placeholder="https://example.com/photo.jpg"
+              disabled={loading}
+            />
+            {formData.imageUrl && (
+              <img
+                src={formData.imageUrl}
+                alt="Listing preview"
+                className="listing-image-preview"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+              />
+            )}
           </div>
 
           <div className="create-listing-actions">

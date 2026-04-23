@@ -1,0 +1,94 @@
+.error-page-wrapper {
+    background-color: #121620;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.error-page-card {
+    background-color: #1e2433;
+    padding: 48px 40px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    border: 1px solid #5bc0eb;
+    box-shadow: 0 0 24px rgba(91, 192, 235, 0.15);
+    text-align: center;
+}
+
+.error-status-code {
+    font-size: 80px;
+    font-weight: 700;
+    color: #5bc0eb;
+    line-height: 1;
+    margin-bottom: 16px;
+    letter-spacing: -2px;
+}
+
+.error-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 12px;
+}
+
+.error-detail {
+    font-size: 15px;
+    color: #8b95a5;
+    margin: 0 0 8px;
+    line-height: 1.6;
+}
+
+.error-retry-after {
+    font-size: 14px;
+    color: #8b95a5;
+    margin: 0 0 24px;
+}
+
+.error-retry-after strong {
+    color: #5bc0eb;
+}
+
+.error-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 32px;
+}
+
+.error-btn {
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.error-btn:active {
+    transform: scale(0.98);
+}
+
+.error-btn-primary {
+    background-color: #5bc0eb;
+    color: #121620;
+}
+
+.error-btn-primary:hover {
+    background-color: #4ba8cf;
+}
+
+.error-btn-secondary {
+    background-color: transparent;
+    color: #5bc0eb;
+    border: 1px solid #5bc0eb;
+}
+
+.error-btn-secondary:hover {
+    background-color: rgba(91, 192, 235, 0.1);
+}

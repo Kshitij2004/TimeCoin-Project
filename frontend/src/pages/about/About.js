@@ -23,7 +23,7 @@ const TEAM_MEMBERS = [
   {
     name:  'Dominick Weston',
     role:  'Product Owner 2 - Backend Developer',
-    email: 'dweston@wisc.edu',
+    email: 'dsweston@wisc.edu',
     photo: null,
   },
   {

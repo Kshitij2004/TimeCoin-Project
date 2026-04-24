@@ -1,69 +1,47 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api.js'; 
-import { mineCoin, fetchMiningStats } from '../../services/miningService.js';
+import { mineCoin } from '../../services/miningService.js';
 import './Mining.css';
+
+// Sync interval with Dashboard.js (30 seconds)
+const REFRESH_INTERVAL_MS = 30_000;
 
 const Mining = () => {
     const [userWalletAddress, setUserWalletAddress] = useState(null);
-    const [stats, setStats] = useState({
-        totalCoinsMined: 0,
-        totalMineCount: 0,
-        secondsRemaining: 0
-    });
+    const [balance, setBalance] = useState(null); 
+    const [sessionClicks, setSessionClicks] = useState(0); // "Mines This Session"
     
     const [cooldown, setCooldown] = useState(0);
     const [isMining, setIsMining] = useState(false);
     const [error, setError] = useState(null);
 
-    // 1. Fetch Wallet Info (Same as Dashboard)
+    // Syncs Ledger balance with the backend to ensure data consistency
     const fetchWalletInfo = useCallback(async () => {
         try {
             const res = await api.get("/wallet/balance");
             if (res.data?.walletAddress) {
                 setUserWalletAddress(res.data.walletAddress);
+                setBalance(res.data); 
             }
         } catch (err) {
-            setError("Could not sync wallet info.");
+            setError("Wallet sync paused.");
         }
     }, []);
 
-    // 2. Fetch Stats with Defensive Merging
-    const loadMiningData = useCallback(async (address) => {
-        if (!address) return;
-        try {
-            const res = await fetchMiningStats(address);
-            
-            // DEBUG: Open your browser console to see the real data structure!
-            console.log("Backend Stats Response:", res.data);
-
-            // Use functional update to merge data safely
-            setStats(prev => ({
-                ...prev,
-                // Fallback to previous values if backend fields are missing
-                totalCoinsMined: res.data?.totalCoinsMined ?? prev.totalCoinsMined,
-                totalMineCount: res.data?.totalMineCount ?? prev.totalMineCount,
-            }));
-
-            if (res.data?.secondsRemaining !== undefined) {
-                setCooldown(res.data.secondsRemaining);
-            }
-        } catch (err) {
-            console.error("Mining stats failed:", err);
-        }
-    }, []);
-
+    // Initial data load on component mount
     useEffect(() => {
         fetchWalletInfo();
     }, [fetchWalletInfo]);
 
+    // Persistent Heartbeat: Keeps the Ledger card updated
     useEffect(() => {
         if (userWalletAddress) {
-            loadMiningData(userWalletAddress);
-            const interval = setInterval(() => loadMiningData(userWalletAddress), 15000);
+            const interval = setInterval(fetchWalletInfo, REFRESH_INTERVAL_MS);
             return () => clearInterval(interval);
         }
-    }, [userWalletAddress, loadMiningData]);
+    }, [userWalletAddress, fetchWalletInfo]);
 
+    // Cooldown Timer Logic for UI feedback
     useEffect(() => {
         if (cooldown > 0) {
             const timer = setInterval(() => setCooldown(q => (q > 0 ? q - 1 : 0)), 1000);
@@ -74,74 +52,108 @@ const Mining = () => {
     const handleMine = async () => {
         if (cooldown > 0 || isMining || !userWalletAddress) return;
         setIsMining(true);
+        setError(null);
         try {
             await mineCoin();
-            setStats(prev => ({ ...prev, totalMineCount: prev.totalMineCount + 1 }));
-            setCooldown(5); 
+            
+            // Success Logic: Increment local session count and set cooldown
+            setSessionClicks(prev => prev + 1); 
+            setCooldown(10); 
+            fetchWalletInfo(); // Update Ledger immediately after a successful mint
         } catch (err) {
-            setError("Mining failed. Check connection.");
+            setError("Minting failed. Check connection.");
         } finally {
             setIsMining(false);
         }
     };
 
     return (
-        <div className="mining-page">
-            <h1 className="mining-header">Mining Center</h1>
+        <div className="mining-container">
+            <header className="header" style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h1>Mining Center</h1>
+                <div className="wallet-address-bar" style={{ opacity: 0.8, marginTop: '10px' }}>
+                    <span>Active: </span>
+                    <code style={{ color: 'var(--accent-blue)', marginLeft: '10px' }}>
+                        {userWalletAddress || 'Connecting...'}
+                    </code>
+                </div>
+            </header>
 
-            <div className="wallet-info-bar">
-                <span>Active Wallet: <span className="address-text">{userWalletAddress || 'Fetching...'}</span></span>
-                <span className="status-badge">{userWalletAddress ? 'CONNECTED' : 'SYNCING'}</span>
-            </div>
-
-            <div className="mining-stats-grid">
-                <div className="stat-card">
-                    <p className="stat-label">Total Mined (Ledger)</p>
-                    <p className="stat-value">
-                        {/* Defensive check: Convert to Number and fallback to 0 before toFixed */}
-                        {Number(stats?.totalCoinsMined || 0).toFixed(4)} TC
-                    </p>
-                </div>
-                <div className="stat-card">
-                    <p className="stat-label">Mining Sessions</p>
-                    <p className="stat-value">{stats?.totalMineCount || 0}</p>
-                </div>
-                <div className="stat-card">
-                    <p className="stat-label">Est. Next Reward</p>
-                    <p className="stat-value reward-text">+0.50 TC</p>
-                </div>
-                <div className="stat-card">
-                    <p className="stat-label">System Status</p>
-                    <p className="stat-value status-active">OPERATIONAL</p>
-                </div>
-            </div>
-
-            <div className="mining-main-content">
-                <div className="mining-card action-container">
-                    <div className={`button-glow ${cooldown > 0 ? 'off' : 'on'}`}></div>
-                    <button 
-                        className={`mine-action-button ${cooldown > 0 ? 'disabled' : ''} ${isMining ? 'mining-pulse' : ''}`}
-                        onClick={handleMine}
-                        disabled={cooldown > 0 || isMining || !userWalletAddress}
-                    >
-                        {isMining ? "MINING..." : cooldown > 0 ? `${cooldown}s` : "MINE TIME"}
-                    </button>
-                    {error && <p className="error-message">{error}</p>}
-                </div>
-
-                <div className="mining-card history-container">
-                    <h3 className="card-title">Mining Log</h3>
-                    <div className="log-list">
-                        <div className="log-item">
-                            <span className="log-status confirmed">●</span>
-                            <span className="log-text">Backend communication established</span>
-                        </div>
-                        <div className="log-item">
-                            <span className="log-status pending">●</span>
-                            <span className="log-text">Aggregation scheduler active</span>
-                        </div>
+            {/* Persistence Ledger and Session Counter Cards */}
+            <div className="stats-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '20px',
+                maxWidth: '800px',
+                margin: '0 auto'
+            }}>
+                <div className="stat-card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                    <h3>Total Ledger Balance</h3>
+                    <div className="value">
+                        {balance ? Number(balance.total).toFixed(4) : "0.0000"} <span style={{ fontSize: '1rem' }}>TC</span>
                     </div>
                 </div>
+                <div className="stat-card" style={{ borderLeft: '4px solid #f39c12' }}>
+                    <h3>Mines This Session</h3>
+                    <div className="value">{sessionClicks}</div>
+                </div>
+            </div>
+
+            {/* Centralized Action Card with visual feedback */}
+            <div className="mining-card" style={{ 
+                marginTop: '40px', 
+                padding: '80px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 100%)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                borderRadius: '12px',
+                maxWidth: '800px',
+                margin: '40px auto',
+                position: 'relative'
+            }}>
+                <div className={`button-glow ${cooldown > 0 ? 'off' : 'on'}`} style={{
+                    width: '220px',
+                    height: '220px',
+                    position: 'absolute',
+                    borderRadius: '50%',
+                    background: cooldown > 0 ? 'transparent' : 'rgba(52, 152, 219, 0.2)',
+                    filter: 'blur(30px)',
+                    transition: '0.5s'
+                }}></div>
+                
+                <button 
+                    className={`mine-action-button ${cooldown > 0 ? 'disabled' : ''} ${isMining ? 'mining-pulse' : ''}`}
+                    onClick={handleMine}
+                    disabled={cooldown > 0 || isMining || !userWalletAddress}
+                    style={{
+                        width: '200px',
+                        height: '200px',
+                        borderRadius: '50%',
+                        border: 'none',
+                        background: cooldown > 0 ? '#2c3e50' : 'var(--accent-blue)',
+                        color: 'white',
+                        fontSize: '1.4rem',
+                        fontWeight: '800',
+                        cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
+                        zIndex: 2,
+                        boxShadow: cooldown > 0 ? 'none' : '0 10px 25px rgba(52, 152, 219, 0.4)',
+                        transition: 'all 0.3s ease'
+                    }}
+                >
+                    {isMining ? "MINTING..." : cooldown > 0 ? `${cooldown}s` : "MINT TIME"}
+                </button>
+
+                {error && (
+                    <p style={{ color: '#e74c3c', marginTop: '25px', fontWeight: '500' }}>
+                        {error}
+                    </p>
+                )}
+                
+                <p style={{ marginTop: '30px', opacity: 0.4, fontSize: '0.9rem' }}>
+                    Click to secure the next block and update the ledger.
+                </p>
             </div>
         </div>
     );

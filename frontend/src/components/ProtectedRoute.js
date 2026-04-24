@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children }) => {
     if (!token) {
         // Redirect unauthenticated users to login, but save the 
         // location they were trying to go to so we can send them back after login.
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        return <Navigate to="/about" state={{ from: location }} replace />;
     }
 
     return children;

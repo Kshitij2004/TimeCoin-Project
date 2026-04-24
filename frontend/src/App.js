@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.js';
 
 // Import pages from the /pages folder
-import Landing from './pages/Landing.js';
 import Login from './pages/Login.js';
 import LoginVerify from './pages/LoginVerify.js';
 import Register from './pages/Register.js';
@@ -13,6 +12,7 @@ import History from './pages/History.js';
 import Send from './pages/send/Send.js';
 import BlockchainExplorer from './pages/explorer/BlockchainExplorer.js';
 import Mining from './pages/mining/Mining.js';
+import About from './pages/about/About.js';
 import ErrorPage from './pages/ErrorPage.js';
 
 // Marketplace specific pages
@@ -25,11 +25,12 @@ function App() {
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<About />} />
         <Route path="/error" element={<ErrorPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/login/verify" element={<LoginVerify />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/about" element={<About />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

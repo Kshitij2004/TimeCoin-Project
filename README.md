@@ -1,4 +1,4 @@
-![CI](https://github.com/Kshitij2004/timecoin/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Kshitij2004/TimeCoin-Project/actions/workflows/ci.yml/badge.svg)
 
 # Specification Document
 

@@ -1,3 +1,5 @@
+![CI](https://github.com/Kshitij2004/timecoin/actions/workflows/ci.yml/badge.svg)
+
 # Specification Document
 
 Please fill out this document to reflect your team's project. This is a living document and will need to be updated regularly. You may also remove any section to its own document (e.g. a separate standards and conventions document), however you must keep the header and provide a link to that other document under the header.
